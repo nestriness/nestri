@@ -6,6 +6,7 @@ on:
     pull_request:
         paths:
             - "server.Dockerfile"
+            - ".scripts/**"
             - ".github/workflows/server.yml"
     schedule:
         - cron: 0 0 * * * # At the end of everyday
@@ -13,6 +14,7 @@ on:
         branches: [main]
         paths:
             - "server.Dockerfile"
+            - ".scripts/**"
             - ".github/workflows/server.yml"
         tags:
             - v*.*.*
