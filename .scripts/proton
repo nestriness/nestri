@@ -1,0 +1,358 @@
+#!/bin/bash
+# Version 0.0.1
+
+#Big thanks to github/@noabody
+#For his wmstart script https://github.com/noabody/unibuild/blob/master/data/wstart
+
+#Dependencies: git, jq, curl, vulkan & wget
+
+# top level linux steam dir
+pntop="$HOME/.steam"
+# steamapps subdir
+pnapp="$pntop/steam/steamapps"
+# proton subdir normally under top/app
+pnbin="$pnapp/common"
+# proton prefix subdir normally under top/app
+pnpfx="$pnapp/compatdata"
+# proton ge
+pnpge="$pntop/root/compatibilitytools.d"
+# Program Files standard subdir
+progs="drive_c/Program Files"
+# windows steam client subdir under progs
+stcmn="Steam/steamapps/common"
+# temp folder
+temp="$HOME/Downloads"
+
+# store cmdline args minus first option
+clprm=("${@:2}")
+
+xcmd=()
+i_mnus=()
+myprnt=()
+i_syms=()
+# scalable built-in programs menu
+pmenu=("Command Prompt/wineconsole.exe" "Control Panel/control.exe" "Registry Editor/regedit.exe" "Task Manager/taskmgr.exe" "Windows Explorer/explorer.exe" "Wine Configuration/winecfg.exe")
+# prevent shell inheritance of env vars we use
+unset WINEARCH WINEDLLPATH WINEPREFIX STEAM_COMPAT_CLIENT_INSTALL_PATH STEAM_COMPAT_DATA_PATH
+
+xarg="$1"
+
+xnint() {
+    xnbin="$pnbin"
+    xnpfx="$pnpfx"
+    dpth=(4 3)
+}
+
+xpge() {
+    test -d "$pnpge" || mkdir -p "$pnpge"
+    test -d "$pnbin" || mkdir -p "$pnbin"
+
+    if [[ ! -d "$(dirname "$pnpge")" ]]; then
+        echo -e "Could not create folder 'compatibilitytools.d/protonge' in:\n  $(dirname "$pnpge")\n because that path does not exist.\nVerify script variable 'pnpge'"
+    elif [[ ! -d "$pnbin" ]]; then
+        echo -e "Could not create sym-link 'protonge' in:\n  $pnbin\n because that path does not exist.\nVerify script variable 'pnbin'"
+    else
+        gedl="$(curl -sL https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest | jq -r ".tag_name")"
+        #  gedl="$(gh release list -R GloriousEggroll/proton-ge-custom -L 1 | grep -Pio '^ge[^ ]+')"
+        gever="$(echo "$gedl" | grep -Pio '(?<=ge-proton).*')"
+        if [[ -f "$pnpge/protonge/version" ]]; then
+            if [[ -z "$(grep -Pio "$gever" "$pnpge/protonge/version")" ]]; then
+                echo -e "Available Proton GE $gever differs from installed, updating...\n"
+                chse=y
+            else
+                echo -e "Available Proton GE $gever matches installed, nothing to do.\n"
+            fi
+        else
+            echo -e "Proton GE not found, installing...\n"
+            chse=y
+        fi
+    fi
+    if [[ -n "$chse" ]]; then
+        wget "$(curl -s https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest | grep browser_download_url | cut -d\" -f4 | grep .tar.gz)" -P "$temp"/
+
+        rm -rf "$pnpge/protonge"
+        tar -xf "$temp/$gedl".tar.gz -C "$pnpge/"
+        mv "$pnpge"/*roton* "$pnpge/protonge"
+        rm -f "$temp/$gedl".tar.gz
+        grep -Piq "$gever" "$pnpge/protonge/version" || perl -pi -e "s|(?<=ge-proton).*|$gever|gi" "$pnpge/protonge/version"
+        test -h "$pnbin/protonge" || ln -sf "$pnpge/protonge" "$pnbin"
+    fi
+}
+
+xn64() {
+    xstrt="wine64"
+    xnldl="$xnbin/lib64:$xnbin/lib"
+    xndll="$xnbin/lib64/wine:$xnbin/lib/wine"
+}
+
+xn32() {
+    xstrt="wine"
+    xnldl="$xnbin/lib"
+    xndll="$xnbin/lib/wine"
+}
+
+w_menu() {
+    PS3="Please enter your choice: "
+    select answer in "${i_mnus[@]}"; do
+        for item in "${i_mnus[@]}"; do
+            if [[ $item == "$answer" ]]; then
+                break 2
+            fi
+        done
+    done
+    # repeating menu requires valid selection from array
+    if [[ "$answer" = "quit" ]]; then
+        # pop quit from end of array for menu option
+        exit
+    else
+        xmrtn="$answer"
+    fi
+    unset i_mnus
+    clear
+}
+
+xnexe() {
+    # menu installed wine/proton or exit
+    readarray -t i_mnus < <(
+        find -L "$xnbin" -maxdepth "${dpth[0]}" -type f -iname 'wine' ! \( -ipath '*/sbin*' \) 2>/dev/null | perl -pe "s|\Q$xnbin\E/(.*)[/]*bin/wine|\1| ; s|/$||" | sort
+        echo "quit"
+    )
+    if [[ ${#i_mnus[@]} -gt 2 ]]; then
+        clear
+        w_menu
+        xnbin="$(realpath "$xnbin/$xmrtn")"
+        unset xmrtn
+    elif [[ ${#i_mnus[@]} -eq 2 ]]; then
+        xnbin="$(realpath "$xnbin/${i_mnus[0]}")"
+    else
+        echo "No installed Wine/Proton found."
+        exit 1
+    fi
+}
+
+xnenv() {
+    # core env vars allow proper targetting of wine/proton
+    xpath="$xnbin/bin:$PATH"
+    xcmd=(env PATH="$xpath" WINEDLLPATH="$xndll" LD_LIBRARY_PATH="$xnldl" WINEPREFIX="$xnpfx")
+
+    xcmd+=(STEAM_COMPAT_DATA_PATH="${xnpfx///pfx}" STEAM_COMPAT_CLIENT_INSTALL_PATH="$pntop")
+}
+
+xlnch() {
+    #command line launcher
+    if [[ -z "$dbg" ]]; then
+        ("${xcmd[@]}" >/dev/null 2>&1 &)
+    else
+        if [[ "$dbg" = "1" ]]; then
+            ("${xcmd[@]}" &)
+        elif [[ "$dbg" = "2" ]]; then
+            (WINEDEBUG="warn+all" "${xcmd[@]}" &)
+        fi
+    fi
+    # prepend cmd with dbg=1 to see command and default debug output
+    # dbg=2 to see command and all debug output, dbg=? for command only
+}
+
+xbld() {
+    # cross-function custom prefix builder
+    pnpfx="$pnpfx/${clprm[0]}"
+    xnint
+
+    if [[ -z "${clprm[0]}" ]]; then
+        echo -e "\n Proton prefix name required, use an appid from Steam: (e.g. 0, 730 ) \n"
+    elif [[ -d "$xnpfx" ]]; then
+        echo -e "\n Proton Prefix exists: $xnpfx \n"
+    else
+        xnexe
+        echo "Creating Proton Prefix: ${clprm[0]}"
+
+        xnenv
+        mkdir -p "$xnpfx"
+        xcmd+=(STEAM_COMPAT_DATA_PATH="$xnpfx" "${xnbin%/*}/proton" "run")
+
+        xlnch
+    fi
+}
+
+xnpre() {
+    if [[ -d "$xnpfx/$progs (x86)" ]]; then
+        xn64
+    else
+        xn32
+    fi
+}
+
+xndef() {
+    # create default prefix cross-function
+    if [[ -z "$prfx" ]]; then
+        echo "INFO: to use a specific prefix, append prfx='your prefix' to this command"
+        if [[ ! -d "$xnpfx/0" ]]; then
+            # always create default 0 prefix
+            xnpfx="$xnpfx/0"
+            echo "Creating default prefix: $xnpfx"
+            mkdir -p "$xnpfx"
+            STEAM_COMPAT_DATA_PATH="$xnpfx" "${xnbin%/*}/proton" run >/dev/null 2>&1 &
+            xnpfx="$xnpfx/pfx"
+        else
+            xnpfx="$xnpfx/0"
+            xnpfx="$xnpfx/pfx"
+        fi
+    else
+        xnpfx="$xnpfx/$prfx"
+        if [[ ! -d "$xnpfx" ]]; then
+            echo "Creating default prefix: $xnpfx"
+            mkdir -p "$xnpfx"
+            STEAM_COMPAT_DATA_PATH="$xnpfx" "${xnbin%/*}/proton" run >/dev/null 2>&1 &
+            xnpfx="$xnpfx/pfx"
+        else
+            xnpfx="$xnpfx/pfx"
+        fi
+    fi
+}
+
+fewoth() {
+    # filtered list of variable type in standard paths
+    readarray -t i_mnus < <(
+        env pedir="$pedir" find "$pedir" -maxdepth 7 -type f -regextype posix-extended ! \( -ipath '*cache*' -o -ipath '*/microsoft*' -o -ipath '*/windows*' -o -ipath '*/temp*' \) ! \( -iregex '.*(capture|clokspl|helper|iexplore|install|internal|kernel|[^ ]launcher|legacypm|overlay|proxy|redist|renderer|(crash|error)reporter|serv(er|ice)|setup|streaming|tutorial|unins|update).*' \) -iname "$xflt" 2>/dev/null | perl -pe "s|\Q$pedir\E/(.*)|\1|" | sort
+        echo "quit"
+    )
+}
+
+fewexe() {
+    # filtered list of exe in standard paths
+    readarray -t i_mnus < <(
+        env pedir="$pedir" find "$pedir" -maxdepth 7 -type f -regextype posix-extended ! \( -ipath '*cache*' -o -ipath '*/microsoft*' -o -ipath '*/windows*' -o -ipath '*/temp*' \) ! \( -iregex '.*(capture|clokspl|helper|iexplore|install|internal|kernel|[^ ]launcher|legacypm|overlay|proxy|redist|renderer|(crash|error)reporter|serv(er|ice)|setup|streaming|tutorial|unins|update).*' \) -iname '*.exe' -exec sh -c '(readpe -h optional "$1" 2>/dev/null | grep -Piq '0x2.*gui') && (wrestool "$1" 2>/dev/null | grep -Piq 'type=icon') && echo "$1" 2>/dev/null | perl -pe "s|\Q$pedir\E/(.*)|\1|"' -- {} \; 2>/dev/null | sort
+        echo "quit"
+    )
+    # valid exe will have gui and icon
+}
+
+alloth() {
+    # unfiltered list of variable type in specified path
+    readarray -t i_mnus < <(
+        find "$pedir" -maxdepth 7 -type f -regextype posix-extended -iname "$xflt" 2>/dev/null | perl -pe "s|\Q$pedir\E/(.*)|\1|" | sort
+        echo "quit"
+    )
+}
+
+allexe() {
+    # unfiltered list of exe in specified path
+    if [[ -n "$(stat --file-system --format=%T "$(stat --format=%m "$pedir" 2>/dev/null)" 2>/dev/null | grep -Pio 'fuse')" ]]; then
+        readarray -t i_mnus < <(
+            find "$pedir" -maxdepth 7 -type f -regextype posix-extended -iname '*.exe' 2>/dev/null | perl -pe "s|\Q$pedir\E/(.*)|\1|" | sort
+            echo "quit"
+        )
+        # skip exe validity tests if file is on network drive
+    else
+        readarray -t i_mnus < <(
+            env pedir="$pedir" find "$pedir" -maxdepth 7 -type f -regextype posix-extended -iname '*.exe' -exec sh -c '(readpe -h optional "$1" 2>/dev/null | grep -Piq '0x2.*gui') && (wrestool "$1" 2>/dev/null | grep -Piq 'type=icon') && echo "$1" 2>/dev/null | perl -pe "s|\Q$pedir\E/(.*)|\1|"' -- {} \; 2>/dev/null | sort
+            echo "quit"
+        )
+        # perform exe validity tests if file is on local drive
+    fi
+}
+
+xpmn() {
+    # use specified exe, menu specified folder, or menu system
+    if [[ -f "${clprm[0]}" ]]; then
+        # parse 1st cmdline arg, queue if valid file
+        pedir="$(realpath "${clprm[0]}")"
+        xmrtn="$(basename "$pedir")"
+        pedir="$(dirname "$pedir")"
+    else
+        if [[ -d "${clprm[0]}" ]]; then
+            # parse 1st cmdline arg, use as path if valid
+            pedir="$(realpath "${clprm[0]}")"
+            test -z "$xflt" && allexe || alloth
+        else
+            # if no cmdline path, use prefix drive_c
+            pedir="$xnpfx/drive_c"
+            test -z "$xflt" && fewexe || fewoth
+        fi
+        # create menu, from path, of file
+        test ${#i_mnus[@]} -gt 1 && w_menu
+    fi
+}
+
+xnldr() {
+    # loader default to proton as applicable, otherwise wine
+    if [[ -z "$wn" ]]; then
+        xcmd+=("${xnbin%/*}/proton" "run")
+    else
+        if [[ "$wn" = "true" ]]; then
+            xcmd+=("$xstrt")
+        else
+            echo "unrecognised run option"
+            exit 1
+        fi
+    fi
+}
+
+xlyt() {
+    # prepare layout for launch
+    # 64-bit prefix, 32-bit prefix header, reset env to 32
+    if [[ -n "$(readpe -h optional "$pedir/$xmrtn" 2>/dev/null | grep -Pi 'magic number.*0x10b')" && -d "$xnpfx/$progs (x86)" ]]; then
+        xn32
+        xnenv
+    fi
+    xnldr
+    # if 1st arg is file/folder, skip it and run selection + remaining args
+    if [[ -e "${clprm[0]}" ]]; then
+        xcmd+=("$pedir/$xmrtn" "${clprm[@]:1}")
+    else
+        xcmd+=("$pedir/$xmrtn" "${clprm[@]}")
+    fi
+}
+
+xnset() {
+    # set cross-fuction
+    xnint
+    # proton menu
+    xnexe
+    # create default prefix as required
+    xndef
+    # proton prefix
+    xnpre
+    # proton env vars
+    xnenv
+}
+
+usage() {
+    echo -e "\n$(basename $0): ERROR - $*" 1>&2
+    echo -e "\nusage: $(basename $0)\n [-i,--install] [-b,--build] [-r,--run] \n \n (install) install proton-ge \n (build) build a custom proton prefix \n (run) run an .exe program \n \n" 1>&2
+}
+
+if [[ $# -lt 1 ]]; then
+    usage "one option required!"
+else
+    case $xarg in
+    -i | --install)
+        # proton ge
+        xpge
+        ;;
+    -p | --prefix)
+        # prefix builder
+        xbld
+        ;;
+    -r | --run)
+        # second arg should be the prefix to use.
+        # run program - 1st arg valid file to run, folder to menu,
+        # neither (sys menu), 2nd arg... passed to exe
+        xnset
+        xpmn
+        if [[ -n "$xmrtn" ]]; then
+            xlyt
+            # change to exe dir before run
+            cd "$(dirname "$pedir/$xmrtn")"
+            xlnch
+        fi
+        ;;
+    -* | \* | *)
+        # do_usage
+        usage "invalid option $1"
+        exit 1
+        ;;
+    esac
+fi
+
+#FIXME: it won't run anything AAAArgh!
