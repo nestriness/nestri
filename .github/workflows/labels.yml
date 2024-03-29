@@ -1,0 +1,33 @@
+name: GH labels maintainer
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '.github/labels.yml'
+      - '.github/workflows/labels.yml'
+  pull_request:
+    paths:
+      - '.github/labels.yml'
+      - '.github/workflows/labels.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Run Labeler 
+        uses: crazy-max/ghaction-github-labeler@v5
+        env:
+          GITHUB_TOKEN: "${{ secrets.GIT_MASTER_TOKEN }}"
+        with:
+          dry-run: ${{ github.event_name == 'pull_request' }}
+          github-token: ${{ secrets.GIT_MASTER_TOKEN }}

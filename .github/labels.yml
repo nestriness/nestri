@@ -1,0 +1,105 @@
+# Default labels
+- name: "type/fix"
+  color: "B60205"
+
+- name: "type/build"
+  color: "6C55D7"
+
+- name: "type/feat"
+  color: "0ADE12"
+
+- name: "type/docs"
+  color: "891059"
+
+- name: "type/refactor"
+  color: "8D44DF"
+
+- name: "type/revert"
+  color: "5319e7"
+
+- name: "type/style"
+  color: "D71964"
+
+- name: "type/test"
+  color: "0B9EE8"
+
+- name: "type/breaking"
+  color: "0590CC"
+
+- name: "type/chore"
+  color: "B44A63"
+
+- name: "type/ci"
+  color: "4FE1A6"
+
+- name: "type/perf"
+  color: "4FE1A6"
+
+- name: "mergeable/false"
+  color: "B60205"
+  
+- name: "priority/high"
+  color: "D4E734"
+  
+- name: "priority/mid"
+  color: "D4E734"
+  
+- name: "priority/low"
+  color: "D4E734"
+  
+- name: "reg/docker"
+  color: "5319e7"
+  
+- name: "reg/npm"
+  color: "5319e7"
+  
+- name: "pkg/www"
+  color: "5319e7"
+  
+- name: "pkg/lib"
+  color: "5319e7"
+  
+- name: "pkg/aws"
+  color: "5319e7"
+  
+- name: "scope/git"
+  color: "B61B66"
+  
+- name: "scope/infra"
+  color: "B61B66"
+  
+- name: "scope/front-end"
+  color: "B61B66"
+
+- name: "scope/relay"
+  color: "B61B66"
+  
+- name: "scope/back-end"
+  color: "B61B66"
+  
+- name: "size/xs"
+  color: "AD4322"
+  
+- name: "size/s"
+  color: "AD4322"
+  
+- name: "size/m"
+  color: "AD4322"
+  
+- name: "size/l"
+  color: "AD4322"
+  
+- name: "size/xl"
+  color: "AD4322"
+  
+- name: "size/xxl"
+  color: "AD4322"
+  
+- name: "usr/wanjohi"
+  color: "09469C"
+  
+- name: "usr/dependabot"
+  color: "09469C"
+  
+- name: "usr/unknown"
+  color: "09469C"
