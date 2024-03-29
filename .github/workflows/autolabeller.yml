@@ -10,6 +10,10 @@ on:
       - ready_for_review
       - edited
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: Validate PR title
@@ -24,16 +28,16 @@ jobs:
         with:
             #TODO: fix all emojis
           types: |-
-            ✨ feat
-            🐛 fix
-            🔨 chore
-            📝 docs
-            ✅ test
-            🕵🏽‍♂️ security
-            🚮 remove
-            ♻️ revert
-            🏎️ perf
-            💫 style
+            feat
+            fix
+            chore
+            docs
+            test
+            security
+            remove
+            revert
+            perf
+            style
             deprecate
             refactor
             ci
@@ -41,6 +45,8 @@ jobs:
           requireScope: false
           # Ensures the subject start with an uppercase character.
           subjectPattern: ^([A-Z]).+$
+          headerPattern: '^\s*.*?\s(\w*)(?:\(([\w$.\-*/ ]*)\))?: (.*)$'
+          headerPatternCorrespondence: type, scope, subject
           subjectPatternError: |
             The subject "{subject}" found in the pull request title "{title}"
             didn't match the configured pattern. Please ensure that the subject
