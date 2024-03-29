@@ -28,16 +28,16 @@ jobs:
         with:
             #TODO: fix all emojis
           types: |-
-            '✨ feat'
-            '🐛 fix'
-            '🔨 chore'
-            '📝 docs'
-            '✅ test'
-            '🕵🏽‍♂️ security'
-            '🚮 remove'
-            '♻️ revert'
-            '🏎️ perf'
-            '💫 style'
+            feat
+            fix
+            chore
+            docs
+            test
+            security
+            remove
+            revert
+            perf
+            style
             deprecate
             refactor
             ci
