@@ -24,7 +24,7 @@ jobs:
         with:
             #TODO: fix all emojis
           types: |-
-            ✨ 
+            ✨ feat
             feat
             🐛 fix
             🔨 chore
