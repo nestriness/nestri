@@ -1,7 +1,7 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
 
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 #FIXME: install Vulkan drivers (should be done in the .scripts/gpu)
 #FIXME: install https://git.dec05eba.com/gpu-screen-recorder (should be done in the .scripts/stream)
@@ -15,6 +15,8 @@ RUN apt update && \
     apt install -y \
     software-properties-common \
     curl \
+    apt-transport-https \
+    apt-utils \
     wget \
     git \
     jq \
@@ -32,5 +34,22 @@ COPY .scripts/ /usr/bin/netris/
 RUN ls -la /usr/bin/netris \
     && chmod +x /usr/bin/netris/proton
 
+# Expose NVIDIA libraries and paths
+ENV PATH=/usr/local/nvidia/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 \
+    # Make all NVIDIA GPUs visible by default
+    NVIDIA_VISIBLE_DEVICES=all \
+    # All NVIDIA driver capabilities should preferably be used, check `NVIDIA_DRIVER_CAPABILITIES` inside the container if things do not work
+    NVIDIA_DRIVER_CAPABILITIES=all \
+    # Disable VSYNC for NVIDIA GPUs
+    __GL_SYNC_TO_VBLANK=0
+
 #Install proton
-RUN /usr/bin/netris/proton -i
+# RUN /usr/bin/netris/proton -i
+
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
+
+CMD [ "/bin/bash" ]
