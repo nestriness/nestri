@@ -29,11 +29,6 @@ ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
 
-# COPY .scripts/ /usr/bin/netris/
-
-# RUN ls -la /usr/bin/netris \
-#     && chmod +x /usr/bin/netris/proton
-
 # Expose NVIDIA libraries and paths
 ENV PATH=/usr/local/nvidia/bin:${PATH} \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 \
@@ -103,9 +98,40 @@ RUN apt-get update -y \
     # Prepare the XDG_RUNTIME_DIR for wayland
     && mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 
+WORKDIR /tmp
+#Running gamescope flatpak run org.freedesktop.Platform.VulkanLayer.gamescope
+#Install Mangohud, gamemode and gamescope
+RUN apt-get update -y \
+    && add-apt-repository -y multiverse \
+    && apt-get install -y --no-install-recommends \
+    flatpak \
+    mangohud \
+    mangohud:i386 \
+    meson \
+    libsystemd-dev \
+    pkg-config \
+    ninja-build \
+    git \
+    libdbus-1-dev \
+    libinih-dev \
+    build-essential \
+    && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
+    && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
+    && gamemode -t   \
+    #Flatpak and mangohud
+    && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    # gamescope
+    && flatpak install flathub org.freedesktop.Platform.VulkanLayer.gamescope
+    # Gamemode
+    # && flatpak install -y com.valvesoftware.Steam.CompatibilityTool.Proton-GE
+
+COPY .scripts/ /usr/bin/netris/
+
+RUN ls -la /usr/bin/netris \
+    && chmod +x /usr/bin/netris/proton
 
 #Install proton
-# RUN /usr/bin/netris/proton -i
+RUN /usr/bin/netris/proton -i
 
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
