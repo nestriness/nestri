@@ -106,7 +106,6 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
-    mangohud:i386 \
     meson \
     libsystemd-dev \
     pkg-config \
