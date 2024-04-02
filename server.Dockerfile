@@ -6,7 +6,7 @@ WORKDIR /tmp
 
 #Build and install gpu-screen-recorder
 RUN apt-get update -y \
-    apt-get install -y \
+    && apt-get install -y \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
