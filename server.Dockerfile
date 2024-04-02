@@ -100,13 +100,15 @@ RUN apt-get update -y \
 
 WORKDIR /tmp
 #Running gamescope flatpak run org.freedesktop.Platform.VulkanLayer.gamescope
-#Install Mangohud, gamemode and gamescope
+#Install Mangohud, gamemode,gpu-screen-recorder and gamescope
 RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
-    gamescope
+    gamescope \
+    && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    && flatpak install flathub com.dec05eba.gpu_screen_recorder
     #TODO: Add gamemode back in, when we get the time
     # meson \
     # libsystemd-dev \
