@@ -5,8 +5,10 @@ FROM ubuntu:23.10 as screen-recorder-builder
 WORKDIR /tmp
 
 #Build and install gpu-screen-recorder
-RUN apt-get update -y\
-    apt-get install -y \
+RUN apt update -y\
+    apt install -y \
+    software-properties-common \
+    apt-utils \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
