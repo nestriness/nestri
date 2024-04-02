@@ -106,18 +106,18 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
-    meson \
-    libsystemd-dev \
-    pkg-config \
-    ninja-build \
-    git \
-    libdbus-1-dev \
-    libinih-dev \
-    build-essential \
-    && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
-    && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
-    && gamemode -t   \
-    #Flatpak and mangohud
+    #TODO: Add gamemode back in, when we get the time
+    # meson \
+    # libsystemd-dev \
+    # pkg-config \
+    # ninja-build \
+    # git \
+    # libdbus-1-dev \
+    # libinih-dev \
+    # build-essential \
+    # && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
+    # && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
+    # && gamemode -t   \
     && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
     # gamescope
     && flatpak install flathub org.freedesktop.Platform.VulkanLayer.gamescope
