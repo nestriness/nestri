@@ -36,7 +36,7 @@ ENV PATH=/usr/local/nvidia/bin:${PATH} \
     NVIDIA_VISIBLE_DEVICES=all \
     # All NVIDIA driver capabilities should preferably be used, check `NVIDIA_DRIVER_CAPABILITIES` inside the container if things do not work
     NVIDIA_DRIVER_CAPABILITIES=all \
-    # Disable VSYNC for NVIDIA GPUs
+    # Disable VSYNC
     __GL_SYNC_TO_VBLANK=0
 
 ENV XDG_RUNTIME_DIR=/run/user/1000/ \ 
@@ -106,9 +106,9 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
-    gamescope \
-    && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
-    && flatpak install flathub com.dec05eba.gpu_screen_recorder
+    gamescope 
+    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    # && flatpak install flathub com.dec05eba.gpu_screen_recorder
     #TODO: Add gamemode back in, when we get the time
     # meson \
     # libsystemd-dev \
