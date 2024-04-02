@@ -21,6 +21,7 @@ RUN apt-get update -y \
     bison \
     equivs \
     ca-certificates\
+    libcap2-bin \
     libllvm15 \
     libavcodec-dev \
     libavformat-dev \
