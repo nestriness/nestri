@@ -2,6 +2,8 @@
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
 FROM ubuntu:23.10 as screen-recorder-builder
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /tmp
 
 #Build and install gpu-screen-recorder
@@ -10,6 +12,16 @@ RUN apt-get update -y \
     curl \
     unzip \
     git \
+    build-essential \
+    ninja-build \
+    gcc \
+    meson \
+    cmake \
+    ccache \
+    bison \
+    equivs \
+    ca-certificates\
+    libllvm15 \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
