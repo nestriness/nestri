@@ -1,7 +1,7 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
 
-FROM ubuntu:22.04
+FROM ubuntu:23.10
 
 #FIXME: install Vulkan drivers (should be done in the .scripts/gpu)
 #FIXME: install https://git.dec05eba.com/gpu-screen-recorder (should be done in the .scripts/stream)
@@ -106,6 +106,7 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
+    gamescope
     #TODO: Add gamemode back in, when we get the time
     # meson \
     # libsystemd-dev \
@@ -118,9 +119,9 @@ RUN apt-get update -y \
     # && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
     # && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
     # && gamemode -t   \
-    && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
     # gamescope
-    && com.valvesoftware.Steam.Utility.gamescope
+    # && com.valvesoftware.Steam.Utility.gamescope
     # Gamemode
     # && flatpak install -y com.valvesoftware.Steam.CompatibilityTool.Proton-GE
 
