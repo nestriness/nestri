@@ -1,7 +1,7 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
 
-FROM ubuntu:22.04
+FROM ubuntu:23.10
 
 #FIXME: install Vulkan drivers (should be done in the .scripts/gpu)
 #FIXME: install https://git.dec05eba.com/gpu-screen-recorder (should be done in the .scripts/stream)
@@ -29,11 +29,6 @@ ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
 
-# COPY .scripts/ /usr/bin/netris/
-
-# RUN ls -la /usr/bin/netris \
-#     && chmod +x /usr/bin/netris/proton
-
 # Expose NVIDIA libraries and paths
 ENV PATH=/usr/local/nvidia/bin:${PATH} \
     LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 \
@@ -41,7 +36,7 @@ ENV PATH=/usr/local/nvidia/bin:${PATH} \
     NVIDIA_VISIBLE_DEVICES=all \
     # All NVIDIA driver capabilities should preferably be used, check `NVIDIA_DRIVER_CAPABILITIES` inside the container if things do not work
     NVIDIA_DRIVER_CAPABILITIES=all \
-    # Disable VSYNC for NVIDIA GPUs
+    # Disable VSYNC
     __GL_SYNC_TO_VBLANK=0
 
 ENV XDG_RUNTIME_DIR=/run/user/1000/ \ 
@@ -103,9 +98,42 @@ RUN apt-get update -y \
     # Prepare the XDG_RUNTIME_DIR for wayland
     && mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 
+WORKDIR /tmp
+#Running gamescope flatpak run org.freedesktop.Platform.VulkanLayer.gamescope
+#Install Mangohud, gamemode,gpu-screen-recorder and gamescope
+RUN apt-get update -y \
+    && add-apt-repository -y multiverse \
+    && apt-get install -y --no-install-recommends \
+    flatpak \
+    mangohud \
+    gamescope 
+    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    # && flatpak install flathub com.dec05eba.gpu_screen_recorder
+    #TODO: Add gamemode back in, when we get the time
+    # meson \
+    # libsystemd-dev \
+    # pkg-config \
+    # ninja-build \
+    # git \
+    # libdbus-1-dev \
+    # libinih-dev \
+    # build-essential \
+    # && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
+    # && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
+    # && gamemode -t   \
+    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+    # gamescope
+    # && com.valvesoftware.Steam.Utility.gamescope
+    # Gamemode
+    # && flatpak install -y com.valvesoftware.Steam.CompatibilityTool.Proton-GE
+
+COPY .scripts/ /usr/bin/netris/
+
+RUN ls -la /usr/bin/netris \
+    && chmod +x /usr/bin/netris/proton
 
 #Install proton
-# RUN /usr/bin/netris/proton -i
+RUN /usr/bin/netris/proton -i
 
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
