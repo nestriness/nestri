@@ -3,8 +3,9 @@
 
 FROM ubuntu:22.04
 
-#FIXME: install Vulkan drivers (should be done in the .scripts/gpu)
 #FIXME: install https://git.dec05eba.com/gpu-screen-recorder (should be done in the .scripts/stream)
+#TODO: Add mango-hud and gamescope
+#FIXME: add pulseaudio
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TIMEZONE=Africa/Nairobi
@@ -28,11 +29,6 @@ RUN apt update && \
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
-
-# COPY .scripts/ /usr/bin/netris/
-
-# RUN ls -la /usr/bin/netris \
-#     && chmod +x /usr/bin/netris/proton
 
 # Expose NVIDIA libraries and paths
 ENV PATH=/usr/local/nvidia/bin:${PATH} \
@@ -103,9 +99,20 @@ RUN apt-get update -y \
     # Prepare the XDG_RUNTIME_DIR for wayland
     && mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 
+#Install wine
+# Wine, Winetricks, Lutris, and PlayOnLinux, this process must be consistent with https://wiki.winehq.org/Ubuntu
+ARG WINE_BRANCH=staging
+RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-archive.key "https://dl.winehq.org/wine-builds/winehq.key" \
+    && curl -fsSL -o "/etc/apt/sources.list.d/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" "https://dl.winehq.org/wine-builds/ubuntu/dists/$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"')/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" \
+    && apt-get update && apt-get install --install-recommends -y winehq-${WINE_BRANCH}
+
+COPY .scripts/ /usr/bin/netris/
+
+RUN ls -la /usr/bin/netris \
+    && chmod +x /usr/bin/netris/proton
 
 #Install proton
-# RUN /usr/bin/netris/proton -i
+RUN /usr/bin/netris/proton -i
 
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
