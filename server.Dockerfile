@@ -34,9 +34,8 @@ RUN apt-get update -y \
     && unzip -joq -d ./nvrtc nvidia_cuda_nvrtc_linux_x86_64.whl && cd nvrtc && chmod 755 libnvrtc* \
     && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
     && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
-    && rm -rf /tmp/* \
     && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
-    && mkdir -p gp && cd gp && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
+    && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
     && chmod +x ./build.sh ./install.sh \
     && ./install.sh
 
