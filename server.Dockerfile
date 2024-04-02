@@ -1,6 +1,6 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
-FROM ubuntu:23:10 as screen-recorder-builder
+FROM ubuntu:23.10 as screen-recorder-builder
 
 WORKDIR /tmp
 
