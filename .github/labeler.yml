@@ -44,7 +44,15 @@ labels:
 
   - label: 'scope/back-end'
     files:
-     - 'server.Dockerfile'
+     - 'server.Dockerfile'  
+  
+  - label: 'scope/ffmpeg'
+    files:
+     - 'ffmpeg.Dockerfile'
+  
+  - label: 'scope/recorder'
+    files:
+     - 'recorder.Dockerfile'
 
   - label: 'scope/ffmpeg'
     files:
