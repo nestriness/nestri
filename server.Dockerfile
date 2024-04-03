@@ -13,6 +13,7 @@ RUN apt update && \
     apt install -y \
     software-properties-common \
     curl \
+    libcap2-bin \
     apt-transport-https \
     apt-utils \
     wget \
