@@ -51,4 +51,5 @@ RUN apt-get update -y \
     && chmod +x ./build.sh ./install.sh \
     && ./install.sh \
     #Test
+    && ls -la /usr/bin/gpu-screen-recorder && ls -la /usr/bin/gsr-kms-server \
     && /usr/bin/gpu-screen-recorder --help
