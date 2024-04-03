@@ -12,4 +12,6 @@ RUN apt-get -yqq update \
 # copy only needed files, without copying nvidia dev files
 COPY --from=build /usr/local /usr/local/
 
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
+
 RUN ffmpeg -version
