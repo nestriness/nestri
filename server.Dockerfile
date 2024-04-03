@@ -1,5 +1,7 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
+FROM ghcr.io/wanjohiryan/netris/recorder:nightly as recorder
+
 FROM ubuntu:23.10
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -125,5 +127,8 @@ ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
+
+COPY --from=recorder /usr/bin/gpu-screen-recorder /usr/bin/gpu-screen-recorder 
+COPY --from=recorder /usr/bin/gsr-kms-server /usr/bin/gsr-kms-server
 
 CMD [ "/usr/bin/netris/entrypoint.sh" ]
