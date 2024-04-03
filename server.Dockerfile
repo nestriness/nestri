@@ -131,6 +131,4 @@ ENTRYPOINT ["/tini", "--"]
 COPY --from=recorder /usr/bin/gpu-screen-recorder /usr/bin/gpu-screen-recorder 
 COPY --from=recorder /usr/bin/gsr-kms-server /usr/bin/gsr-kms-server
 
-RUN /usr/bin/gpu-screen-recorder --help
-
 CMD [ "/usr/bin/netris/entrypoint.sh" ]
