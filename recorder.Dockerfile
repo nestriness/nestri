@@ -4,7 +4,11 @@ FROM ubuntu:23.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-USER root
+# To run /usr/bin/gpu-screen-recorder.
+# Add this to your runtime
+# securityContext:
+#   capabilities:
+#     add: ["SYS_ADMIN"]
 
 #Build and install gpu-screen-recorder
 #TODO: Install ffmpeg
@@ -51,7 +55,4 @@ RUN apt-get update -y \
     && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
     && chmod +x ./build.sh ./install.sh \
-    && ./install.sh \
-    #Test
-    && ls -la /usr/bin/gpu-screen-recorder && ls -la /usr/bin/gsr-kms-server \
-    && /usr/bin/gpu-screen-recorder --help
+    && ./install.sh 
