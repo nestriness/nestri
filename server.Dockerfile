@@ -1,10 +1,6 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
-
 FROM ubuntu:23.10
-
-#FIXME: install Vulkan drivers (should be done in the .scripts/gpu)
-#FIXME: install https://git.dec05eba.com/gpu-screen-recorder (should be done in the .scripts/stream)
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TIMEZONE=Africa/Nairobi
@@ -98,34 +94,14 @@ RUN apt-get update -y \
     # Prepare the XDG_RUNTIME_DIR for wayland
     && mkdir -p ${XDG_RUNTIME_DIR} && chmod 0700 ${XDG_RUNTIME_DIR}
 
-WORKDIR /tmp
-#Running gamescope flatpak run org.freedesktop.Platform.VulkanLayer.gamescope
-#Install Mangohud, gamemode,gpu-screen-recorder and gamescope
+#Install Mangohud, gamemode and gamescope
 RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     flatpak \
     mangohud \
-    gamescope 
-    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
-    # && flatpak install flathub com.dec05eba.gpu_screen_recorder
-    #TODO: Add gamemode back in, when we get the time
-    # meson \
-    # libsystemd-dev \
-    # pkg-config \
-    # ninja-build \
-    # git \
-    # libdbus-1-dev \
-    # libinih-dev \
-    # build-essential \
-    # && git clone https://github.com/FeralInteractive/gamemode.git && cd gamemode \
-    # && git checkout 1.7 && chmod +x ./bootstrap.sh && ./bootstrap.sh \
-    # && gamemode -t   \
-    # && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
-    # gamescope
-    # && com.valvesoftware.Steam.Utility.gamescope
-    # Gamemode
-    # && flatpak install -y com.valvesoftware.Steam.CompatibilityTool.Proton-GE
+    gamescope \
+    && rm -rf /var/lib/apt/lists/* 
 
 COPY .scripts/ /usr/bin/netris/
 
