@@ -46,6 +46,14 @@ labels:
     files:
      - 'server.Dockerfile'
 
+  - label: 'scope/ffmpeg'
+    files:
+     - 'ffmpeg.Dockerfile'
+
+  - label: 'scope/recorder'
+    files:
+     - 'recorder.Dockerfile'
+     
   - label: 'scope/relay'
     files:
      - 'relay.Dockerfile'
