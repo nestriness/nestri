@@ -6,9 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # To run /usr/bin/gpu-screen-recorder.
 # Add this to your runtime
-# securityContext:
-#   capabilities:
-#     add: ["SYS_ADMIN"]
+# docker run --rm --cap-add SYS_ADMIN --cap-add SYS_NICE netris/gpu-screen-recorder
 
 #Build and install gpu-screen-recorder
 #TODO: Install ffmpeg
