@@ -11,11 +11,8 @@ RUN apt-get -yqq update \
         && apt-get autoremove -y \
         && apt-get clean -y \
         #Install cuda v12
-        && wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb \
-        && dpkg -i cuda-keyring_1.1-1_all.deb \
-        && add-apt-repository contrib \
-        && apt-get update \
-        && apt-get -y install cuda-toolkit-12-4 
+        && wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run \
+        && sh cuda_12.4.0_550.54.14_linux.run 
 
 # copy only needed files, without copying nvidia dev files
 COPY --from=build /usr/local/bin /usr/local/bin/
