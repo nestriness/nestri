@@ -40,6 +40,7 @@ ENV XDG_RUNTIME_DIR=/run/user/1000/ \
     WAYLAND_DISPLAY=wayland-0 \
     PUID=0 \
     PGID=0 \
+    HOME="/root" \
     UNAME="root"
 
 RUN apt-get update -y \
@@ -103,10 +104,19 @@ RUN apt-get update -y \
     gamescope \
     && rm -rf /var/lib/apt/lists/* 
 
-COPY .scripts/ /usr/bin/netris/
+#Install pulseaudio
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+    alsa-utils \
+    libasound2 \
+    libasound2-plugins \
+    pulseaudio \
+    && rm -rf /var/lib/apt/lists/* \
+    && echo "load-module module-native-protocol-tcp auth-anonymous=1" >> /etc/pulse/default.pa
 
+COPY .scripts/ /usr/bin/netris/
 RUN ls -la /usr/bin/netris \
-    && chmod +x /usr/bin/netris/proton
+    && chmod +x /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh
 
 #Install proton
 RUN /usr/bin/netris/proton -i
@@ -116,4 +126,4 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
 
-CMD [ "/bin/bash" ]
+CMD [ "/usr/bin/netris/entrypoint.sh" ]
