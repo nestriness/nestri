@@ -10,7 +10,7 @@ RUN apt-get -yqq update \
 RUN apt-get update -y \
     && apt-get upgrade -y \
     && add-apt-repository ppa:savoury1/ffmpeg4 \
-    && add-apt-repository ppa:savoury1/ffmpeg6 \
+    add-apt-repository ppa:savoury1/ffmpeg6 \
     && apt-get update -y \
     && apt-get upgrade -y \
     && apt-get dist-upgrade -y \
