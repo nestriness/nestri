@@ -7,7 +7,7 @@ FROM ubuntu:22.04
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,video
 
 RUN apt-get -yqq update \
-        && apt-get install -yq --no-install-recommends ca-certificates expat libgomp1 libxcb-shape0-dev \
+        && apt-get install -yq --no-install-recommends wget ca-certificates expat libgomp1 libxcb-shape0-dev \
         && apt-get autoremove -y \
         && apt-get clean -y \
         #Install cuda v12
