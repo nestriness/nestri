@@ -2,8 +2,8 @@
 # TODO: use nvenc? ghcr.io/jrottenberg/ffmpeg:6.1-ubuntu
 FROM ghcr.io/jrottenberg/ffmpeg:6.1-nvidia as build
 
-# FROM ubuntu:22.04
-FROM nvcr.io/nvidia/cuda:12.3.1-devel-ubuntu22.04
+FROM ubuntu:22.04
+# FROM nvcr.io/nvidia/cuda:12.3.1-devel-ubuntu22.04
 
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,video
 
