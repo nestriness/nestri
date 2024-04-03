@@ -4,6 +4,8 @@ FROM ubuntu:23.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+USER root
+
 #Build and install gpu-screen-recorder
 #TODO: Install ffmpeg
 RUN apt-get update -y \
