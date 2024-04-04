@@ -1,0 +1,3 @@
+[submodule "moq-server"]
+	path = moq-server
+	url = https://github.com/kixelated/moq-rs
