@@ -47,7 +47,7 @@ jobs:
             #   target: aarch64-unknown-linux-musl
             # - host: ubuntu-20.04
             #   target: armv7-unknown-linux-gnueabihf
-      name: Build warp for ${{ matrix.settings.target }}
+      name: Build warp on release
       runs-on: ${{ matrix.settings.host }}
       steps:
         - name: Checkout repository
@@ -108,6 +108,7 @@ jobs:
     
     build-warp-pr:
         if: ${{ github.event_name == 'pull_request' }}
+        name: Build warp on PR
         defaults:
           run:
             working-directory: moq-server
@@ -119,7 +120,7 @@ jobs:
                 target: x86_64-unknown-linux-gnu
                 bundles: appimage
                 asset_name: warp-ubuntu-amd64
-        name: Build warp for ${{ matrix.settings.target }}
+
         runs-on: ${{ matrix.settings.host }}
         steps:
           - name: Checkout repository
