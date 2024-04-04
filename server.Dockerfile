@@ -2,7 +2,7 @@
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
 FROM ghcr.io/wanjohiryan/netris/recorder:nightly as recorder
 
-FROM ubuntu:23.10
+FROM ghcr.io/wanjohiryan/netris/ffmpeg:nightly
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TIMEZONE=Africa/Nairobi
@@ -118,8 +118,9 @@ RUN apt-get update -y \
     && echo "load-module module-native-protocol-tcp auth-anonymous=1" >> /etc/pulse/default.pa
 
 COPY .scripts/ /usr/bin/netris/
+COPY warp /usr/bin/netris/
 RUN ls -la /usr/bin/netris \
-    && chmod +x /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh
+    && chmod +x /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh /usr/bin/netris/warp
 
 #Install proton
 RUN /usr/bin/netris/proton -i
