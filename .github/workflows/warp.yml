@@ -90,7 +90,7 @@ jobs:
         
         - name: Publish release for (${{ matrix.settings.host }})
           if: ${{ matrix.settings.host == 'windows-latest' }}
-          uses: svenstaro/upload-release-action@2.7.0
+          uses: svenstaro/upload-release-action@2.9.0
           with: 
             repo_token: ${{ secrets.GITHUB_TOKEN  }}
             file: ./moq-server/warp.exe
@@ -99,7 +99,7 @@ jobs:
       
         - name: Publish release for (${{ matrix.settings.host }})
           if: ${{ matrix.settings.host != 'windows-latest' }}
-          uses: svenstaro/upload-release-action@2.7.0
+          uses: svenstaro/upload-release-action@2.9.0
           with: 
             repo_token: ${{ secrets.GITHUB_TOKEN  }}
             file: ./moq-server/warp
