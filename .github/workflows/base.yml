@@ -1,19 +1,19 @@
 #Tabs not spaces, you moron :)
 
-name: CI for netris:recorder
+name: CI for netris:base
 
 on:
     pull_request:
         paths:
-            - "recorder.Dockerfile"
-            - ".github/workflows/recorder.yml"
+            - "base.Dockerfile"
+            - ".github/workflows/base.yml"
     schedule:
         - cron: 0 0 * * * # At the end of everyday
     push:
         branches: [main]
         paths:
-            - "recorder.Dockerfile"
-            - ".github/workflows/recorder.yml"
+            - "base.Dockerfile"
+            - ".github/workflows/base.yml"
         tags:
             - v*.*.*
     release:
@@ -26,7 +26,7 @@ concurrency:
 env:
     REGISTRY: ghcr.io
     IMAGE_NAME: wanjohiryan/netris
-    BASE_TAG_PREFIX: recorder
+    BASE_TAG_PREFIX: base
 
 jobs:
     build-docker-pr:
@@ -44,11 +44,11 @@ jobs:
               name: Build Docker image
               uses: docker/build-push-action@v5
               with:
-                file: recorder.Dockerfile
+                file: base.Dockerfile
                 context: ./
                 push: false
                 load: true
-                tags: netris:recorder
+                tags: netris:base
 
     build-docker-main:
         name: Build image on merge
@@ -86,7 +86,7 @@ jobs:
               name: Build Docker image
               uses: docker/build-push-action@v5
               with:
-                file: recorder.Dockerfile
+                file: base.Dockerfile
                 context: ./
                 push: true
                 tags: ${{ steps.meta.outputs.tags }}
