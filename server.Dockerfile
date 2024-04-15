@@ -38,7 +38,7 @@ ENV PATH=/usr/local/nvidia/bin:${PATH} \
     # Disable VSYNC
     __GL_SYNC_TO_VBLANK=0
 
-ENV XDG_RUNTIME_DIR=/run/user/1000/ \ 
+ENV XDG_RUNTIME_DIR=/tmp/runtime-user \ 
     # DISPLAY=:0 \
     WAYLAND_DISPLAY=wayland-0 \
     PUID=0 \
@@ -114,8 +114,7 @@ RUN apt-get update -y \
     libasound2 \
     libasound2-plugins \
     pulseaudio \
-    && rm -rf /var/lib/apt/lists/* \
-    && echo "load-module module-native-protocol-tcp auth-anonymous=1" >> /etc/pulse/default.pa
+    && rm -rf /var/lib/apt/lists/*
 
 COPY .scripts/ /usr/bin/netris/
 COPY warp /usr/bin/netris/

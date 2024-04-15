@@ -74,10 +74,7 @@
 - name: "scope/relay"
   color: "B61B66"
   
-- name: "scope/ffmpeg"
-  color: "B61B66"
-  
-- name: "scope/recorder"
+- name: "scope/base"
   color: "B61B66"
   
 - name: "scope/back-end"

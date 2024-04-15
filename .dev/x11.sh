@@ -11,3 +11,6 @@ weston --backend=x11-backend.so
 
 #Run inside the terminal of the weston you just created... cool right?
 weston --backend=wayland-backend.so
+
+#Run
+docker run --gpus all --entrypoint /bin/bash --rm -it -v $(pwd):/games -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY --cap-add=SYS_NICE --cap-add=SYS_ADMIN recorder

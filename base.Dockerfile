@@ -9,7 +9,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 # docker run --rm --cap-add SYS_ADMIN --cap-add SYS_NICE netris/gpu-screen-recorder
 
 #Build and install gpu-screen-recorder
-#TODO: Install ffmpeg
 RUN apt-get update -y \
     && apt-get install -y \
     curl \
@@ -22,6 +21,8 @@ RUN apt-get update -y \
     cmake \
     ccache \
     bison \
+    software-properties-common \
+    ca-certificates \
     equivs \
     ca-certificates\
     libcap2-bin \
@@ -29,19 +30,24 @@ RUN apt-get update -y \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
+    libavfilter-dev \
+    libavdevice-dev \
+    libswresample-dev \
+    libswscale-dev \
     libx11-dev \
     libxcomposite-dev \
+    libkpipewire-dev \
     libxrandr-dev \
     libxfixes-dev \
     libpulse-dev \
     libswresample-dev \
-    libavfilter-dev \
     libva-dev \
     libcap-dev \
     libdrm-dev \
     libgl-dev \
     libegl-dev \
     libwayland-dev \
+    libnvidia-egl-wayland-dev \
     libwayland-egl-backend-dev \
     wayland-protocols \
     && rm -rf /var/lib/apt/lists/* \
@@ -54,3 +60,22 @@ RUN apt-get update -y \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
     && chmod +x ./build.sh ./install.sh \
     && ./install.sh 
+
+#Try building 
+RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
+    && mkdir ./build && cd ./build \ 
+    && cmake -DCMAKE_CXX_FLAGS="-Wno-error=unused-result" -DCMAKE_C_FLAGS="-Wno-error=unused-result" .. \ 
+    && cmake --build . -- -j$(nproc) \
+    && chmod +x ./install-helper.sh \
+    && ./install-helper.sh
+
+RUN apt-get update -y; \
+    apt-get upgrade -y; \
+    add-apt-repository ppa:savoury1/ffmpeg4 \
+    add-apt-repository ppa:savoury1/ffmpeg6 \
+    apt-get update -y; \
+    apt-get upgrade -y && apt-get dist-upgrade -y; \
+    apt-get install ffmpeg -y; \
+    #
+    # Log out the ffmpeg version
+    ffmpeg -version    
