@@ -64,7 +64,7 @@ RUN apt-get update -y \
 #Try building 
 RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
     && mkdir ./build && cd ./build \ 
-    && cmake .. \ 
-    && cmake --build . -- -j$(nproc) --compile-no-warning-as-error \
+    && cmake -DCMAKE_CXX_FLAGS="-Wno-error" -DCMAKE_C_FLAGS="-Wno-error" .. \ 
+    && cmake --build . -- -j$(nproc) \
     && chmod +x ./install-helper.sh \
     && ./install-helper.sh
