@@ -29,14 +29,12 @@ COPY .scripts/proton /usr/bin/netris/
 RUN chmod +x /usr/bin/netris/proton \
     && /usr/bin/netris/proton -i
 
-ARG USERNAME=netris
+ARG USERNAME=ubuntu
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd -g 1000 $USERNAME \
-    && useradd -ms /bin/bash $USERNAME -u 1000 -g 1000 \
     && usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,input,lp,lpadmin,plugdev,pulse-access,render,scanner,ssl-cert,sudo,tape,tty,video,voice $USERNAME \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && chown $USERNAME:$USERNAME /home/$USERNAME \

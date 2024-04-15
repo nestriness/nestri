@@ -4,7 +4,7 @@ FROM ubuntu:23.10
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TIMEZONE=Africa/Nairobi \
-    XDG_RUNTIME_DIR=/tmp/runtime-netris \ 
+    XDG_RUNTIME_DIR=/tmp/runtime-ubuntu \ 
     DISPLAY=:0 \    
     PULSE_SERVER=unix:/run/pulse/native
     # WAYLAND_DISPLAY=wayland-0
