@@ -30,6 +30,9 @@ RUN apt-get update -y \
     libavformat-dev \
     libavutil-dev \
     libavfilter-dev \
+    libavdevice-dev \
+    libswresample-dev \
+    libswscale-dev \
     libx11-dev \
     libxcomposite-dev \
     libkpipewire-dev \
@@ -37,7 +40,6 @@ RUN apt-get update -y \
     libxfixes-dev \
     libpulse-dev \
     libswresample-dev \
-    libavfilter-dev \
     libva-dev \
     libcap-dev \
     libdrm-dev \
