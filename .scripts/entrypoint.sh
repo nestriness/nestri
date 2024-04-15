@@ -6,19 +6,20 @@
 # setcap 'cap_sys_admin+ep' /usr/bin/gsr-kms-server
 # setcap 'cap_sys_nice+ep' /usr/bin/gpu-screen-recorder
 
-#Start dbus
-/etc/init.d/dbus start
-
-#Start Pulseaudio Reference: https://github.com/wanjohiryan/warp/blob/ad9cd38d21f0ac4332e64358e219b48e01871870/docker/nvidia/entrypoint.sh#L38
-/usr/bin/pulseaudio -k >/dev/null 2>&1 || /usr/bin/pulseaudio --system --verbose --log-target=stderr -D --realtime=true --disallow-exit -L 'module-native-protocol-tcp auth-ip-acl=127.0.0.0/8 port=4713 auth-anonymous=1'
-pacmd load-module module-virtual-sink sink_name=vsink
-pacmd set-default-sink vsink
-pacmd set-default-source vsink.monitor
 
 # Create and modify permissions of XDG_RUNTIME_DIR Reference: https://github.com/selkies-project/docker-nvidia-glx-desktop/blob/94b139c5d04395e1171202bb41e5d6f60e576a39/entrypoint.sh#L9C1-L10C1
 mkdir -pm700 /tmp/runtime-user
 chown root:root /tmp/runtime-user
 chmod 700 /tmp/runtime-user
+
+#Start dbus
+/etc/init.d/dbus start
+
+#Start Pulseaudio Reference: https://github.com/wanjohiryan/warp/blob/ad9cd38d21f0ac4332e64358e219b48e01871870/docker/nvidia/entrypoint.sh#L38
+/usr/bin/pulseaudio -k >/dev/null 2>&1 || /usr/bin/pulseaudio --system --verbose --log-target=stderr -D --disallow-module-loading --exit-idle-time=-1 --realtime=true  --disallow-exit -L 'module-native-protocol-tcp auth-ip-acl=127.0.0.0/8 port=4713 auth-anonymous=1'
+pacmd load-module module-virtual-sink sink_name=vsink
+pacmd set-default-sink vsink
+pacmd set-default-source vsink.monitor
 
 #FIXME:
 

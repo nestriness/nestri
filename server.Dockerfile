@@ -36,7 +36,7 @@ ENV PATH=/usr/local/nvidia/bin:${PATH} \
     # Disable VSYNC
     __GL_SYNC_TO_VBLANK=0
 
-ENV XDG_RUNTIME_DIR=/tmp/runtime-user \ 
+ENV XDG_RUNTIME_DIR=/tmp/runtime-root \ 
     # DISPLAY=:0 \
     WAYLAND_DISPLAY=wayland-0 \
     PUID=0 \
@@ -114,17 +114,36 @@ RUN apt-get update -y \
     pulseaudio \
     && rm -rf /var/lib/apt/lists/*
 
-COPY .scripts/ /usr/bin/netris/
+COPY .scripts/entrypoint.sh .scripts/proton /usr/bin/netris/
+COPY .scripts/dbus /usr/bin/dbus
+COPY .scripts/default.pa /etc/pulse/default.pa
 COPY warp /usr/bin/netris/
 RUN ls -la /usr/bin/netris \
-    && chmod +x /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh /usr/bin/netris/warp
+    && chmod +x /usr/bin/dbus /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh /usr/bin/netris/warp
 
 #Install proton
 RUN /usr/bin/netris/proton -i
 
-ENV TINI_VERSION v0.19.0
+ENV TINI_VERSION=v0.19.0 \
+    PULSE_SERVER=unix:/tmp/pulseaudio.socket \
+    USER=root \
+    HOME="/home/root" \
+    SHELL=/bin/bash
+
+RUN mkdir -pm700 /tmp/runtime-root \
+    && mkdir /home/root \
+    && chown $USER:$USER /home/root \
+    && chown user:user /home/user/* \
+    && chown $USER:$USER /tmp/runtime-root \
+    && chmod 700 /tmp/runtime-root \
+    && adduser $USER pulse \ 
+    && adduser $USER video \
+    && adduser $USER audio
+
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
+
+WORKDIR /home/root
 
 CMD [ "/bin/bash" ]
