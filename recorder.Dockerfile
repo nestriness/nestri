@@ -29,8 +29,10 @@ RUN apt-get update -y \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
+    libavfilter-dev \
     libx11-dev \
     libxcomposite-dev \
+    libkpipewire-dev \
     libxrandr-dev \
     libxfixes-dev \
     libpulse-dev \
@@ -42,6 +44,7 @@ RUN apt-get update -y \
     libgl-dev \
     libegl-dev \
     libwayland-dev \
+    libnvidia-egl-wayland-dev \
     libwayland-egl-backend-dev \
     wayland-protocols \
     && rm -rf /var/lib/apt/lists/* \
@@ -54,3 +57,11 @@ RUN apt-get update -y \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
     && chmod +x ./build.sh ./install.sh \
     && ./install.sh 
+
+#Try building 
+RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
+    && mkdir ./build && cd ./build \ 
+    && cmake .. \ 
+    && cmake --build . -- -j$(nproc) \
+    && chmod +x ./install-helper.sh \
+    && ./install-helper.sh
