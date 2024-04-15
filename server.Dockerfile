@@ -115,8 +115,8 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY .scripts/entrypoint.sh .scripts/proton /usr/bin/netris/
-COPY .scripts/dbus /usr/bin/dbus
-COPY .scripts/default.pa /etc/pulse/default.pa
+COPY .scripts/dbus /usr/bin/
+COPY .scripts/default.pa /etc/pulse/
 COPY warp /usr/bin/netris/
 RUN ls -la /usr/bin/netris \
     && chmod +x /usr/bin/dbus /usr/bin/netris/proton /usr/bin/netris/entrypoint.sh /usr/bin/netris/warp
@@ -133,7 +133,6 @@ ENV TINI_VERSION=v0.19.0 \
 RUN mkdir -pm700 /tmp/runtime-root \
     && mkdir /home/root \
     && chown $USER:$USER /home/root \
-    && chown user:user /home/user/* \
     && chown $USER:$USER /tmp/runtime-root \
     && chmod 700 /tmp/runtime-root \
     && adduser $USER pulse \ 
