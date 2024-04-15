@@ -49,21 +49,22 @@ RUN apt-get update -y \
     libnvidia-egl-wayland-dev \
     libwayland-egl-backend-dev \
     wayland-protocols \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* 
+    #\
     #Install Cuda
-    && cd /tmp && curl -fsSL -o nvidia_cuda_nvrtc_linux_x86_64.whl "https://developer.download.nvidia.com/compute/redist/nvidia-cuda-nvrtc/nvidia_cuda_nvrtc-11.0.221-cp36-cp36m-linux_x86_64.whl" \
-    && unzip -joq -d ./nvrtc nvidia_cuda_nvrtc_linux_x86_64.whl && cd nvrtc && chmod 755 libnvrtc* \
-    && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
-    && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
-    && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
-    && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
-    && chmod +x ./build.sh ./install.sh \
-    && ./install.sh 
+    # && cd /tmp && curl -fsSL -o nvidia_cuda_nvrtc_linux_x86_64.whl "https://developer.download.nvidia.com/compute/redist/nvidia-cuda-nvrtc/nvidia_cuda_nvrtc-11.0.221-cp36-cp36m-linux_x86_64.whl" \
+    # && unzip -joq -d ./nvrtc nvidia_cuda_nvrtc_linux_x86_64.whl && cd nvrtc && chmod 755 libnvrtc* \
+    # && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
+    # && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
+    # && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
+    # && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
+    # && chmod +x ./build.sh ./install.sh \
+    # && ./install.sh 
 
 #Try building 
 RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
     && mkdir ./build && cd ./build \ 
     && cmake .. \ 
-    && cmake --compile-no-warning-as-error --build . \
+    && cmake --build . -- -j$(nproc) --compile-no-warning-as-error \
     && chmod +x ./install-helper.sh \
     && ./install-helper.sh
