@@ -64,6 +64,6 @@ RUN apt-get update -y \
 RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
     && mkdir ./build && cd ./build \ 
     && cmake .. \ 
-    && cmake --build . -- -j$(nproc) \
+    && cmake --compile-no-warning-as-error --build . -- -j$(nproc) \
     && chmod +x ./install-helper.sh \
     && ./install-helper.sh
