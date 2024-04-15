@@ -46,13 +46,9 @@ labels:
     files:
      - 'server.Dockerfile'  
   
-  - label: 'scope/ffmpeg'
+  - label: 'scope/base'
     files:
-     - 'ffmpeg.Dockerfile'
-  
-  - label: 'scope/recorder'
-    files:
-     - 'recorder.Dockerfile'
+     - 'base.Dockerfile'
 
   - label: 'scope/ffmpeg'
     files:
