@@ -10,4 +10,4 @@ COPY ./moq-server/* ./
 # We instead we build the binaries and copy them to the cargo bin directory.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/build/target \
-    cargo build --manifest-path --target x86_64-unknown-linux-gnu ./moq-pub/Cargo.toml --release && cp target/x86_64-unknown-linux-gnu/release/moq-pub /usr/bin/warp
+    cargo build --manifest-path ./moq-pub/Cargo.toml --target x86_64-unknown-linux-gnu --release && cp target/x86_64-unknown-linux-gnu/release/moq-pub /usr/bin/warp
