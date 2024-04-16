@@ -68,7 +68,7 @@ jobs:
                 submodules: recursive
             -
               name: Download warp
-              uses: actions/download-artifact@v3
+              uses: actions/download-artifact@v4
               with:
                 name: warp
                 path: ./
