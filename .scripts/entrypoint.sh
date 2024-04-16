@@ -2,9 +2,9 @@
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 # Create and modify permissions of XDG_RUNTIME_DIR
-sudo -u user mkdir -pm700 /tmp/runtime-ubuntu
-sudo chown user:user /tmp/runtime-ubuntu
-sudo -u user chmod 700 /tmp/runtime-ubuntu
+sudo -u ubuntu mkdir -pm700 /tmp/runtime-ubuntu
+sudo chown ubuntu:ubuntu /tmp/runtime-ubuntu
+sudo -u ubuntu chmod 700 /tmp/runtime-ubuntu
 # Make user directory owned by the user in case it is not
 sudo chown ubuntu:ubuntu /home/ubuntu || sudo chown ubuntu:ubuntu /home/ubuntu/* || { echo "Failed to change user directory permissions. There may be permission issues."; }
 # Remove directories to make sure the desktop environment starts

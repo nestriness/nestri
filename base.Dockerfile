@@ -162,6 +162,7 @@ RUN dpkg --add-architecture i386 \
     libsm6:i386 \
     mesa-utils \
     mesa-utils-extra \
+    xcvt \
     && rm -rf /var/lib/apt/lists/* \
     && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
     && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
