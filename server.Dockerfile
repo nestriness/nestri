@@ -40,8 +40,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && chown $USERNAME:$USERNAME /home/$USERNAME \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
-COPY warp /usr/bin/netris/
-RUN chmod +x /usr/bin/netris/warp
+# COPY warp /usr/bin/netris/
+# RUN chmod +x /usr/bin/netris/warp
 COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
 RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
 

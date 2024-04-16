@@ -31,63 +31,14 @@ concurrency:
   cancel-in-progress: true
   
 jobs:
-    build-cargo:
-      defaults:
-        run:
-          working-directory: moq-server
-      runs-on: ubuntu-20.04
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
-          with:
-            submodules: recursive
-
-        - name: Install Rust
-          id: toolchain
-          uses: dtolnay/rust-toolchain@stable
-          with:
-            targets: x86_64-unknown-linux-gnu
-            toolchain: stable
-            components: clippy, rustfmt
-
-        - name: Cache Rust Dependencies
-          uses: Swatinem/rust-cache@v2
-          with:
-            save-if: false
-            prefix-key: 'v0-rust-deps'
-            shared-key: x86_64-unknown-linux-gnu
-
-        - name: Cargo build
-          run: cargo build --target x86_64-unknown-linux-gnu --manifest-path ./moq-pub/Cargo.toml --release
-
-        - name: Copy and rename artifacts (Linux)
-          run: |
-            cp target/x86_64-unknown-linux-gnu/release/moq-pub ./warp
-      
-        - name: Publish artifacts
-          uses: actions/upload-artifact@v3
-          with:
-            name: warp
-            path: ./moq-server/warp
-            if-no-files-found: error
-            retention-days: 5
-
     build-docker-pr:
         name: Build image on pr
-        needs: 
-          - build-cargo
         runs-on: ubuntu-latest
         if: ${{ github.event_name == 'pull_request' }}
         steps:
             -
               name: Checkout repo
               uses: actions/checkout@v4
-            -
-              name: Download go binary
-              uses: actions/download-artifact@v3
-              with:
-                name: warp
-                path: ./
             - 
               name: Setup Docker Buildx
               uses: docker/setup-buildx-action@v3
@@ -105,8 +56,6 @@ jobs:
         name: Build image on merge to main
         if: ${{github.ref == 'refs/heads/main'}}
         runs-on: ubuntu-latest
-        needs: 
-          - build-cargo
         permissions:
             contents: read
             packages: write
