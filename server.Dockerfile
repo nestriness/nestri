@@ -1,5 +1,7 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
+FROM ghcr.io/wanjohiryan/netris/warp:nightly as warp
+
 FROM ghcr.io/wanjohiryan/netris/base:nightly
 
 ENV TZ=UTC \
@@ -40,8 +42,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && chown $USERNAME:$USERNAME /home/$USERNAME \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
-# COPY warp /usr/bin/netris/
-# RUN chmod +x /usr/bin/netris/warp
+COPY --from=warp /usr/bin/warp /usr/bin/
+RUN chmod +x /usr/bin/warp
 COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
 RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
 
