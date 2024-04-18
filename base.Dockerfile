@@ -299,5 +299,4 @@ RUN apt-get update \
     wireplumber \
     dbus-x11 \
     rtkit \
-    && rm -rf /var/lib/apt/lists/* \
-    && cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
+    && rm -rf /var/lib/apt/lists/* 
