@@ -288,41 +288,14 @@ RUN dpkg --add-architecture i386 \
         xorg \
         && rm -rf /var/lib/apt/lists/*
 
-#Build pipewire 
-ARG PW_VERSION=0.3.60 \
- PW_ARCHIVE_URL="https://gitlab.freedesktop.org/pipewire/pipewire/-/archive" \
- PW_TAR_FILE="pipewire-${PW_VERSION}.tar" \
- PW_TAR_URL="${PW_ARCHIVE_URL}/${PW_VERSION}/${PW_TAR_FILE}" \
- BUILD_DIR_BASE="/root" \
- BUILD_DIR="${BUILD_DIR_BASE}/build-${PW_VERSION}"
-
+#Install pipewire
 RUN apt-get update \
     && apt-get install -y \
-    debhelper-compat \
-    findutils \
-    git \
-    libasound2-dev \
-    libdbus-1-dev \
-    libglib2.0-dev \
-    libsbc-dev \
-    libsdl2-dev \
-    libudev-dev \
-    libva-dev \
-    libv4l-dev \
-    libx11-dev \
-    ninja-build \
-    pkg-config \
-    python3-docutils \
-    python3-pip \
-    meson \
     pulseaudio \
+    pipewire \
+    pipewire-pulse \
+    pipewire-audio-client-libraries \
+    pipewire-media-session \
     dbus-x11 \
     rtkit \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -LJO ${PW_TAR_URL} \
-    && tar -C ${BUILD_DIR_BASE} -xvf ${PW_TAR_FILE} \
-    && cd $BUILD_DIR_BASE/pipewire-${PW_VERSION} \
-    && meson setup $BUILD_DIR \
-    && meson configure $BUILD_DIR -Dprefix=/usr \
-    && meson compile -C $BUILD_DIR \
-    && meson install -C $BUILD_DIR
+    && rm -rf /var/lib/apt/lists/*
