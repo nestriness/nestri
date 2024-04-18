@@ -84,7 +84,7 @@ ENV LANG=en_US.UTF-8 \
 #     less \
 #     libavcodec-extra \
 #     libpulse0 \
-#     pulseaudio \
+    # pulseaudio \
 #     supervisor \
 #     net-tools \
 #     packagekit-tools \
@@ -291,9 +291,8 @@ RUN dpkg --add-architecture i386 \
 #Install pipewire
 RUN apt-get update \
     && apt-get install -y \
-    pulseaudio \
-    pulseaudio:i386 \
     pipewire \
+    pulseaudio- \
     pipewire-pulse \
     pipewire-audio-client-libraries \
     pipewire-media-session- \
