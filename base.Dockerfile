@@ -295,7 +295,9 @@ RUN apt-get update \
     pipewire \
     pipewire-pulse \
     pipewire-audio-client-libraries \
-    pipewire-media-session \
+    pipewire-media-session- \
+    wireplumber \
     dbus-x11 \
     rtkit \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
