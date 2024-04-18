@@ -18,7 +18,8 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     mangohud \
     gamescope \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && setcap cap_sys_nice+ep /usr/games/gamescope
 
 #Install wine
 ARG WINE_BRANCH=staging
