@@ -276,7 +276,8 @@ ENV \
 #     ffmpeg -version    
 
 # Install Xorg and NVIDIA driver installer dependencies
-RUN apt-get update \
+RUN dpkg --add-architecture i386 \
+    && apt-get update \
     && apt-get install --no-install-recommends -y \
         kmod \
         libc6-dev \
