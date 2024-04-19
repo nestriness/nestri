@@ -16,8 +16,10 @@ ENV TZ=UTC \
 RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
+    libxnvctrl0 \
     mangohud \
     gamescope \
+    && setcap cap_sys_nice+ep /usr/games/gamescope \
     && rm -rf /var/lib/apt/lists/*
 
 #Install wine
