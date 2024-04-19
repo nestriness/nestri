@@ -109,10 +109,13 @@ echo "Waiting for X socket"
 until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
 echo "X socket is ready"
 
-/usr/games/gamescope -w 854 -h 480 -W 1920 -H 1080 -- mangohud glxgears &
+if [[ -z "${NAME}" ]]; then
+  echo "No stream name was found, did you forget to set the env variable NAME?" && exit 1
+else 
+  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset  - | /usr/bin/warp --name "${NAME}" https://fst.so:4443 &
+fi
 # /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset  - | /usr/bin/warp --name "bbb" https://fst.so
-
-/usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset  - | /usr/bin/warp --name "netris" https://fst.so:4443 &
+/usr/games/gamescope -w 854 -h 480 -W 1920 -H 1080 -- mangohud glxgears &
 
 echo "Session Running. Press [Return] to exit."
 read
