@@ -14,3 +14,7 @@ weston --backend=wayland-backend.so
 
 #Run
 docker run --gpus all --entrypoint /bin/bash --rm -it -v $(pwd):/games -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY --cap-add=SYS_NICE --cap-add=SYS_ADMIN recorder
+
+docker run --gpus all --entrypoint /bin/bash --device=/dev/dri --rm -it -v $(pwd):/game --cap-add=SYS_NICE --cap-add=SYS_ADMIN ghcr.io/wanjohiryan/netris/server:nightly
+
+ ffmpeg -hide_banner -v quiet -stream_loop -1 -re -i /game/test.mp4 -an -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | RUST_LOG=moq_pub=info warp --name "netris" https://fst.so:4443
