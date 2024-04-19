@@ -1,7 +1,5 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
-FROM ghcr.io/wanjohiryan/netris/warp:nightly as warp
-
 FROM ghcr.io/wanjohiryan/netris/base:nightly
 
 ENV TZ=UTC \
@@ -17,6 +15,7 @@ RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     libxnvctrl0 \
+    libevdev2 \
     mangohud \
     gamescope \
     && setcap cap_sys_nice+ep /usr/games/gamescope \
@@ -44,7 +43,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && chown $USERNAME:$USERNAME /home/$USERNAME \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
-COPY --from=warp /usr/bin/warp /usr/bin/
+COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
+COPY --from=ghcr.io/games-on-whales/inputtino:stable /inputtino/input-server /inputtino/input-server
 RUN chmod +x /usr/bin/warp
 COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
 RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
@@ -52,6 +52,10 @@ RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
 USER 1000
 ENV SHELL=/bin/bash \
     USER=${USERNAME}
+#For mounting the game into the container
+VOLUME [ "/game" ]
+#For inputtino server
+EXPOSE 8080
 
 WORKDIR /home/${USERNAME}
 
