@@ -41,31 +41,32 @@ ARG USERNAME=netris \
 
 ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
 
-RUN if id -u "${PUID}" &>/dev/null; then \
-      oldname=$(id -nu "${PUID}"); \
-      if [ -z "${oldname}" ]; then \
-        echo "User with UID ${PUID} exists but username could not be determined."; \
-        exit 1; \
-      else \
-        userdel -r "${oldname}"; \
-      fi \
-    else \
-      echo "No user with UID ${PUID} found."; \
-    fi
+# RUN if id -u "${PUID}" &>/dev/null; then \
+#       oldname=$(id -nu "${PUID}"); \
+#       if [ -z "${oldname}" ]; then \
+#         echo "User with UID ${PUID} exists but username could not be determined."; \
+#         exit 1; \
+#       else \
+#         userdel -r "${oldname}"; \
+#       fi \
+#     else \
+#       echo "No user with UID ${PUID} found."; \
+#     fi
 
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
     && rm -rf /var/lib/apt/lists/* \ 
-    # && if id -u "${PUID}" &>/dev/null; then \
-    #   oldname=$(id -nu "${PUID}"); \
-    #   if [ -z "${oldname}" ]; then \
-    #     echo "User with UID ${PUID} exists but username could not be determined."; \
-    #   else \
-    #     userdel -r "${oldname}"; \
-    #   fi \
-    # fi \
+    # Delete default user
+    && if id -u "${PUID}" &>/dev/null; then \
+      oldname=$(id -nu "${PUID}"); \
+      if [ -z "${oldname}" ]; then \
+        echo "User with UID ${PUID} exists but username could not be determined."; \
+      else \
+        userdel -r "${oldname}"; \
+      fi \
+    fi \
     # && userdel -r "ubuntu" \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
