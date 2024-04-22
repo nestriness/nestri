@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         tzdata \
     && rm -rf /var/lib/apt/lists/* \
     # delete default user
-    && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}" fi \
+    && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}"; fi \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
     && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
