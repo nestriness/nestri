@@ -161,7 +161,7 @@ fi
 openbox-session &
 
 #Now we can safely run our input server without permission errors
-/inputtino/input-server &
+sudo /inputtino/input-server &
 
 /usr/games/gamescope -- mangohud glxgears > /dev/null &
 
