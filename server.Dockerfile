@@ -26,7 +26,10 @@ RUN apt-get update -y \
 ARG WINE_BRANCH=staging
 RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-archive.key "https://dl.winehq.org/wine-builds/winehq.key" \
     && curl -fsSL -o "/etc/apt/sources.list.d/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" "https://dl.winehq.org/wine-builds/ubuntu/dists/$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"')/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" \
-    && apt-get update && apt-get install --install-recommends -y winehq-${WINE_BRANCH}
+    && apt-get update && apt-get install --install-recommends -y winehq-${WINE_BRANCH} \
+    && curl -fsSL -o /usr/bin/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks" \
+    && chmod 755 /usr/bin/winetricks \
+    && curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
 #Install Proton
 COPY .scripts/proton /usr/bin/netris/
