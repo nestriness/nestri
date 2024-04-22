@@ -66,7 +66,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     #     userdel -r "${oldname}"; \
     #   fi \
     # fi \
-    && userdel -r "ubuntu" \
+    # && userdel -r "ubuntu" \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
     && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
