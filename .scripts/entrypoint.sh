@@ -38,10 +38,12 @@ for dev in $REQUIRED_DEVICES; do
   fi
 done
 
+join_by() { local IFS="$1"; shift; echo "$*"; }
+
 groups=$(join_by "," "${!group_map[@]}")
 if [ "$groups" != "" ]; then
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") Adding user '${USER}' to groups: $groups"
-  sudo usermod -G "$groups" "${USER}"
+  sudo usermod -a -G "$groups" "${USER}"
 else
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") Not modifying user groups ($groups)"
 fi
@@ -161,7 +163,7 @@ openbox-session &
 #Now we can safely run our input server without permission errors
 /inputtino/input-server &
 
-/usr/games/gamescope -- mangohud glxgears >/dev/null &
+/usr/games/gamescope -- mangohud glxgears > /dev/null &
 
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") Session Running. Press [Return] to exit."
 read
