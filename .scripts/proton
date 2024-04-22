@@ -68,7 +68,7 @@ xpge() {
         fi
     fi
     if [[ -n "$chse" ]]; then
-        wget "$(curl -s https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest | grep browser_download_url | cut -d\" -f4 | grep .tar.gz)" -P "$temp"/
+        wget --progress=dot:giga "$(curl -s https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest | grep browser_download_url | cut -d\" -f4 | grep .tar.gz)" -P "$temp"/
 
         rm -rf "$pnpge/protonge"
         tar -xf "$temp/$gedl".tar.gz -C "$pnpge/"

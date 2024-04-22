@@ -18,6 +18,7 @@ RUN apt-get update -y \
     libevdev2 \
     mangohud \
     gamescope \
+    openbox \
     && setcap cap_sys_nice+ep /usr/games/gamescope \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,15 +33,28 @@ COPY .scripts/proton /usr/bin/netris/
 RUN chmod +x /usr/bin/netris/proton \
     && /usr/bin/netris/proton -i
 
-ARG USERNAME=ubuntu
+ARG USERNAME=netris \
+    PUID=1000 \
+    PGIDID=1000 \
+    UMASK=000 \
+    HOME="/home/netris"
+
+ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
     && rm -rf /var/lib/apt/lists/* \
+    # delete default user
+    && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}" fi \
+    # Now create ours
+    && groupadd -f -g "${PGID}" ${USERNAME} \
+    && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
+    && umask "${UMASK}" \
+    && chown "${PUID}:${PGID}" "${HOME}" \
+    && chown -R "${PUID}:${PGID}" "${XDG_RUNTIME_DIR}" \
     && usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,input,lp,lpadmin,plugdev,pulse-access,render,scanner,ssl-cert,sudo,tape,tty,video,voice $USERNAME \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-    && chown $USERNAME:$USERNAME /home/$USERNAME \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
 COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
