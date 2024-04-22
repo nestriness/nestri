@@ -10,43 +10,56 @@ ENV TZ=UTC \
     CDEPTH=24 \
     VIDEO_PORT=DFP
 
-#Install Mangohud and gamescope
-RUN apt-get update -y \
-    && add-apt-repository -y multiverse \
-    && apt-get install -y --no-install-recommends \
-    libxnvctrl0 \
-    libevdev2 \
-    mangohud \
-    gamescope \
-    openbox \
-    && setcap cap_sys_nice+ep /usr/games/gamescope \
-    && rm -rf /var/lib/apt/lists/*
+# #Install Mangohud and gamescope
+# RUN apt-get update -y \
+#     && add-apt-repository -y multiverse \
+#     && apt-get install -y --no-install-recommends \
+#     libxnvctrl0 \
+#     libevdev2 \
+#     mangohud \
+#     gamescope \
+#     openbox \
+#     && setcap cap_sys_nice+ep /usr/games/gamescope \
+#     && rm -rf /var/lib/apt/lists/*
 
-#Install wine
-ARG WINE_BRANCH=staging
-RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-archive.key "https://dl.winehq.org/wine-builds/winehq.key" \
-    && curl -fsSL -o "/etc/apt/sources.list.d/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" "https://dl.winehq.org/wine-builds/ubuntu/dists/$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"')/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" \
-    && apt-get update && apt-get install --install-recommends -y winehq-${WINE_BRANCH}
+# #Install wine
+# ARG WINE_BRANCH=staging
+# RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-archive.key "https://dl.winehq.org/wine-builds/winehq.key" \
+#     && curl -fsSL -o "/etc/apt/sources.list.d/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" "https://dl.winehq.org/wine-builds/ubuntu/dists/$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"')/winehq-$(grep UBUNTU_CODENAME= /etc/os-release | cut -d= -f2 | tr -d '\"').sources" \
+#     && apt-get update && apt-get install --install-recommends -y winehq-${WINE_BRANCH}
 
-#Install Proton
-COPY .scripts/proton /usr/bin/netris/
-RUN chmod +x /usr/bin/netris/proton \
-    && /usr/bin/netris/proton -i
+# #Install Proton
+# COPY .scripts/proton /usr/bin/netris/
+# RUN chmod +x /usr/bin/netris/proton \
+#     && /usr/bin/netris/proton -i
 
 ARG USERNAME=netris \
     PUID=1000 \
-    PGIDID=1000 \
+    PGID=1000 \
     UMASK=000 \
     HOME="/home/netris"
 
 ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
+
+RUN if id -u "${PUID}" &>/dev/null; then \
+      oldname=$(id -nu "${PUID}"); \
+      if [ -z "${oldname}" ]; then \
+        echo "User with UID ${PUID} exists but username could not be determined."; \
+        exit 1; \
+      else \
+        userdel -r "${oldname}"; \
+      fi \
+    else \
+      echo "No user with UID ${PUID} found."; \
+    fi
+    
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* \    
     # delete default user
-    && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}"; fi \
+    # && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}"; fi \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
     && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
