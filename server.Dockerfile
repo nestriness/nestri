@@ -52,20 +52,26 @@ RUN if id -u "${PUID}" &>/dev/null; then \
     else \
       echo "No user with UID ${PUID} found."; \
     fi
-    
+
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
-    && rm -rf /var/lib/apt/lists/* \    
-    # delete default user
-    # && if id -u "${PUID}" &>/dev/null; then oldname=$(id -nu "${PUID}") userdel -r "${oldname}"; fi \
+    && rm -rf /var/lib/apt/lists/* \ 
+    && if id -u "${PUID}" &>/dev/null; then \
+      oldname=$(id -nu "${PUID}"); \
+      if [ -z "${oldname}" ]; then \
+        echo "User with UID ${PUID} exists but username could not be determined."; \
+        exit 1; \
+      else \
+        userdel -r "${oldname}"; \
+      fi \
+    fi \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
     && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
     && umask "${UMASK}" \
     && chown "${PUID}:${PGID}" "${HOME}" \
-    && chown -R "${PUID}:${PGID}" "${XDG_RUNTIME_DIR}" \
     && usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,input,lp,lpadmin,plugdev,pulse-access,render,scanner,ssl-cert,sudo,tape,tty,video,voice $USERNAME \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
