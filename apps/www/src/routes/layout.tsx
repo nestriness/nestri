@@ -23,7 +23,7 @@ export const head: DocumentHead = {
   meta: [
     {
       name: "description",
-      content: "Play with your friends right from your browser",
+      content: "Play with your  friends right from your browser",
     },
   ],
 };
