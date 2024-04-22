@@ -1,7 +1,5 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
-FROM ghcr.io/wanjohiryan/netris/warp:nightly as warp
-
 FROM ghcr.io/wanjohiryan/netris/base:nightly
 
 ENV TZ=UTC \
@@ -12,13 +10,15 @@ ENV TZ=UTC \
     CDEPTH=24 \
     VIDEO_PORT=DFP
 
-#Install Mangohud and gamescope
+#Install Mangohud, openbox and gamescope
 RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     libxnvctrl0 \
+    libevdev2 \
     mangohud \
     gamescope \
+    openbox \
     && setcap cap_sys_nice+ep /usr/games/gamescope \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,18 +33,40 @@ COPY .scripts/proton /usr/bin/netris/
 RUN chmod +x /usr/bin/netris/proton \
     && /usr/bin/netris/proton -i
 
-ARG USERNAME=ubuntu
+ARG USERNAME=netris \
+    PUID=1000 \
+    PGID=1000 \
+    UMASK=000 \
+    HOME="/home/netris"
+
+ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
+
 # Create user and assign adequate groups
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
-    && rm -rf /var/lib/apt/lists/* \
-    && usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,input,lp,lpadmin,plugdev,pulse-access,render,scanner,ssl-cert,sudo,tape,tty,video,voice $USERNAME \
+    && rm -rf /var/lib/apt/lists/* \ 
+    # Delete default user
+    && if id -u "${PUID}" &>/dev/null; then \
+      oldname=$(id -nu "${PUID}"); \
+      if [ -z "${oldname}" ]; then \
+        echo "User with UID ${PUID} exists but username could not be determined."; \
+        exit 1; \
+      else \
+        userdel -r "${oldname}"; \
+      fi \
+    fi \
+    # Now create ours
+    && groupadd -f -g "${PGID}" ${USERNAME} \
+    && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
+    && umask "${UMASK}" \
+    && chown "${PUID}:${PGID}" "${HOME}" \
+    && usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,input,lp,lpadmin,plugdev,pulse-access,render,ssl-cert,sudo,tape,tty,video,voice $USERNAME \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-    && chown $USERNAME:$USERNAME /home/$USERNAME \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
-COPY --from=warp /usr/bin/warp /usr/bin/
+COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
+COPY --from=ghcr.io/games-on-whales/inputtino:stable /inputtino/input-server /inputtino/input-server
 RUN chmod +x /usr/bin/warp
 COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
 RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
@@ -52,6 +74,10 @@ RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
 USER 1000
 ENV SHELL=/bin/bash \
     USER=${USERNAME}
+#For mounting the game into the container
+VOLUME [ "/game" ]
+#For inputtino server
+EXPOSE 8080
 
 WORKDIR /home/${USERNAME}
 

@@ -2,16 +2,56 @@
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 # Create and modify permissions of XDG_RUNTIME_DIR
-sudo -u ubuntu mkdir -pm700 /tmp/runtime-ubuntu
-sudo chown ubuntu:ubuntu /tmp/runtime-ubuntu
-sudo -u ubuntu chmod 700 /tmp/runtime-ubuntu
+sudo -u netris mkdir -pm700 /tmp/runtime-1000
+sudo chown netris:netris /tmp/runtime-1000
+sudo -u netris chmod 700 /tmp/runtime-1000
 # Make user directory owned by the user in case it is not
-sudo chown ubuntu:ubuntu /home/ubuntu || sudo chown ubuntu:ubuntu /home/ubuntu/* || { echo "Failed to change user directory permissions. There may be permission issues."; }
+sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
+
+#Input devices ownable by our default user
+export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
+
+declare -A group_map
+
+for dev in $REQUIRED_DEVICES; do
+  if [ -e "$dev" ]; then
+    dev_group=$(stat -c "%G" "$dev")
+    dev_gid=$(stat -c "%g" "$dev")
+
+    if [ "$dev_group" = "UNKNOWN" ]; then
+      new_name="netris-gid-$dev_gid"
+      # We only have a GID for this group; create a named group for it
+      # this isn't 100% necessary but it prevents some useless noise in the console
+      sudo groupadd -g "$dev_gid" "$new_name"
+      group_map[$new_name]=1
+    else
+      # the group already exists; just add it to the list
+      group_map[$dev_group]=1
+    fi
+
+    # is this device read/writable by the group? if not, make it so
+    if [ "$(stat -c "%a" "$dev" | cut -c2)" -lt 6 ]; then
+      sudo chmod g+rw "$dev"
+    fi
+  else
+    echo "$(date +"[%Y-%m-%d %H:%M:%S]") Path '$dev' is not present."
+  fi
+done
+
+join_by() { local IFS="$1"; shift; echo "$*"; }
+
+groups=$(join_by "," "${!group_map[@]}")
+if [ "$groups" != "" ]; then
+  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Adding user '${USER}' to groups: $groups"
+  sudo usermod -a -G "$groups" "${USER}"
+else
+  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Not modifying user groups ($groups)"
+fi
 
 # Remove directories to make sure the desktop environment starts
 sudo rm -rf /tmp/.X* ~/.cache
 # Change time zone from environment variable
-sudo ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" | sudo tee /etc/timezone > /dev/null
+sudo ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" | sudo tee /etc/timezone >/dev/null
 # Add gamescope directories to path
 export PATH="${PATH:+${PATH}:}/usr/local/games:/usr/games"
 
@@ -21,7 +61,7 @@ sudo ln -snf /dev/ptmx /dev/tty7
 sudo /etc/init.d/dbus start
 
 # Install NVIDIA userspace driver components including X graphic libraries
-if ! command -v nvidia-xconfig &> /dev/null; then
+if ! command -v nvidia-xconfig &>/dev/null; then
   # Driver version is provided by the kernel through the container toolkit
   export DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')"
   export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{print $8}')"
@@ -29,26 +69,29 @@ if ! command -v nvidia-xconfig &> /dev/null; then
   # If version is different, new installer will overwrite the existing components
   if [ ! -f "/tmp/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" ]; then
     # Check multiple sources in order to probe both consumer and datacenter driver versions
-    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || { echo "Failed NVIDIA GPU driver download. Exiting."; exit 1; }
+    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || {
+      echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed NVIDIA GPU driver download. Exiting."
+      exit 1
+    }
   fi
   # Extract installer before installing
   sudo sh "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" -x
   cd "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}"
   # Run installation without the kernel modules and host components
   sudo ./nvidia-installer --silent \
-                    --no-kernel-module \
-                    --install-compat32-libs \
-                    --no-nouveau-check \
-                    --no-nvidia-modprobe \
-                    --no-rpms \
-                    --no-backup \
-                    --no-check-for-alternate-installs
+    --no-kernel-module \
+    --install-compat32-libs \
+    --no-nouveau-check \
+    --no-nvidia-modprobe \
+    --no-rpms \
+    --no-backup \
+    --no-check-for-alternate-installs
   sudo rm -rf /tmp/NVIDIA* && cd ~
 fi
 
 # Allow starting Xorg from a pseudoterminal instead of strictly on a tty console
 if [ ! -f /etc/X11/Xwrapper.config ]; then
-    echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config > /dev/null
+  echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config >/dev/null
 fi
 if grep -Fxq "allowed_users=console" /etc/X11/Xwrapper.config; then
   sudo sed -i "s/allowed_users=console/allowed_users=anybody/;$ a needs_root_rights=yes" /etc/X11/Xwrapper.config
@@ -71,7 +114,7 @@ else
 fi
 
 if [ -z "$GPU_SELECT" ]; then
-  echo "No NVIDIA GPUs detected or nvidia-container-toolkit not configured. Exiting."
+  echo "$(date +"[%Y-%m-%d %H:%M:%S]") No NVIDIA GPUs detected or nvidia-container-toolkit not configured. Exiting."
   exit 1
 fi
 
@@ -97,7 +140,7 @@ sudo sed -i '/Driver\s\+"nvidia"/a\    Option         "ModeValidation" "NoMaxPCl
 # Add custom generated modeline to the configuration
 sudo sed -i '/Section\s\+"Monitor"/a\    '"$MODELINE" /etc/X11/xorg.conf
 # Prevent interference between GPUs, add this to the host or other containers running Xorg as well
-echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf > /dev/null
+echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf >/dev/null
 
 # Default display is :0 across the container
 export DISPLAY=":0"
@@ -105,17 +148,22 @@ export DISPLAY=":0"
 /usr/bin/Xorg vt7 -noreset -novtswitch -sharevts -dpi "${DPI}" +extension "COMPOSITE" +extension "DAMAGE" +extension "GLX" +extension "RANDR" +extension "RENDER" +extension "MIT-SHM" +extension "XFIXES" +extension "XTEST" "${DISPLAY}" &
 
 # Wait for X11 to start
-echo "Waiting for X socket"
+echo "$(date +"[%Y-%m-%d %H:%M:%S]") Waiting for X socket"
 until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
-echo "X socket is ready"
+echo "$(date +"[%Y-%m-%d %H:%M:%S]") X socket is ready"
 
 if [[ -z "${NAME}" ]]; then
-  echo "No stream name was found, did you forget to set the env variable NAME?" && exit 1
-else 
-  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset  - | /usr/bin/warp --name "${NAME}" https://fst.so:4443 &
+  echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
+else
+  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${NAME}" https://fst.so:4443 &
 fi
-# /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset  - | /usr/bin/warp --name "bbb" https://fst.so
-/usr/games/g  amescope -h 720 -H 1080 -F fsr -f -- mangohud glxgears > /dev/null &
 
-echo "Session Running. Press [Return] to exit."
+openbox-session &
+
+#Now we can safely run our input server without permission errors
+/inputtino/input-server &
+
+/usr/games/gamescope -- mangohud glxgears > /dev/null &
+
+echo "$(date +"[%Y-%m-%d %H:%M:%S]") Session Running. Press [Return] to exit."
 read
