@@ -58,15 +58,15 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
     && rm -rf /var/lib/apt/lists/* \ 
-    && if id -u "${PUID}" &>/dev/null; then \
-      oldname=$(id -nu "${PUID}"); \
-      if [ -z "${oldname}" ]; then \
-        echo "User with UID ${PUID} exists but username could not be determined."; \
-        exit 1; \
-      else \
-        userdel -r "${oldname}"; \
-      fi \
-    fi \
+    # && if id -u "${PUID}" &>/dev/null; then \
+    #   oldname=$(id -nu "${PUID}"); \
+    #   if [ -z "${oldname}" ]; then \
+    #     echo "User with UID ${PUID} exists but username could not be determined."; \
+    #   else \
+    #     userdel -r "${oldname}"; \
+    #   fi \
+    # fi \
+    && userdel -r "ubuntu" \
     # Now create ours
     && groupadd -f -g "${PGID}" ${USERNAME} \
     && useradd -m -d ${HOME} -u "${PUID}" -g "${PGID}" -s /bin/bash ${USERNAME} \
