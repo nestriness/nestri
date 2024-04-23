@@ -60,6 +60,9 @@ sudo ln -snf /dev/ptmx /dev/tty7
 # Start DBus without systemd
 sudo /etc/init.d/dbus start
 
+#Install proton for this user, this will skip if the container is reused and the user has proto already installed
+/usr/bin/proton -i
+
 # Install NVIDIA userspace driver components including X graphic libraries
 if ! command -v nvidia-xconfig &>/dev/null; then
   # Driver version is provided by the kernel through the container toolkit

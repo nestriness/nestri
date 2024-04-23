@@ -31,11 +31,6 @@ RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-arc
     && chmod 755 /usr/bin/winetricks \
     && curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
-#Install Proton
-COPY .scripts/proton /usr/bin/netris/
-RUN chmod +x /usr/bin/netris/proton \
-    && /usr/bin/netris/proton -i
-
 ARG USERNAME=netris \
     PUID=1000 \
     PGID=1000 \
@@ -72,7 +67,8 @@ COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
 COPY --from=ghcr.io/games-on-whales/inputtino:stable /inputtino/input-server /inputtino/input-server
 RUN chmod +x /usr/bin/warp
 COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
-RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
+COPY .scripts/proton /usr/bin/
+RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh /usr/bin/proton
 
 USER 1000
 ENV SHELL=/bin/bash \
