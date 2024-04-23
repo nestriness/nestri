@@ -8,6 +8,9 @@ sudo -u netris chmod 700 /tmp/runtime-1000
 # Make user directory owned by the user in case it is not
 sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
 
+#Enabling evdev input class on pointers, keyboards, touchpads, touch screens, etc.
+sudo cp -f /usr/share/X11/xorg.conf.d/10-evdev.conf /etc/X11/xorg.conf.d/10-evdev.conf
+
 #Input devices ownable by our default user
 export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
 
@@ -166,7 +169,7 @@ openbox-session &
 #Now we can safely run our input server without permission errors
 sudo /inputtino/input-server &
 
-/usr/games/gamescope -- mangohud glxgears > /dev/null &
+/usr/games/gamescope -f -b -- mangohud /usr/bin/proton -r /game/AlanWake2.exe &
 
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") Session Running. Press [Return] to exit."
 read

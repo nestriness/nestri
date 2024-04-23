@@ -22,3 +22,7 @@ ffmpeg -hide_banner -v quiet -stream_loop -1 -re -i /game/test.mp4 -an -f mp4 -m
 docker run -d --gpus all -e NAME=netris --device=/dev/dri --rm -v $(pwd):/game -p 8080:8080 -v /dev/input:/dev/input:rw --device /dev/uinput --cap-add=SYS_NICE --cap-add=SYS_ADMIN server
  
 /usr/games/gamescope -- mangohud /usr/bin/netris/proton -r /game/AlanWake2.exe
+
+export WINEPREFIX=/home/netris/.steam/steam/steamapps/compatdata/0
+
+/usr/games/gamescope -f -b -- mangohud /usr/bin/proton -r /game/AlanWake2.exe &

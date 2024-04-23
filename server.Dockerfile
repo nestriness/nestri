@@ -19,6 +19,7 @@ RUN apt-get update -y \
     mangohud \
     gamescope \
     openbox \
+    xserver-xorg-input-evdev \
     && setcap cap_sys_nice+ep /usr/games/gamescope \
     && rm -rf /var/lib/apt/lists/*
 
