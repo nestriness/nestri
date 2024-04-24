@@ -33,13 +33,13 @@ for dev in "${device_nodes[@]}"; do
     # Create a name for the group ID if it does not yet already exist
     if [[ "${dev_group}" = "UNKNOWN" ]]; then
         dev_group="user-gid-${dev_gid}"
-        groupadd -g $dev_gid "${dev_group}"
+        sudo groupadd -g $dev_gid "${dev_group}"
     fi
 
     # Add group to user
     if [[ "${added_groups}" != *"${dev_group}"* ]]; then
         echo "Adding user '${USER}' to group: '${dev_group}' for device: ${dev}"
-        usermod -aG ${dev_group} ${USER}
+        sudo usermod -aG ${dev_group} ${USER}
         added_groups=" ${added_groups} ${dev_group} "
     fi
 done
