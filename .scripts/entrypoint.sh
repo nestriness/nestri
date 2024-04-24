@@ -9,7 +9,7 @@ sudo -u netris chmod 700 /tmp/runtime-1000
 sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
 
 #Enabling evdev input class on pointers, keyboards, touchpads, touch screens, etc.
-sudo cp -f /usr/share/X11/xorg.conf.d/10-evdev.conf /etc/X11/xorg.conf.d/10-evdev.conf
+# sudo cp -f /usr/share/X11/xorg.conf.d/10-evdev.conf /etc/X11/xorg.conf.d/10-evdev.conf
 sudo cp -f /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/40-libinput.conf
 
 #Input devices ownable by our default user

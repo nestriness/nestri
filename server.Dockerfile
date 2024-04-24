@@ -18,8 +18,14 @@ RUN apt-get update -y \
     libevdev2 \
     mangohud \
     gamescope \
-    openbox \
+    udev \
+    xserver-xorg-input-all\
     xserver-xorg-input-evdev \
+    xserver-xorg-input-joystick \
+    xserver-xorg-input-kbd \
+    xserver-xorg-input-libinput \
+    xserver-xorg-input-mouse \
+    openbox \
     && setcap cap_sys_nice+ep /usr/games/gamescope \
     && rm -rf /var/lib/apt/lists/*
 
