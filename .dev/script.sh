@@ -26,3 +26,5 @@ docker run -d --gpus all -e NAME=netris --device=/dev/dri --rm -v $(pwd):/game -
 export WINEPREFIX=/home/netris/.steam/steam/steamapps/compatdata/0
 
 /usr/games/gamescope -f -b -- mangohud /usr/bin/proton -r /game/AlanWake2.exe &
+
+docker run -it --entrypoint bash --gpus all -e NAME=netris --device=/dev/dri -v /game/Alan:/game -p 8080:8080 -v /run/udev:/run/udev:rw --device-cgroup-rule "c 13:* rmw"  -v /dev/shm:/dev/shm:rw  -v /dev/input:/dev/input:rw --device /dev/uinput --cap-add=SYS_NICE --privileged --cap-add=SYS_ADMIN proton

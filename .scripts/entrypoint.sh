@@ -10,46 +10,42 @@ sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/*
 
 #Enabling evdev input class on pointers, keyboards, touchpads, touch screens, etc.
 sudo cp -f /usr/share/X11/xorg.conf.d/10-evdev.conf /etc/X11/xorg.conf.d/10-evdev.conf
+sudo cp -f /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/40-libinput.conf
 
 #Input devices ownable by our default user
-export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
-
-declare -A group_map
-
-for dev in $REQUIRED_DEVICES; do
-  if [ -e "$dev" ]; then
-    dev_group=$(stat -c "%G" "$dev")
-    dev_gid=$(stat -c "%g" "$dev")
-
-    if [ "$dev_group" = "UNKNOWN" ]; then
-      new_name="netris-gid-$dev_gid"
-      # We only have a GID for this group; create a named group for it
-      # this isn't 100% necessary but it prevents some useless noise in the console
-      sudo groupadd -g "$dev_gid" "$new_name"
-      group_map[$new_name]=1
-    else
-      # the group already exists; just add it to the list
-      group_map[$dev_group]=1
+device_nodes=( /dev/uinput /dev/input/event* /dev/dri/* )
+added_groups=""
+for dev in "${device_nodes[@]}"; do
+    # Only process $dev if it's a character device
+    if [[ ! -c "${dev}" ]]; then
+        continue
     fi
 
-    # is this device read/writable by the group? if not, make it so
-    if [ "$(stat -c "%a" "$dev" | cut -c2)" -lt 6 ]; then
-      sudo chmod g+rw "$dev"
+    # Get group name and ID
+    dev_group=$(stat -c "%G" "${dev}")
+    dev_gid=$(stat -c "%g" "${dev}")
+
+    # Dont add root
+    if [[ "${dev_gid}" = 0 ]]; then
+        continue
     fi
-  else
-    echo "$(date +"[%Y-%m-%d %H:%M:%S]") Path '$dev' is not present."
-  fi
+
+    # Create a name for the group ID if it does not yet already exist
+    if [[ "${dev_group}" = "UNKNOWN" ]]; then
+        dev_group="user-gid-${dev_gid}"
+        groupadd -g $dev_gid "${dev_group}"
+    fi
+
+    # Add group to user
+    if [[ "${added_groups}" != *"${dev_group}"* ]]; then
+        echo "Adding user '${USER}' to group: '${dev_group}' for device: ${dev}"
+        usermod -aG ${dev_group} ${USER}
+        added_groups=" ${added_groups} ${dev_group} "
+    fi
 done
 
-join_by() { local IFS="$1"; shift; echo "$*"; }
-
-groups=$(join_by "," "${!group_map[@]}")
-if [ "$groups" != "" ]; then
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Adding user '${USER}' to groups: $groups"
-  sudo usermod -a -G "$groups" "${USER}"
-else
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Not modifying user groups ($groups)"
-fi
+# Ensure the default user has permission to r/w on input devices
+sudo chmod 0666 /dev/uinput
 
 # Remove directories to make sure the desktop environment starts
 sudo rm -rf /tmp/.X* ~/.cache
