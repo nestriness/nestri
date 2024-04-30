@@ -26,22 +26,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_MASTER_TOKEN }}
         with:
-            #TODO: fix all emojis
           types: |-
+            build
+            chore
+            ci
+            deprecate
+            docs
             feat
             fix
-            chore
-            docs
-            test
-            security
+            perf
+            refactor
             remove
             revert
-            perf
+            security
             style
-            deprecate
-            refactor
-            ci
-            build
+            test
           requireScope: false
           # Ensures the subject start with an uppercase character.
           subjectPattern: ^([A-Z]).+$
