@@ -34,7 +34,7 @@ pub struct Config {
 	pub namespace: String,
 
 	/// The name of the input track.
-	#[arg(long, default_value = "input")]
+	#[arg(long, default_value = ".catalog")]
 	pub track: String,
 }
 

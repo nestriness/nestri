@@ -31,7 +31,7 @@ pub struct Cli {
     pub namespace: String,
 
     /// The name of the input track.
-    #[arg(long, default_value = "input")]
+    #[arg(long, default_value = ".catalog")]
     pub track: String,
 }
 
@@ -57,39 +57,20 @@ async fn main() -> anyhow::Result<()> {
 
     let session = quic.client.connect(&config.url).await?;
 
-    // if config.publish {
-    // 	let (session, mut publisher) = Publisher::connect(session)
-    // 		.await
-    // 		.context("failed to create MoQ Transport session")?;
-
-    // 	let (mut writer, _, reader) = serve::Tracks {
-    // 		namespace: config.namespace.clone(),
-    // 	}
-    // 	.produce();
-
-    // 	let track = writer.create(&config.track).unwrap();
-    // 	let clock = clock::Publisher::new(track.groups()?);
-
-    // 	tokio::select! {
-    // 		res = session.run() => res.context("session error")?,
-    // 		res = clock.run() => res.context("clock error")?,
-    // 		res = publisher.announce(reader) => res.context("failed to serve tracks")?,
-    // 	}
-    // } else {
     let (session, mut subscriber) = Subscriber::connect(session)
         .await
         .context("failed to create MoQ Transport session")?;
 
     let (prod, sub) = serve::Track::new(config.namespace, config.track).produce();
 
-    let clock = input::Subscriber::new(sub);
+    let input = input::Subscriber::new(sub);
 
+    //TODO: Make sure to retry until the input server comes [Use Supervisord for now]
     tokio::select! {
         res = session.run() => res.context("session error")?,
-        res = clock.run() => res.context("clock error")?,
+        res = input.run() => res.context("input error")?,
         res = subscriber.subscribe(prod) => res.context("failed to subscribe to track")?,
     }
-    // }
 
     Ok(())
 }
