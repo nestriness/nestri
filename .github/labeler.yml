@@ -16,6 +16,7 @@ labels:
     body: '(?i)breaking.*'
 
   - label: 'type/docs'
+    branch: '^docs/.*'
     title: '^\s*.*?\sdocs(?:(.+))?!?:'
     files:
      - '**/*.md$'
