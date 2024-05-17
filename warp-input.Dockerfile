@@ -3,7 +3,6 @@ FROM rust:bookworm as builder
 # Create a build directory and copy over all of the files
 WORKDIR /build
 COPY ./bin/input/ ./
-RUN ls -la
 RUN apt-get update && apt-get install -y libxdo-dev
 # Reuse a cache between builds.
 # I tried to `cargo install`, but it doesn't seem to work with workspaces.
