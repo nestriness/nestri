@@ -11,13 +11,16 @@
 &nbsp;
 
 <div align="center" >
-<h1 style="display:none">netris</h1>
+
 <a href="https://netris.me" >
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="/assets/logo-name-white.png">
   <source media="(prefers-color-scheme: light)" srcset="/assets/logo-name-black.png">
   <img alt="netris logo name" src="/assets/logo-name-black.png">
 </picture>
+
+<h1 style="visibility: hidden">netris</h1>
+
 </a>
 
 </div>
