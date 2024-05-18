@@ -23,7 +23,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: wanjohiryan/netris
+  IMAGE_NAME: netrisdotme/netris
   BASE_TAG_PREFIX: server
 
 concurrency:
