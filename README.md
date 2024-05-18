@@ -57,6 +57,30 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 ## Getting Started
 
+Before you begin, ensure you meet the following prerequisites to use Netris on your system.
+
+### Prerequisites
+
+- **Nvidia GPU**: Unfortunately, this setup is exclusive to Nvidia GPUs. If you don't own one, consider renting from cloud services like AWS, GCP, or Vast.ai. We highly recommend this approach.
+
+- **CUDA**: For GPU acceleration, CUDA version `12.0` or newer is required. Verify your CUDA installation by running `nvcc --version`.
+
+- **Docker**: Ensure you have `docker` and `nvidia-docker` are up to date to avoid compatibility issues with CUDA. You can check your Docker version by running `docker --version` in your terminal.
+
+- **GPU Driver**: Ensure your GPU drivers are up to date to avoid compatibility issues with CUDA. Nvidia driver version `520.56.06` or newer is required.
+
+- **Xorg Display**: Your Nvidia GPU should not be attached to a running X display server. You can confirm this by running `nvidia-smi`.
+
+- **Nvidia-DRM**: Make sure that the `nvidia-drm` module has been loaded and that the module is loaded with the flag `modeset=1`. Confirm this by running `sudo cat /sys/module/nvidia_drm/parameters/modeset` 
+
+> \[!TIP]
+>
+> Typically, if your setup meets the necessary CUDA requirements, the `nvidia-drm` module will already be loaded, particularly in AWS G4dn instances. \~ 💡
+
+> \[!IMPORTANT]
+>
+> We need all this prerequisites met for hardware accelerated video encoding and gamescope to work to work. \~ 📽️✨
+
 
 [![][image-star]][github-stars-link]
 
