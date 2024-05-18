@@ -20,7 +20,7 @@
 &nbsp;
 &nbsp;
 
-An open-source cloud gaming platform built for you and your friends. A GeForce NOW alternative that can be self-hosted.<br/>
+An open-source cloud gaming platform built for you and your friends. <br/> A GeForce NOW alternative that can be self-hosted.<br/>
 
 </div>
 
