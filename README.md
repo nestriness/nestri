@@ -17,10 +17,17 @@
 </picture>
 
 </div>
+&nbsp;
+&nbsp;
+
 An open-source cloud gaming platform built for you and your friends. A GeForce NOW alternative that can be self-hosted.<br/>
 
 </div>
 
+&nbsp;
+&nbsp;
+ <div align="center" >
+ 
 [![][github-release-shield]][github-release-link]
 [![][discord-shield]][discord-link]
 [![][github-license-shield]][github-license-link]
@@ -30,6 +37,8 @@ An open-source cloud gaming platform built for you and your friends. A GeForce N
 
 [![][share-x-shield]][share-x-link]
 [![][share-reddit-shield]][share-reddit-link]
+
+</div>
 
 [github-release-link]: https://github.com/wanjohiryan/netris/releases
 [github-release-shield]: https://img.shields.io/github/v/release/wanjohiryan/netris?color=369eff&labelColor=black&logo=github&style=flat-square
