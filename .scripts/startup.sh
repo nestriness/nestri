@@ -18,4 +18,6 @@ sed -i "s|^command.*=.*$|command=bash -c \"$escaped_xarg\"|" /etc/supervisor.d/g
 
 sed -i 's|^autostart.*=.*$|autostart=true|' /etc/supervisor.d/game.ini
 
+export SESSION_ID_INPUT="{$SESSION_ID}input"
+
 /usr/bin/supervisord -c /etc/supervisord.conf --nodaemon --user root
