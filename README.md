@@ -11,7 +11,7 @@
 &nbsp;
 
 <div align="center" >
-
+<h1 style="display:none">netris</h1>
 <a href="https://netris.me" >
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="/assets/logo-name-white.png">
@@ -52,6 +52,11 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 </div>
 
+## Getting Started
+
+
+[![][image-star]][github-stars-link]
+
 [github-release-link]: https://github.com/wanjohiryan/netris/releases
 [github-release-shield]: https://img.shields.io/github/v/release/wanjohiryan/netris?color=369eff&labelColor=black&logo=github&style=flat-square
 [discord-shield]: https://img.shields.io/discord/1080111004698021909?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square
@@ -66,3 +71,4 @@ An open-source cloud gaming platform built for you to play together with your fr
 [share-reddit-link]: https://www.reddit.com/submit?title=Hey%2C%20check%20out%20this%20Github%20repository.%20It%20is%20an%20open-source%20self-hosted%20Geforce%20Now%20alternative.&url=https%3A%2F%2Fgithub.com%2Fwanjohiryan%2Fnetris
 [image-overview]: assets/banner.png
 [website-link]: https://netris.me
+[image-star]: assets/star-us.png
