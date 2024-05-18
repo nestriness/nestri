@@ -17,6 +17,7 @@ labels:
 
   - label: 'type/docs'
     title: '^\s*.*?\sdocs(?:(.+))?!?:'
+    branch: '^docs/.*'
     files:
      - '**/*.md$'
      - '**/*.mdx$'
