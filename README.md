@@ -55,6 +55,36 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 </div>
 
+## Features 🌟
+
+Netris is continuously evolving, and while we're still in the _experimental_ phase, we've packed it with a variety of features for you:
+
+1. **🎮 Proton-GE Compatibility:** We utilize Proton-GE for running games, offering extensive game compatibility and ensuring you can play a wide variety of titles.
+
+2. **⚡ QUIC Protocol:** For input and video/audio transmission, we use QUIC to significantly reduce latency on variable networks, ensuring crisp visuals without sacrificing data or increasing latency.
+
+3. **🔗 Session IDs:** With a `SESSION_ID`, we seamlessly tie your game progress, achievements, and devices without the need for logging into [netris.me][website-link]. Our public CDNs, currently located in Europe (eu-north-1) and the US (us-east-1), further reduce latency for friends playing together from afar. More locations are on the way!
+
+4. **🔄 Automatic Game Progress Sync:** Like Stadia's state share, we automatically sync your game progress based on the *.exe file you're running, allowing you to share your progress with friends via a link.
+
+5. **👫 Co-op Gameplay:** Play co-op with up to 8 people, or play single player by sharing mouse and keyboard inputs seamlessly (similar to [neko][neko-url]).
+
+6. **🌐 Cross-Platform Play:** Our platform is accessible on any device that can run a Chrome-based browser, including Edge, Chrome, Brave, and Arc. And you do not have to set up anything, it's all done and maintained for you.
+
+7. **📊 Bandwidth Optimization:** Experience hardware-accelerated `VMAF` for optimized bandwidth, ensuring the best possible video quality. [Learn More][vmaf-cuda-link]
+
+8. **🌟 ...and more:** Stay tuned as we continue to add features _sometimes inspired by platforms like Stadia_, to give you the best and most customizable gaming experience.
+
+This platform is in an _experimental_ phase, and we're actively working on adding new features. Your feedback and support is very much appreciated.
+
+> \[!IMPORTANT]
+>
+> If you're excited about what we're doing and want to support our journey, consider giving us a star ⭐ on our repository. Your support fuels our progress!. \~ ✨
+
+
+[![][image-star]][github-stars-link]
+
+
 ## Getting Started
 
 Before you begin, ensure you meet the following prerequisites to use Netris on your system.
@@ -77,12 +107,6 @@ Before you begin, ensure you meet the following prerequisites to use Netris on y
 >
 > Typically, if your setup meets the necessary CUDA requirements, the `nvidia-drm` module will already be loaded, particularly in AWS G4dn instances. \~ 💡
 
-> \[!IMPORTANT]
->
-> We need all this prerequisites met for hardware accelerated video encoding and gamescope to work to work. \~ 📽️✨
-
-
-[![][image-star]][github-stars-link]
 
 [github-release-link]: https://github.com/wanjohiryan/netris/releases
 [github-release-shield]: https://img.shields.io/github/v/release/wanjohiryan/netris?color=369eff&labelColor=black&logo=github&style=flat-square
@@ -98,4 +122,6 @@ Before you begin, ensure you meet the following prerequisites to use Netris on y
 [share-reddit-link]: https://www.reddit.com/submit?title=Hey%2C%20check%20out%20this%20Github%20repository.%20It%20is%20an%20open-source%20self-hosted%20Geforce%20Now%20alternative.&url=https%3A%2F%2Fgithub.com%2Fwanjohiryan%2Fnetris
 [image-overview]: assets/banner.png
 [website-link]: https://netris.me
+[neko-url]: https://github.com/m1k1o/neko
 [image-star]: assets/star-us.png
+[vmaf-cuda-link]: https://developer.nvidia.com/blog/calculating-video-quality-using-nvidia-gpus-and-vmaf-cuda/
