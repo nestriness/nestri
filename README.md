@@ -91,15 +91,17 @@ Whether you're looking to self-host Netris or simply want to try it out without 
 
 <!-- _You can always change your option later without losing game progress_ -->
 
-| If you don't have a Nvidia GPU or prefer not to self-host, you can still enjoy Netris. No installation or set up required ! This is the perfect option for gamers looking to dive straight into the action without any setup. | [![][vercel-shield-badge]][vercel-link] |
+| If you don't have a Nvidia GPU or prefer not to self-host, you can visit our website. No installation or set up required ! This is the perfect option for gamers looking to dive straight into the action without any setup. | [👉🏽 Get Access][website-link] |
 | :---------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
-| If you're interested in self-hosting Netris, continue reading for detailed instructions on how to get started. This option is ideal if you have your own Nvidia GPU and are comfortable with setting up and managing your own server. | [![][discord-shield-badge]][discord-link] |
+| If you're interested in self-hosting Netris, continue reading for detailed instructions on how to get started. This option is ideal if you have your own Nvidia GPU and are comfortable with setting up and managing your own server. | [Self Hosting Netris🛠️](#self-hosting) |
 
 > \[!TIP]
 >
 > Remember, flexibility is key with Netris. You're free to switch between self-hosting and using `netris.me` whenever you like, without losing your game progress. \~ 💡
 
 ### Self-Hosting Netris 🔨
+
+<a name="self-hosting"></a>
 
 For those interested in self-hosting, here are is what you need to get your own Netris server up and running:
 
