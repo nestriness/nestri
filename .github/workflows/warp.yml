@@ -22,12 +22,12 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: wanjohiryan/netris
+  IMAGE_NAME: netrisdotme/netris
   BASE_TAG_PREFIX: warp
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: true
   
 jobs:
     build-docker-pr:
@@ -72,7 +72,7 @@ jobs:
               with:
                 registry: ${{ env.REGISTRY }}
                 username: ${{ github.actor }}
-                password: ${{ secrets.GITHUB_TOKEN }}
+                password: ${{ secrets.GIT_MASTER_TOKEN }}
             - 
               name: Extract Container metadata
               id: meta
