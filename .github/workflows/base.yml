@@ -25,7 +25,7 @@ on:
 
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: netridotme/netris
+    IMAGE_NAME: netrisdotme/netris
     BASE_TAG_PREFIX: base
 
 jobs:
