@@ -61,7 +61,7 @@ Netris is continuously evolving, and while we're still in the _experimental_ pha
 
 1. **🎮 Proton-GE Compatibility:** We utilize Proton-GE for running games, offering extensive game compatibility and ensuring you can play a wide variety of titles.
 
-2. **⚡ QUIC Protocol:** For input and video/audio transmission, we use QUIC to significantly reduce latency on variable networks, ensuring crisp visuals without sacrificing data or increasing latency.
+2. **⚡ QUIC Protocol:** For input and video/audio transmission, we use QUIC via [MoQ][moq-github-url] to significantly reduce latency on variable networks, ensuring crisp visuals without sacrificing data or increasing latency.
 
 3. **🔗 Session IDs:** With a `SESSION_ID`, we seamlessly tie your game progress, achievements, and devices without the need for logging into [netris.me][website-link]. Our public CDNs, currently located in Europe (eu-north-1) and the US (us-east-1), further reduce latency for friends playing together from afar. More locations are on the way!
 
@@ -124,4 +124,5 @@ Before you begin, ensure you meet the following prerequisites to use Netris on y
 [website-link]: https://netris.me
 [neko-url]: https://github.com/m1k1o/neko
 [image-star]: assets/star-us.png
+[moq-github-url]: https://quic.video
 [vmaf-cuda-link]: https://developer.nvidia.com/blog/calculating-video-quality-using-nvidia-gpus-and-vmaf-cuda/
