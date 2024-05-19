@@ -98,10 +98,9 @@ Whether you're looking to self-host Netris or simply want to try it out without 
 > \[!TIP]
 >
 > Remember, flexibility is key with Netris. You're free to switch between self-hosting and using `netris.me` whenever you like, without losing your game progress. \~ 💡
+<a name="self-hosting"></a>
 
 ### Self-Hosting Netris 🔨
-
-<a name="self-hosting"></a>
 
 For those interested in self-hosting, here are is what you need to get your own Netris server up and running:
 
@@ -120,6 +119,14 @@ For those interested in self-hosting, here are is what you need to get your own 
 > \[!TIP]
 >
 > Typically, if your setup meets the necessary CUDA requirements, the `nvidia-drm` module will already be loaded, particularly in AWS G4dn instances. \~ 💡
+
+### Step-by-Step Guide
+
+Follow these steps to get Netris up and running on your system.
+
+> \[!IMPORTANT]
+>
+> Waiting on this pull request [#43][netris-pr-input] to be merged first. Sorry for the inconvenience. \~ ⚠️
 
 
 [github-release-link]: https://github.com/wanjohiryan/netris/releases
@@ -140,3 +147,4 @@ For those interested in self-hosting, here are is what you need to get your own 
 [image-star]: assets/star-us.png
 [moq-github-url]: https://quic.video
 [vmaf-cuda-link]: https://developer.nvidia.com/blog/calculating-video-quality-using-nvidia-gpus-and-vmaf-cuda/
+[netris-pr-input]: https://github.com/netrisdotme/netris/pull/43
