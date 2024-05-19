@@ -57,7 +57,7 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 ## Features 🌟
 
-Netris is continuously evolving, and while we're still in the _experimental_ phase, we've packed it with a variety of features for you:
+As Netris navigates through its _experimental_ phase, we're in the process of crafting and testing a variety of features for you:
 
 1. **🎮 Proton-GE Compatibility:** We utilize Proton-GE for running games, offering extensive game compatibility and ensuring you can play a wide variety of titles.
 
@@ -85,11 +85,23 @@ This platform is in an _experimental_ phase, and we're actively working on addin
 [![][image-star]][github-stars-link]
 
 
-## Getting Started
+## Getting Started 🎮
 
-Before you begin, ensure you meet the following prerequisites to use Netris on your system.
+Whether you're looking to self-host Netris or simply want to try it out without the need for your own GPU, we've got you covered. Choose the path that best suits your needs:
 
-### Prerequisites
+<!-- _You can always change your option later without losing game progress_ -->
+
+| [![][vercel-shield-badge]][vercel-link] For Casual Gamers | No installation or set up necessary! Just visit [netris.me][website-link] to to start playing.                           |
+| :---------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| [![][discord-shield-badge]][discord-link] | If you're interested in self-hosting Netris, [click here](#self-hosting-netris) for detailed instructions on how to get started. This option is ideal if you have your own Nvidia GPU and are comfortable with setting up and managing your own server. |
+
+> \[!TIP]
+>
+> Remember, flexibility is key with Netris. You're free to switch between self-hosting and using `netris.me` whenever you like, without losing your game progress. \~ 💡
+
+### Self-Hosting Netris 🔨
+
+For those interested in self-hosting, here are is what you need to get your own Netris server up and running:
 
 - **Nvidia GPU**: Unfortunately, this setup is exclusive to Nvidia GPUs. If you don't own one, consider renting from cloud services like AWS, GCP, or Vast.ai. We highly recommend this approach.
 
