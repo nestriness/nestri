@@ -97,6 +97,50 @@ jobs:
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
                 
+    build-docker-release:
+        name: Build image on release
+        if: ${{ github.event_name == 'release' }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            -
+              name: Checkout repo
+              uses: actions/checkout@v4
+              with:
+                submodules: recursive
+            - 
+              name: Log into registry ${{ env.REGISTRY }}
+              uses: docker/login-action@v3
+              with:
+                registry: ${{ env.REGISTRY }}
+                username: ${{ github.actor }}
+                password: ${{ secrets.GIT_MASTER_TOKEN }}
+            - 
+              name: Extract Container metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.BASE_TAG_PREFIX }}
+                #
+                #tag on release, and a nightly build for 'dev'
+                tags: |
+                  type=raw,value=nightly,enable={{is_default_branch}}
+                  type=ref,event=tag
+                  type=semver,pattern={{version}}
+                  type=semver,pattern={{major}}.{{minor}}
+                  type=semver,pattern={{major}}
+            - 
+              name: Build Docker image
+              uses: docker/build-push-action@v5
+              with:
+                file: warp.Dockerfile
+                context: ./
+                push: true
+                tags: ${{ steps.meta.outputs.tags }}
+                labels: ${{ steps.meta.outputs.labels }}
+                
     build-warp-release:
       if: ${{ github.event_name == 'release' }}
       defaults:
