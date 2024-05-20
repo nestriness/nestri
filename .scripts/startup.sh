@@ -14,9 +14,9 @@ fi
 
 escaped_xarg=$(printf '%s\n' "$xarg" | sed -e 's/[\/&]/\\&/g')
 
-sed -i "s|^command.*=.*$|command=bash -c \"$escaped_xarg\"|" /etc/supervisor.d/game.ini
+sed -i "s|^command.*=.*$|command=bash -c \"$escaped_xarg\"|" /etc/supervisord.d/game.ini
 
-sed -i 's|^autostart.*=.*$|autostart=true|' /etc/supervisor.d/game.ini
+sed -i 's|^autostart.*=.*$|autostart=true|' /etc/supervisord.d/game.ini
 
 export SESSION_ID_INPUT="{$SESSION_ID}input"
 
