@@ -32,9 +32,10 @@ RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-arc
     && chmod 755 /usr/bin/winetricks \
     && curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
-#Install Proton
-COPY .scripts/proton /usr/bin/netris/
-RUN chmod +x /usr/bin/netris/proton
+#Install Proton 
+# ⚠️ Beware this might conflict with normal installation of proton ⚠️
+COPY .scripts/proton /usr/bin/
+RUN chmod +x /usr/bin/proton
 
 ARG USERNAME=netris \
     PUID=1000 \

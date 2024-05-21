@@ -17,4 +17,4 @@ sudo sed -i "s|^command.*=.*$|command=bash -c \"$escaped_xarg\"|" /etc/superviso
 
 sudo sed -i 's|^autostart.*=.*$|autostart=true|' /etc/supervisord.d/game.ini
 
-sudo /usr/bin/supervisord -c /etc/supervisord.conf
+sudo -E /usr/bin/supervisord -c /etc/supervisord.conf
