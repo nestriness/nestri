@@ -61,7 +61,9 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("failed to create MoQ Transport session")?;
 
-    let (prod, sub) = serve::Track::new(config.namespace, config.track).produce();
+    let namespace = format!("{}input", config.namespace);
+
+    let (prod, sub) = serve::Track::new(namespace, config.track).produce();
 
     let input = input::Subscriber::new(sub);
 
