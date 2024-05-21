@@ -32,10 +32,9 @@ RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-arc
     && chmod 755 /usr/bin/winetricks \
     && curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
-#Install Proton 
-# ⚠️ Beware this might conflict with normal installation of proton ⚠️
-COPY .scripts/proton /usr/bin/
-RUN chmod +x /usr/bin/proton
+#Install Proton
+COPY .scripts/proton /usr/bin/netris-proton
+RUN chmod +x /usr/bin/netris-proton
 
 ARG USERNAME=netris \
     PUID=1000 \
@@ -49,7 +48,7 @@ ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
 RUN apt-get update && apt-get install --no-install-recommends -y \
         sudo \
         tzdata \
-    && rm -rf /var/lib/apt/lists/* \ 
+    && rm -rf /var/lib/apt/lists/* \
     # Delete default user
     && if id -u "${PUID}" &>/dev/null; then \
       oldname=$(id -nu "${PUID}"); \
