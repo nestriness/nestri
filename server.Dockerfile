@@ -15,6 +15,7 @@ RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     libxnvctrl0 \
+    libxdo-dev \
     libevdev2 \
     mangohud \
     gamescope \
@@ -33,8 +34,7 @@ RUN mkdir -pm755 /etc/apt/keyrings && curl -fsSL -o /etc/apt/keyrings/winehq-arc
 
 #Install Proton
 COPY .scripts/proton /usr/bin/netris/
-RUN chmod +x /usr/bin/netris/proton \
-    && /usr/bin/netris/proton -i
+RUN chmod +x /usr/bin/netris/proton
 
 ARG USERNAME=netris \
     PUID=1000 \
