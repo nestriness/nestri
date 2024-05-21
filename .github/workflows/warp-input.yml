@@ -16,6 +16,7 @@ on:
         paths:
             - "warp-input.Dockerfile"
             - ".github/workflows/warp-input.yml"
+            - "bin/input/**"
         tags:
             - v*.*.*
     release:
