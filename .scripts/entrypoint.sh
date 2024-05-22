@@ -155,10 +155,10 @@ echo "$(date +"[%Y-%m-%d %H:%M:%S]") Waiting for X socket"
 until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") X socket is ready"
 
-if [[ -z "${NAME}" ]]; then
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
+if [[ -z "${SESSION_ID}" ]]; then
+  echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable SESSION_ID?" && exit 1
 else
-  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${NAME}" https://fst.so:4443 &
+  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
 fi
 
 openbox-session &

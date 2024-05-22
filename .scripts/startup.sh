@@ -13,6 +13,7 @@ if [ -z "$xarg" ]; then
 fi
 
 escaped_xarg=$(printf '%s\n' "$xarg" | sed -e 's/[\/&]/\\&/g')
+
 sudo sed -i "s|^command.*=.*$|command=bash -c \"$escaped_xarg\"|" /etc/supervisord.d/game.ini
 
 sudo sed -i 's|^autostart.*=.*$|autostart=true|' /etc/supervisord.d/game.ini
