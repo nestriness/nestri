@@ -61,7 +61,7 @@ sudo ln -snf /dev/ptmx /dev/tty7
 sudo /etc/init.d/dbus start
 
 # Install Proton-GE for this user
-/usr/bin/netris/proton -i
+netris-proton -i
 
 # Install NVIDIA userspace driver components including X graphic libraries
 if ! command -v nvidia-xconfig &>/dev/null; then
