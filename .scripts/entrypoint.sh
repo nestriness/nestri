@@ -9,44 +9,44 @@ sudo -u netris chmod 700 /tmp/runtime-1000
 sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
 
 #Input devices ownable by our default user
-export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
+# export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
 
-declare -A group_map
+# declare -A group_map
 
-for dev in $REQUIRED_DEVICES; do
-  if [ -e "$dev" ]; then
-    dev_group=$(stat -c "%G" "$dev")
-    dev_gid=$(stat -c "%g" "$dev")
+# for dev in $REQUIRED_DEVICES; do
+#   if [ -e "$dev" ]; then
+#     dev_group=$(stat -c "%G" "$dev")
+#     dev_gid=$(stat -c "%g" "$dev")
 
-    if [ "$dev_group" = "UNKNOWN" ]; then
-      new_name="netris-gid-$dev_gid"
-      # We only have a GID for this group; create a named group for it
-      # this isn't 100% necessary but it prevents some useless noise in the console
-      sudo groupadd -g "$dev_gid" "$new_name"
-      group_map[$new_name]=1
-    else
-      # the group already exists; just add it to the list
-      group_map[$dev_group]=1
-    fi
+#     if [ "$dev_group" = "UNKNOWN" ]; then
+#       new_name="netris-gid-$dev_gid"
+#       # We only have a GID for this group; create a named group for it
+#       # this isn't 100% necessary but it prevents some useless noise in the console
+#       sudo groupadd -g "$dev_gid" "$new_name"
+#       group_map[$new_name]=1
+#     else
+#       # the group already exists; just add it to the list
+#       group_map[$dev_group]=1
+#     fi
 
-    # is this device read/writable by the group? if not, make it so
-    if [ "$(stat -c "%a" "$dev" | cut -c2)" -lt 6 ]; then
-      sudo chmod g+rw "$dev"
-    fi
-  else
-    echo "$(date +"[%Y-%m-%d %H:%M:%S]") Path '$dev' is not present."
-  fi
-done
+#     # is this device read/writable by the group? if not, make it so
+#     if [ "$(stat -c "%a" "$dev" | cut -c2)" -lt 6 ]; then
+#       sudo chmod g+rw "$dev"
+#     fi
+#   else
+#     echo "$(date +"[%Y-%m-%d %H:%M:%S]") Path '$dev' is not present."
+#   fi
+# done
 
-join_by() { local IFS="$1"; shift; echo "$*"; }
+# join_by() { local IFS="$1"; shift; echo "$*"; }
 
-groups=$(join_by "," "${!group_map[@]}")
-if [ "$groups" != "" ]; then
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Adding user '${USER}' to groups: $groups"
-  sudo usermod -a -G "$groups" "${USER}"
-else
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") Not modifying user groups ($groups)"
-fi
+# groups=$(join_by "," "${!group_map[@]}")
+# if [ "$groups" != "" ]; then
+#   echo "$(date +"[%Y-%m-%d %H:%M:%S]") Adding user '${USER}' to groups: $groups"
+#   sudo usermod -a -G "$groups" "${USER}"
+# else
+#   echo "$(date +"[%Y-%m-%d %H:%M:%S]") Not modifying user groups ($groups)"
+# fi
 
 # Remove directories to make sure the desktop environment starts
 sudo rm -rf /tmp/.X* ~/.cache
@@ -64,33 +64,33 @@ sudo /etc/init.d/dbus start
 netris-proton -i
 
 # Install NVIDIA userspace driver components including X graphic libraries
-if ! command -v nvidia-xconfig &>/dev/null; then
-  # Driver version is provided by the kernel through the container toolkit
-  export DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')"
-  export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{print $8}')"
-  cd /tmp
-  # If version is different, new installer will overwrite the existing components
-  if [ ! -f "/tmp/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" ]; then
-    # Check multiple sources in order to probe both consumer and datacenter driver versions
-    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || {
-      echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed NVIDIA GPU driver download. Exiting."
-      exit 1
-    }
-  fi
-  # Extract installer before installing
-  sudo sh "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" -x
-  cd "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}"
-  # Run installation without the kernel modules and host components
-  sudo ./nvidia-installer --silent \
-    --no-kernel-module \
-    --install-compat32-libs \
-    --no-nouveau-check \
-    --no-nvidia-modprobe \
-    --no-rpms \
-    --no-backup \
-    --no-check-for-alternate-installs
-  sudo rm -rf /tmp/NVIDIA* && cd ~
-fi
+# if ! command -v nvidia-xconfig &>/dev/null; then
+#   # Driver version is provided by the kernel through the container toolkit
+#   export DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')"
+#   export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{print $8}')"
+#   cd /tmp
+#   # If version is different, new installer will overwrite the existing components
+#   if [ ! -f "/tmp/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" ]; then
+#     # Check multiple sources in order to probe both consumer and datacenter driver versions
+#     curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || {
+#       echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed NVIDIA GPU driver download. Exiting."
+#       exit 1
+#     }
+#   fi
+#   # Extract installer before installing
+#   sudo sh "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" -x
+#   cd "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}"
+#   # Run installation without the kernel modules and host components
+#   sudo ./nvidia-installer --silent \
+#     --no-kernel-module \
+#     --install-compat32-libs \
+#     --no-nouveau-check \
+#     --no-nvidia-modprobe \
+#     --no-rpms \
+#     --no-backup \
+#     --no-check-for-alternate-installs
+#   sudo rm -rf /tmp/NVIDIA* && cd ~
+# fi
 
 # Allow starting Xorg from a pseudoterminal instead of strictly on a tty console
 if [ ! -f /etc/X11/Xwrapper.config ]; then
