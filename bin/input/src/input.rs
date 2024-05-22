@@ -69,13 +69,13 @@ impl Subscriber {
                 match parsed.input_type.as_str() {
                     "mouse_move" => {
                         if let (Some(x), Some(y)) = (parsed.delta_x, parsed.delta_y) {
-                            // println!("Handling mouse_move with delta_x: {}, delta_y: {}", x, y);
+                            println!("Handling mouse_move with delta_x: {}, delta_y: {}", x, y);
                             enigo.move_mouse(x, y, Abs).unwrap();
                         }
                     }
                     "mouse_key_down" => {
                         if let Some(button) = parsed.button {
-                            // println!("Handling mouse_key_down with key: {}", button);
+                            println!("Handling mouse_key_down with key: {}", button);
                             if let Some(key) = mouse_key_to_enigo(button) {
                                 enigo.button(key, Press).unwrap();
                             }
@@ -83,7 +83,7 @@ impl Subscriber {
                     }
                     "mouse_key_up" => {
                         if let Some(button) = parsed.button {
-                            // println!("Handling mouse_key_up with key: {}", button);
+                            println!("Handling mouse_key_up with key: {}", button);
                             if let Some(key) = mouse_key_to_enigo(button) {
                                 enigo.button(key, Release).unwrap();
                             }
@@ -91,17 +91,17 @@ impl Subscriber {
                     }
                     "mouse_wheel_up" => {
                         //TODO: handle vertical scrolling
-                        // println!("Handling mouse_wheel_up with key");
+                        println!("Handling mouse_wheel_up with key");
                         enigo.scroll(-2, Horizontal).unwrap();
                     }
                     "mouse_wheel_down" => {
                         //TODO: handle vertical scrolling
-                        // println!("Handling mouse_wheel_down with key");
+                        println!("Handling mouse_wheel_down with key");
                         enigo.scroll(2, Horizontal).unwrap();
                     }
                     "key_up" => {
                         if let Some(key_code) = parsed.key_code {
-                            // println!("Handling key_up with key: {}", key_code);
+                            println!("Handling key_up with key: {}", key_code);
                             if let Some(key) = key_to_enigo(key_code as u8) {
                                 enigo.key(key, Release).unwrap();
                             }
@@ -109,7 +109,7 @@ impl Subscriber {
                     }
                     "key_down" => {
                         if let Some(key_code) = parsed.key_code {
-                            // println!("Handling key_down with key: {}", key_code);
+                            println!("Handling key_down with key: {}", key_code);
                             if let Some(key) = key_to_enigo(key_code as u8) {
                                 enigo.key(key, Press).unwrap();
                             }
