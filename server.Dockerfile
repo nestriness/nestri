@@ -79,7 +79,7 @@ ENV SHELL=/bin/bash \
     USER=${USERNAME}
 #For mounting the game into the container
 VOLUME [ "/game" ]
-#For inputtino server
+#For warp-input server
 EXPOSE 8080/udp
 
 WORKDIR /home/${USERNAME}
