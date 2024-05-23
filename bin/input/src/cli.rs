@@ -5,7 +5,7 @@ use url::Url;
 #[derive(Parser, Clone, Debug)]
 pub struct Config {
 	/// Listen for UDP packets on the given address.
-	#[arg(long, default_value = "[::]:0")]
+	#[arg(long, default_value = "[::]:8080")]
 	pub bind: net::SocketAddr,
 
 	/// Connect to the given URL starting with https://

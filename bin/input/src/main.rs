@@ -68,6 +68,7 @@ async fn main() -> anyhow::Result<()> {
     let input = input::Subscriber::new(sub);
 
     //TODO: Make sure to retry until the input server comes [Use Supervisord for now]
+    //FIXME: this needs a solution ASAP
     tokio::select! {
         res = session.run() => res.context("session error")?,
         res = input.run() => res.context("input error")?,

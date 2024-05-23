@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#TODO: Fix the warp-input startup problem
 if [ -z "$SESSION_ID" ]; then
     echo "Error: SESSION_ID environment variable is not set."
     exit 1
@@ -11,6 +11,9 @@ if [ -z "$xarg" ]; then
     echo "Error: No command specified to run the game. Exiting."
     exit 1
 fi
+ 
+#Open udp port to listed for QUIC events on 
+export PORT=${PORT:-"8080"}
 
 escaped_xarg=$(printf '%s\n' "$xarg" | sed -e 's/[\/&]/\\&/g')
 

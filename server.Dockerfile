@@ -80,7 +80,7 @@ ENV SHELL=/bin/bash \
 #For mounting the game into the container
 VOLUME [ "/game" ]
 #For inputtino server
-EXPOSE 8080
+EXPOSE 8080/udp
 
 WORKDIR /home/${USERNAME}
 
