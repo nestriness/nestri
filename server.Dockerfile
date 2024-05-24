@@ -15,6 +15,7 @@ RUN apt-get update -y \
     && add-apt-repository -y multiverse \
     && apt-get install -y --no-install-recommends \
     libxnvctrl0 \
+    libxdo-dev \
     libevdev2 \
     mangohud \
     gamescope \
