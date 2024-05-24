@@ -29,11 +29,26 @@ impl Subscriber {
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
-        match self.track.mode().await.context("failed to get mode")? {
+        loop {
+
+        match self.track.mode().await {
+           Ok(mode) => {
             TrackReaderMode::Stream(stream) => Self::recv_stream(stream).await,
             TrackReaderMode::Groups(groups) => Self::recv_groups(groups).await,
             TrackReaderMode::Objects(objects) => Self::recv_objects(objects).await,
             TrackReaderMode::Datagrams(datagrams) => Self::recv_datagrams(datagrams).await,
+           },
+           Err(err) => {
+                // if err.to_string().contains("failed to get mode") {
+                    tracing::warn!("Failed to get mode, retrying...");
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await; // adjust the delay as needed
+                // } else {
+                //     return Err(err);
+            }
+        }
+
+        }
+    
         }
     }
 
