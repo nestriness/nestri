@@ -1,7 +1,7 @@
 use anyhow::Context;
 use enigo::{
     Axis::Horizontal,
-    Coordinate::Abs,
+    Coordinate::Rel,
     Direction::{Press, Release},
     Enigo, Keyboard, Mouse, Settings,
 };
@@ -39,9 +39,7 @@ impl Subscriber {
 
     async fn recv_stream(mut track: StreamReader) -> anyhow::Result<()> {
         while let Some(mut group) = track.next().await? {
-            println!("received a stream");
             while let Some(object) = group.read_next().await? {
-                println!("received a stream 1");
                 let str = String::from_utf8_lossy(&object);
                 println!("{}", str);
             }
@@ -68,9 +66,10 @@ impl Subscriber {
                 let parsed: MessageObject = serde_json::from_str(&str)?;
                 match parsed.input_type.as_str() {
                     "mouse_move" => {
+                        //FIXME: Canvas height/width and screen width/height mismatch causes this to feel "accelerated"
                         if let (Some(x), Some(y)) = (parsed.delta_x, parsed.delta_y) {
                             // println!("Handling mouse_move with delta_x: {}, delta_y: {}", x, y);
-                            enigo.move_mouse(x, y, Abs).unwrap();
+                            enigo.move_mouse(x, y, Rel).unwrap();
                         }
                     }
                     "mouse_key_down" => {
