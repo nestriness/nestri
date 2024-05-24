@@ -64,7 +64,7 @@ sudo /etc/init.d/dbus start
 if ! command -v nvidia-xconfig &>/dev/null; then
   # Driver version is provided by the kernel through the container toolkit
   export DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')"
-  export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{print $8}')"
+  export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9\.]+/) {print $i; exit}}' )"
   cd /tmp
   # If version is different, new installer will overwrite the existing components
   if [ ! -f "/tmp/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" ]; then
