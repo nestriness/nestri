@@ -70,8 +70,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
 COPY --from=ghcr.io/games-on-whales/inputtino:stable /inputtino/input-server /inputtino/input-server
 RUN chmod +x /usr/bin/warp
-COPY .scripts/entrypoint.sh .scripts/supervisord.conf /etc/
-RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh
+COPY .scripts /etc/
+RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh /etc/startup.sh
 
 USER 1000
 ENV SHELL=/bin/bash \
