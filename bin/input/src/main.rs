@@ -1,13 +1,12 @@
-use moq_transport::{serve, session::Subscriber};
+use anyhow::Context;
+use chrono::prelude::*;
+use clap::Parser;
 use moq_native::quic;
+use moq_transport::{serve, session::Subscriber};
 use std::net;
 use url::Url;
 
-use anyhow::Context;
-use clap::Parser;
-
 mod input;
-
 
 #[derive(Parser, Clone)]
 pub struct Cli {
@@ -53,26 +52,70 @@ async fn main() -> anyhow::Result<()> {
         tls,
     })?;
 
-    log::info!("connecting to server: url={}", config.url);
+    let start = Utc::now();
+    let mut now = start;
 
-    let session = quic.client.connect(&config.url).await?;
+    loop {
+        log::info!("connecting to server: url={}", config.url);
 
-    let (session, mut subscriber) = Subscriber::connect(session)
-        .await
-        .context("failed to create MoQ Transport session")?;
+        let session = quic.client.connect(&config.url).await?;
 
-    let namespace = format!("{}input", config.namespace);
+        let (session, mut subscriber) = Subscriber::connect(session)
+            .await
+            .context("failed to create MoQ Transport session")?;
 
-    let (prod, sub) = serve::Track::new(namespace, config.track).produce();
+        let namespace = format!("{}input", config.namespace);
 
-    let input = input::Subscriber::new(sub);
+        let (prod, sub) = serve::Track::new(namespace, config.track.clone()).produce();
 
-    //TODO: Make sure to retry until the input server comes [Use Supervisord for now]
-    tokio::select! {
-        res = session.run() => res.context("session error")?,
-        res = input.run() => res.context("input error")?,
-        res = subscriber.subscribe(prod) => res.context("failed to subscribe to track")?,
+        let input = input::Subscriber::new(sub);
+
+        // let (session, mut publisher) = Publisher::connect(session)
+        //     .await
+        //     .context("failed to create MoQ Transport session")?;
+
+        // let (mut writer, _, reader) = serve::Tracks {
+        //     namespace: config.namespace.clone(),
+        // }
+        // .produce();
+
+        // let track = writer.create(&config.track).unwrap();
+        // let input_publisher = input::Publisher::new(track.groups()?);
+
+        tokio::select! {
+            res = session.run() => {
+                if let Err(e) = res {
+                    log::error!("session error: {}", e);
+                    continue;
+                }
+            },
+            res = input.run() => {
+                if let Err(e) = res {
+                    log::error!("input subscriber error: {}", e);
+                    continue;
+                }
+            },
+            // res = publisher.announce(reader) => res.context("failed to serve tracks")?,
+            res = subscriber.subscribe(prod) => {
+                if let Err(e) = res {
+                    log::error!("failed to subscribe to track: {}", e);
+                    continue;
+                }
+            },
+        }
+
+        let next = now + chrono::Duration::try_minutes(1).unwrap();
+        let next = next.with_second(0).unwrap().with_nanosecond(0).unwrap();
+
+        let delay = (next - now).to_std().unwrap();
+        tokio::time::sleep(delay).await;
+
+        // if next.minute() - now.minute() == 10 {
+        //     return Ok(());
+        // }
+
+        now = next; // just assume we didn't undersleep
     }
 
-    Ok(())
+    // Ok(())
 }
