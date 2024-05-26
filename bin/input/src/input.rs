@@ -5,11 +5,13 @@ use enigo::{
     Direction::{Press, Release},
     Enigo, Keyboard, Mouse, Settings,
 };
-use moq_transport::serve::{
-    DatagramsReader, GroupsReader, ObjectsReader, StreamReader, TrackReader, TrackReaderMode,
-};
-use serde::{Deserialize, Serialize};
+use moq_transport::
+    serve::{
+        DatagramsReader, GroupsReader, ObjectsReader,
+        StreamReader, TrackReader, TrackReaderMode,
+    };
 
+use serde::{Deserialize, Serialize};
 pub struct Subscriber {
     track: TrackReader,
 }
@@ -28,8 +30,54 @@ impl Subscriber {
         Self { track }
     }
 
+    // pub async fn run(self) -> anyhow::Result<()> {
+    //     loop {
+    //         match self.track.mode().await {
+    //             Ok(mode) => match mode {
+    //                 TrackReaderMode::Stream(stream) => loop {
+    //                     if let Err(err) = Self::recv_stream(stream.clone()).await {
+    //                         tracing::warn!("Error receiving streams: {}, retrying...", err);
+    //                         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    //                     } else {
+    //                         break;
+    //                     }
+    //                 },
+    //                 TrackReaderMode::Groups(groups) => loop {
+    //                     if let Err(err) = Self::recv_groups(groups.clone()).await {
+    //                         tracing::warn!("Error receiving groups: {}, retrying...", err);
+    //                         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    //                     } else {
+    //                         break;
+    //                     }
+    //                 },
+    //                 TrackReaderMode::Objects(objects) => loop {
+    //                     if let Err(err) = Self::recv_objects(objects.clone()).await {
+    //                         tracing::warn!("Error receiving objects: {}, retrying...", err);
+    //                         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    //                     } else {
+    //                         break;
+    //                     }
+    //                 },
+    //                 TrackReaderMode::Datagrams(datagrams) => loop {
+    //                     if let Err(err) = Self::recv_datagrams(datagrams.clone()).await {
+    //                         tracing::warn!("Error receiving datagrams: {}, retrying...", err);
+    //                         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    //                     } else {
+    //                         break;
+    //                     }
+    //                 },
+    //             },
+    //             Err(_) => {
+    //                 tracing::warn!("Failed to get mode, retrying...");
+    //                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    //                 return Ok(());
+    //             }
+    //         }
+    //     }
+    // }
+
     pub async fn run(self) -> anyhow::Result<()> {
-        match self.track.mode().await.context("failed to get mode")? {
+        match self.track.mode().await.context("failed to connect")? {
             TrackReaderMode::Stream(stream) => Self::recv_stream(stream).await,
             TrackReaderMode::Groups(groups) => Self::recv_groups(groups).await,
             TrackReaderMode::Objects(objects) => Self::recv_objects(objects).await,
@@ -66,7 +114,6 @@ impl Subscriber {
                 let parsed: MessageObject = serde_json::from_str(&str)?;
                 match parsed.input_type.as_str() {
                     "mouse_move" => {
-                        //FIXME: Canvas height/width and screen width/height mismatch causes this to feel "accelerated"
                         if let (Some(x), Some(y)) = (parsed.delta_x, parsed.delta_y) {
                             // println!("Handling mouse_move with delta_x: {}, delta_y: {}", x, y);
                             enigo.move_mouse(x, y, Rel).unwrap();
@@ -217,3 +264,14 @@ pub fn key_to_enigo(key: u8) -> Option<enigo::Key> {
         _ => None,
     }
 }
+
+//NAME="${NAME:-$(head /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | head -c 16)}"
+// let _name = env::var("NAMESPACE").unwrap_or_else(|_| {
+//     let rng = rand::thread_rng();
+//     let random_string: String = rng
+//         .sample_iter(&rand::distributions::Alphanumeric)
+//         .take(16)
+//         .map(char::from)
+//         .collect();
+//     random_string
+// });
