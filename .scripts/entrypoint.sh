@@ -165,7 +165,7 @@ fi
 
 openbox-session &
 
-/usr/games/gamescope -- mangohud glxgears > /dev/null & 
+# /usr/games/gamescope -- mangohud glxgears > /dev/null & 
 
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") Session Running. Press [Return] to exit."
 read
