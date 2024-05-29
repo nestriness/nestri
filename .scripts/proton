@@ -542,7 +542,7 @@ else
       # perl -pi -e 's/(\".*msvc.*\"=\")(.*),(.*)(")/\1\3,\2\4/g' user.reg
       # Swaps msvc entries (native,builtin) to (builtin,native)
     ;;
-    -xp|--xprg)
+    -xr|--xrun)
     # cross-fuction run program - 1st arg valid file to run, folder to menu,
     # neither (sys menu), 2nd arg... passed to exe
       xnset
