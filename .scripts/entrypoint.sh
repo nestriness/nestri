@@ -64,37 +64,34 @@ sudo /etc/init.d/dbus start
 netris-proton -i
 
 # Install NVIDIA userspace driver components including X graphic libraries
-if ! command -v nvidia-xconfig &>/dev/null; then
+if ! command -v nvidia-xconfig &> /dev/null; then
   # Driver version is provided by the kernel through the container toolkit
   export DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')"
-  export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9\.]+/) {print $i; exit}}' )"
+  export DRIVER_VERSION="$(head -n1 </proc/driver/nvidia/version | awk '{for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9\.]+/) {print $i; exit}}')"
   cd /tmp
   # If version is different, new installer will overwrite the existing components
   if [ ! -f "/tmp/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" ]; then
     # Check multiple sources in order to probe both consumer and datacenter driver versions
-    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || {
-      echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed NVIDIA GPU driver download. Exiting."
-      exit 1
-    }
+    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${DRIVER_ARCH}/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || curl -fsSL -O "https://international.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" || { echo "Failed NVIDIA GPU driver download. Exiting."; exit 1; }
   fi
   # Extract installer before installing
   sudo sh "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}.run" -x
   cd "NVIDIA-Linux-${DRIVER_ARCH}-${DRIVER_VERSION}"
   # Run installation without the kernel modules and host components
   sudo ./nvidia-installer --silent \
-    --no-kernel-module \
-    --install-compat32-libs \
-    --no-nouveau-check \
-    --no-nvidia-modprobe \
-    --no-rpms \
-    --no-backup \
-    --no-check-for-alternate-installs
+                    --no-kernel-module \
+                    --install-compat32-libs \
+                    --no-nouveau-check \
+                    --no-nvidia-modprobe \
+                    --no-rpms \
+                    --no-backup \
+                    --no-check-for-alternate-installs
   sudo rm -rf /tmp/NVIDIA* && cd ~
 fi
 
 # Allow starting Xorg from a pseudoterminal instead of strictly on a tty console
 if [ ! -f /etc/X11/Xwrapper.config ]; then
-  echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config >/dev/null
+    echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config > /dev/null
 fi
 if grep -Fxq "allowed_users=console" /etc/X11/Xwrapper.config; then
   sudo sed -i "s/allowed_users=console/allowed_users=anybody/;$ a needs_root_rights=yes" /etc/X11/Xwrapper.config
@@ -117,7 +114,7 @@ else
 fi
 
 if [ -z "$GPU_SELECT" ]; then
-  echo "$(date +"[%Y-%m-%d %H:%M:%S]") No NVIDIA GPUs detected or nvidia-container-toolkit not configured. Exiting."
+  echo "No NVIDIA GPUs detected or nvidia-container-toolkit not configured. Exiting."
   exit 1
 fi
 
@@ -143,7 +140,7 @@ sudo sed -i '/Driver\s\+"nvidia"/a\    Option         "ModeValidation" "NoMaxPCl
 # Add custom generated modeline to the configuration
 sudo sed -i '/Section\s\+"Monitor"/a\    '"$MODELINE" /etc/X11/xorg.conf
 # Prevent interference between GPUs, add this to the host or other containers running Xorg as well
-echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf >/dev/null
+echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf > /dev/null
 
 # Default display is :0 across the container
 export DISPLAY=":0"
@@ -151,22 +148,24 @@ export DISPLAY=":0"
 /usr/bin/Xorg vt7 -noreset -novtswitch -sharevts -dpi "${DPI}" +extension "COMPOSITE" +extension "DAMAGE" +extension "GLX" +extension "RANDR" +extension "RENDER" +extension "MIT-SHM" +extension "XFIXES" +extension "XTEST" "${DISPLAY}" &
 
 # Wait for X11 to start
+echo "Waiting for X socket"
+until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
+echo "X socket is ready"
+
+# Wait for X11 to start
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") Waiting for X socket"
 until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") X socket is ready"
 
-if [[ -z "${NAME}" ]]; then
+if [[ -z "${SESSION_ID}" ]]; then
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
 else
-  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${NAME}" https://fst.so:4443 &
+  /usr/bin/gpu-screen-recorder -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
 fi
 
 openbox-session &
 
-#Now we can safely run our input server without permission errors
-sudo /inputtino/input-server &
-
-/usr/games/gamescope -- mangohud glxgears > /dev/null &
+# /usr/games/gamescope -- mangohud glxgears > /dev/null & 
 
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") Session Running. Press [Return] to exit."
 read
