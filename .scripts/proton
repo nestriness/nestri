@@ -599,7 +599,7 @@ else
       ("${xcmd[@]}" &)
     ;;
     -h|--help)
-      echo -e "\n  General usage:  wstart -w? args\n  -w? options for wine and -p? for proton.\n  Type wstart by itself for command list.\n\n  Edit script path variables as needed.\n  bash, find, gendesk, grep, readpe,\n  strings, winetricks, wrestool,\n  pcre2grep, peres, perl needed by\n  certain items.\n"
+      echo -e "\n  General usage:  netris-proton -w? args\n  -w? options for wine and -p? for proton.\n  Type wstart by itself for command list.\n\n  Edit script path variables as needed.\n  bash, find, gendesk, grep, readpe,\n  strings, winetricks, wrestool,\n  pcre2grep, peres, perl needed by\n  certain items.\n"
     ;;
     -*|\*|*)
      # do_usage
