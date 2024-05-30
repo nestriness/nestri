@@ -157,7 +157,7 @@ This command generates a random 16-character string. Be sure to note this string
 With your SESSION_ID ready, insert it into the command below, replacing `<copy here>` with your actual session ID. Then, run the command to start the Netris server:
 
 ```
-docker run --gpus all --device=/dev/dri --name netris -it --entrypoint /bin/bash -e SESSION_ID=<copy here> -v "$(pwd)":/game -p 8080:8080/udp --cap-add=SYS_NICE --cap-add=SYS_ADMIN server
+docker run --gpus all --device=/dev/dri --name netris -it --entrypoint /bin/bash -e SESSION_ID=<copy here> -v "$(pwd)":/game -p 8080:8080/udp --cap-add=SYS_NICE --cap-add=SYS_ADMIN ghcr.io/netrisdotme/netris/server:nightly
 ```
 
 > \[!TIP]
