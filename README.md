@@ -126,7 +126,67 @@ Follow these steps to get Netris up and running on your system.
 
 > \[!IMPORTANT]
 >
-> Waiting on this pull request [#43][netris-pr-input] to be merged first. Sorry for the inconvenience. \~ ⚠️
+> This is our pilot, there is a lot we haven't figured out yet. Please file an issue if anything comes up. \~ 🫂
+
+
+> \[!TIP]
+>
+> The setup process will become much simpler with the launch of our CLI tool, so stay tuned for that! In the meantime, you'll need to follow these manual steps.
+
+#### Step 1: Navigate to Your Game Directory
+
+First, change your directory to the location of your `.exe` file. For Steam games, this typically means:
+
+```bash
+cd $HOME/.steam/steam/steamapps
+ls -la .
+```
+
+#### Step 2: Generate a Session ID
+
+Create a unique session ID using the following command:
+
+```bash
+head /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | head -c 16
+```
+
+This command generates a random 16-character string. Be sure to note this string carefully, as you'll need it for the next step.
+
+#### Step 3: Launch the Netris Server
+
+With your SESSION_ID ready, insert it into the command below, replacing `<copy here>` with your actual session ID. Then, run the command to start the Netris server:
+
+```
+docker run --gpus all --device=/dev/dri --name netris -it --entrypoint /bin/bash -e SESSION_ID=<copy here> -v "$(pwd)":/game -p 8080:8080/udp --cap-add=SYS_NICE --cap-add=SYS_ADMIN ghcr.io/netrisdotme/netris/server:nightly
+```
+
+> \[!TIP]
+>
+> Ensure UDP port 8080 is accessible from the internet. Use `ufw allow 8080/udp` or adjust your cloud provider's security group settings accordingly.
+
+#### Step 4: Configure the Game within the Container
+
+After executing the previous command, you'll be in a new shell within the container (example: `netris@3f199ee68c01:~$`). Perform the following checks:
+
+1. Verify the game is mounted by executing `ls -la /game`. If not, exit and ensure you've correctly mounted the game directory as a volume.
+2. Then, start the Netris server by running `/etc/startup.sh > /dev/null &`.
+
+#### Step 5: Running Your Game
+
+Wait for the `.X11-unix` directory to appear in `/tmp` (check with `ls -la /tmp`). Once it appears, you're ready to launch your game.
+
+- With Proton-GE: `netris-proton -pr <game>.exe`
+- With Wine: `netris-proton -wr <game>.exe`
+
+#### Step 6: Begin Playing
+
+Finally, construct the play URL with your session ID:
+
+```
+echo "https://netris.me/play/$SESSION_ID"
+```
+
+Navigate to this URL in your browser, click on the page to capture your mouse pointer, and start playing!
 
 
 [github-release-link]: https://github.com/wanjohiryan/netris/releases
@@ -147,4 +207,3 @@ Follow these steps to get Netris up and running on your system.
 [image-star]: assets/star-us.png
 [moq-github-url]: https://quic.video
 [vmaf-cuda-link]: https://developer.nvidia.com/blog/calculating-video-quality-using-nvidia-gpus-and-vmaf-cuda/
-[netris-pr-input]: https://github.com/netrisdotme/netris/pull/43
