@@ -1,6 +1,6 @@
 #This contains all the necessary libs for the server to work.
 #NOTE: KEEP THIS IMAGE AS LEAN AS POSSIBLE.
-FROM ghcr.io/wanjohiryan/netris/base:nightly
+FROM ghcr.io/nestriness/nestri/base:nightly
 
 ENV TZ=UTC \
     SIZEW=1920 \
@@ -68,8 +68,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
-COPY --from=ghcr.io/wanjohiryan/netris/warp:nightly /usr/bin/warp /usr/bin/
-COPY --from=ghcr.io/netrisdotme/netris/warp-input:nightly /usr/bin/warp-input /usr/bin/warp-input
+COPY --from=ghcr.io/nestriness/nestri/warp:nightly /usr/bin/warp /usr/bin/
+COPY --from=ghcr.io/nestriness/nestri/warp-input:nightly /usr/bin/warp-input /usr/bin/warp-input
 RUN chmod +x /usr/bin/warp /usr/bin/warp-input
 COPY .scripts /etc/
 RUN chmod 755 /etc/supervisord.conf /etc/entrypoint.sh /etc/startup.sh
