@@ -256,13 +256,13 @@ RUN apt-get update -y \
     && chmod +x ./build.sh ./install.sh \
     && ./install.sh 
 
-#Try building shadow-cast
-RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
-    && mkdir ./build && cd ./build \ 
-    && cmake -DCMAKE_CXX_FLAGS="-Wno-error=unused-result" -DCMAKE_C_FLAGS="-Wno-error=unused-result" .. \ 
-    && cmake --build . -- -j$(nproc) \
-    && chmod +x ./install-helper.sh \
-    && ./install-helper.sh
+# #Try building shadow-cast
+# RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
+#     && mkdir ./build && cd ./build \ 
+#     && cmake -DCMAKE_CXX_FLAGS="-Wno-error=unused-result" -DCMAKE_C_FLAGS="-Wno-error=unused-result" .. \ 
+#     && cmake --build . -- -j$(nproc) \
+#     && chmod +x ./install-helper.sh \
+#     && ./install-helper.sh
 
 RUN apt-get update -y; \
     apt-get upgrade -y; \

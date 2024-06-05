@@ -2,11 +2,11 @@
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 # Create and modify permissions of XDG_RUNTIME_DIR
-sudo -u netris mkdir -pm700 /tmp/runtime-1000
-sudo chown netris:netris /tmp/runtime-1000
-sudo -u netris chmod 700 /tmp/runtime-1000
+sudo -u nestri mkdir -pm700 /tmp/runtime-1000
+sudo chown nestri:nestri /tmp/runtime-1000
+sudo -u nestri chmod 700 /tmp/runtime-1000
 # Make user directory owned by the user in case it is not
-sudo chown netris:netris /home/netris || sudo chown netris:netris /home/netris/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
+sudo chown nestri:nestri /home/nestri || sudo chown nestri:nestri /home/nestri/* || { echo "$(date +"[%Y-%m-%d %H:%M:%S]") Failed to change user directory permissions. There may be permission issues."; }
 
 #Input devices ownable by our default user
 export REQUIRED_DEVICES=${REQUIRED_DEVICES:-/dev/uinput /dev/input/event*}
@@ -19,7 +19,7 @@ for dev in $REQUIRED_DEVICES; do
     dev_gid=$(stat -c "%g" "$dev")
 
     if [ "$dev_group" = "UNKNOWN" ]; then
-      new_name="netris-gid-$dev_gid"
+      new_name="nestri-gid-$dev_gid"
       # We only have a GID for this group; create a named group for it
       # this isn't 100% necessary but it prevents some useless noise in the console
       sudo groupadd -g "$dev_gid" "$new_name"
@@ -61,7 +61,7 @@ sudo ln -snf /dev/ptmx /dev/tty7
 sudo /etc/init.d/dbus start
 
 # Install Proton-GE for this user
-netris-proton -i
+nestri-proton -i
 
 # Install NVIDIA userspace driver components including X graphic libraries
 if ! command -v nvidia-xconfig &> /dev/null; then
