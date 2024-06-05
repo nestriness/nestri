@@ -32,15 +32,15 @@ RUN apt-get update -y \
 #     && chmod 755 /usr/bin/winetricks \
 #     && curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
-#Install Proton
-COPY .scripts/proton /usr/bin/netris-proton
-RUN chmod 755 /usr/bin/netris-proton
+#Install Proton 
+COPY .scripts/proton /usr/bin/nestri-proton
+RUN chmod 755 /usr/bin/nestri-proton
 
-ARG USERNAME=netris \
+ARG USERNAME=nestri \
     PUID=1000 \
     PGID=1000 \
     UMASK=000 \
-    HOME="/home/netris"
+    HOME="/home/nestri"
 
 ENV XDG_RUNTIME_DIR=/tmp/runtime-1000
 

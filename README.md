@@ -1,7 +1,7 @@
 <div align="center">
 <div>
 
-<a href="https://netris.me" >
+<a href="https://nestri.io" >
 <img height="160" src="/assets/logo.png">
 </a>
 
@@ -12,11 +12,11 @@
 
 <div align="center" >
 <h1>
-<a href="https://netris.me" >
+<a href="https://nestri.io" >
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="/assets/logo-name-white.png">
   <source media="(prefers-color-scheme: light)" srcset="/assets/logo-name-black.png">
-  <img alt="netris logo name" src="/assets/logo-name-black.png">
+  <img alt="nestri logo name" src="/assets/logo-name-black.png">
 </picture>
 
 </a>
@@ -40,7 +40,7 @@ An open-source cloud gaming platform built for you to play together with your fr
 [![][github-license-shield]][github-license-link]
 [![][github-stars-shield]][github-stars-link]
 
-**Share the Netris Repository on Social Media**
+**Share the Nestri Repository on Social Media**
 
 [![][share-x-shield]][share-x-link]
 [![][share-reddit-shield]][share-reddit-link]
@@ -57,13 +57,13 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 ## Features 🌟
 
-As Netris navigates through its _experimental_ phase, we're in the process of crafting and testing a variety of features for you:
+As Nestri navigates through its _experimental_ phase, we're in the process of crafting and testing a variety of features for you:
 
 1. **🎮 Proton-GE Compatibility:** We utilize Proton-GE for running games, offering extensive game compatibility and ensuring you can play a wide variety of titles.
 
 2. **⚡ QUIC Protocol:** For input and video/audio transmission, we use QUIC via [MoQ][moq-github-url] to significantly reduce latency on variable networks, ensuring crisp visuals without sacrificing data or increasing latency.
 
-3. **🔗 Session IDs:** With a `SESSION_ID`, we seamlessly tie your game progress, achievements, and devices without the need for logging into [netris.me][website-link]. Our public CDNs, currently located in Europe (eu-north-1) and the US (us-east-1), further reduce latency for friends playing together from afar. More locations are on the way!
+3. **🔗 Session IDs:** With a `SESSION_ID`, we seamlessly tie your game progress, achievements, and devices without the need for logging into [nestri.io][website-link]. Our public CDNs, currently located in Europe (eu-north-1) and the US (us-east-1), further reduce latency for friends playing together from afar. More locations are on the way!
 
 4. **🔄 Automatic Game Progress Sync:** Like Stadia's state share, we automatically sync your game progress based on the *.exe file you're running, allowing you to share your progress with friends via a link.
 
@@ -87,22 +87,22 @@ This platform is in an _experimental_ phase, and we're actively working on addin
 
 ## Getting Started 🎮
 
-Whether you're looking to self-host Netris or simply want to try it out without the need for your own GPU, we've got you covered. Choose the path that best suits your needs:
+Whether you're looking to self-host Nestri or simply want to try it out without the need for your own GPU, we've got you covered. Choose the path that best suits your needs:
 
 <!-- _You can always change your option later without losing game progress_ -->
 
 | If you don't have a Nvidia GPU or prefer not to self-host, you can visit our website. No installation or set up required ! <br/> This is the perfect option for gamers looking to dive straight into the action without any setup. | [👉🏽 Get Access][website-link] |
 | :---------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
-| If you're interested in self-hosting Netris, continue reading for detailed instructions on how to get started. <br/> This option is ideal if you have your own Nvidia GPU and are comfortable with setting up and managing your own server. | [🛠️ Self Host Netris](#self-hosting) |
+| If you're interested in self-hosting Nestri, continue reading for detailed instructions on how to get started. <br/> This option is ideal if you have your own Nvidia GPU and are comfortable with setting up and managing your own server. | [🛠️ Self Host Nestri](#self-hosting) |
 
 > \[!TIP]
 >
-> Remember, flexibility is key with Netris. You're free to switch between self-hosting and using `netris.me` whenever you like, without losing your game progress. \~ 💡
+> Remember, flexibility is key with Nestri. You're free to switch between self-hosting and using `nestri.io` whenever you like, without losing your game progress. \~ 💡
 <a name="self-hosting"></a>
 
-### Self-Hosting Netris 🔨
+### Self-Hosting Nestri 🔨
 
-For those interested in self-hosting, here are is what you need to get your own Netris server up and running:
+For those interested in self-hosting, here are is what you need to get your own Nestri server up and running:
 
 - **Nvidia GPU**: Unfortunately, this setup is exclusive to Nvidia GPUs. If you don't own one, consider renting from cloud services like AWS, GCP, or Vast.ai. We highly recommend this approach.
 
@@ -122,7 +122,7 @@ For those interested in self-hosting, here are is what you need to get your own 
 
 ### Step-by-Step Guide
 
-Follow these steps to get Netris up and running on your system.
+Follow these steps to get Nestri up and running on your system.
 
 > \[!IMPORTANT]
 >
@@ -152,12 +152,12 @@ head /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | head -c 16
 
 This command generates a random 16-character string. Be sure to note this string carefully, as you'll need it for the next step.
 
-#### Step 3: Launch the Netris Server
+#### Step 3: Launch the Nestri Server
 
-With your SESSION_ID ready, insert it into the command below, replacing `<copy here>` with your actual session ID. Then, run the command to start the Netris server:
+With your SESSION_ID ready, insert it into the command below, replacing `<copy here>` with your actual session ID. Then, run the command to start the Nestri server:
 
 ```
-docker run --gpus all --device=/dev/dri --name netris -it --entrypoint /bin/bash -e SESSION_ID=<copy here> -v "$(pwd)":/game -p 8080:8080/udp --cap-add=SYS_NICE --cap-add=SYS_ADMIN ghcr.io/netrisdotme/netris/server:nightly
+docker run --gpus all --device=/dev/dri --name nestri -it --entrypoint /bin/bash -e SESSION_ID=<copy here> -v "$(pwd)":/game -p 8080:8080/udp --cap-add=SYS_NICE --cap-add=SYS_ADMIN ghcr.io/nestriness/nestri/server:nightly
 ```
 
 > \[!TIP]
@@ -166,7 +166,7 @@ docker run --gpus all --device=/dev/dri --name netris -it --entrypoint /bin/bash
 
 #### Step 4: Configure the Game within the Container
 
-After executing the previous command, you'll be in a new shell within the container (example: `netris@3f199ee68c01:~$`). Perform the following checks:
+After executing the previous command, you'll be in a new shell within the container (example: `nestri@3f199ee68c01:~$`). Perform the following checks:
 
 1. Verify the game is mounted by executing `ls -la /game`. If not, exit and ensure you've correctly mounted the game directory as a volume.
 2. Then, start the Netris server by running `/etc/startup.sh > /dev/null &`.
@@ -175,15 +175,15 @@ After executing the previous command, you'll be in a new shell within the contai
 
 Wait for the `.X11-unix` directory to appear in `/tmp` (check with `ls -la /tmp`). Once it appears, you're ready to launch your game.
 
-- With Proton-GE: `netris-proton -pr <game>.exe`
-- With Wine: `netris-proton -wr <game>.exe`
+- With Proton-GE: `nestri-proton -pr <game>.exe`
+- With Wine: `nestri-proton -wr <game>.exe`
 
 #### Step 6: Begin Playing
 
 Finally, construct the play URL with your session ID:
 
 ```
-echo "https://netris.me/play/$SESSION_ID"
+echo "https://nestri.io/play/$SESSION_ID"
 ```
 
 Navigate to this URL in your browser, click on the page to capture your mouse pointer, and start playing!
@@ -202,7 +202,7 @@ Navigate to this URL in your browser, click on the page to capture your mouse po
 [share-reddit-shield]: https://img.shields.io/badge/-share%20on%20reddit-black?labelColor=black&logo=reddit&logoColor=white&style=flat-square
 [share-reddit-link]: https://www.reddit.com/submit?title=Hey%2C%20check%20out%20this%20Github%20repository.%20It%20is%20an%20open-source%20self-hosted%20Geforce%20Now%20alternative.&url=https%3A%2F%2Fgithub.com%2Fwanjohiryan%2Fnetris
 [image-overview]: assets/banner.png
-[website-link]: https://netris.me
+[website-link]: https://nestri.io
 [neko-url]: https://github.com/m1k1o/neko
 [image-star]: assets/star-us.png
 [moq-github-url]: https://quic.video
