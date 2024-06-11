@@ -131,6 +131,9 @@ RUN dpkg --add-architecture i386 \
     xserver-xorg-video-all \
     xserver-xorg-video-intel \
     xserver-xorg-video-qxl \
+    # Intel QSV required packages
+    libmfx1 \
+    libmfx-gen1.2 \
     # Install OpenGL libraries
     libxau6 \
     libxau6:i386 \
