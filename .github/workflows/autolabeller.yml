@@ -90,4 +90,4 @@ jobs:
           use_local_config: true #FIXME:
           fail_on_error: true
         env:
-          GITHUB_TOKEN: "${{ secrets.GIT_MASTER_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
