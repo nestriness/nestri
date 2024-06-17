@@ -80,6 +80,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: write
     steps:
       - name: Checkout your code
         uses: actions/checkout@v4
@@ -87,7 +88,6 @@ jobs:
       - uses: srvaroa/labeler@v1
         with:
           config_path: .github/labeler.yml
-          use_local_config: true #FIXME:
           fail_on_error: true
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
