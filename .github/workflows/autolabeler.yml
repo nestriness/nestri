@@ -24,7 +24,7 @@ jobs:
       - uses: amannn/action-semantic-pull-request@cfb60706e18bc85e8aec535e3c577abe8f70378e
         id: lint_pr_title
         env:
-          GITHUB_TOKEN: ${{ secrets.GIT_MASTER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           types: |-
             build
@@ -80,6 +80,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: write
     steps:
       - name: Checkout your code
         uses: actions/checkout@v4
@@ -87,7 +88,6 @@ jobs:
       - uses: srvaroa/labeler@v1
         with:
           config_path: .github/labeler.yml
-          use_local_config: true #FIXME:
           fail_on_error: true
         env:
-          GITHUB_TOKEN: "${{ secrets.GIT_MASTER_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
