@@ -256,8 +256,9 @@ RUN apt-get update -y \
     && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
     && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
-    && chmod +x ./build.sh ./install.sh \
-    && ./install.sh 
+    && meson setup build \
+    && meson configure --prefix=/usr --buildtype=release -Dsystemd=true -Dstrip=true build \
+    && ninja -C build install
 
 # #Try building shadow-cast
 # RUN git clone https://github.com/gmbeard/shadow-cast && cd shadow-cast \
