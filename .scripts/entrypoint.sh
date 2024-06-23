@@ -2,7 +2,7 @@
 trap "echo TRAPed signal" HUP INT QUIT TERM
 
 # Include our gpu helper functions
-source ./gpu_helpers.sh
+source /etc/gpu_helpers.sh
 
 # Create and modify permissions of XDG_RUNTIME_DIR
 sudo -u nestri mkdir -pm700 /tmp/runtime-1000
@@ -67,7 +67,7 @@ sudo /etc/init.d/dbus start
 nestri-proton -i
 
 # Allow starting Xorg from a pseudoterminal instead of strictly on a tty console
-if [ ! -f /etc/X11/Xwrapper.config ]; then
+if [ ! -f "/etc/X11/Xwrapper.config" ]; then
     echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config > /dev/null
 fi
 if grep -Fxq "allowed_users=console" /etc/X11/Xwrapper.config; then
@@ -88,27 +88,35 @@ else
 fi
 
 # A custom modeline should be generated because there is no monitor to fetch this information normally
-export MODELINE="$(cvt -r "${SIZEW}" "${SIZEH}" "${REFRESH}" | sed -n 2p)"
+custom_modeline="$(cvt -r "${SIZEW}" "${SIZEH}" "${REFRESH}" | sed -n 2p)"
+custom_modeline_settings="$(echo "$custom_modeline" | sed 's/Modeline //')"
+custom_modeline_identifier="$(echo "$custom_modeline_settings" | grep -o '"[^"]*"')"
 
-get_gpu_info  # Populate GPU information
-
-# Select the GPU based on user input or default
-selected_gpu=$(echo "${GPU_SELECTION:-}" | tr '[:upper:]' '[:lower:]')
-if [[ -z "$selected_gpu" ]]; then
-  gpu_keys=("${!gpu_map[@]}")     # Get all the keys from gpu_map
-  selected_gpu="${gpu_keys[0]}"   # Select the first key
-  echo "No GPU specified, using default: $selected_gpu"
+# Pre-populate GPU information manually
+if ! check_and_populate_gpus; then
+  exit 1
 fi
 
-# Get selected GPU information
-gpu_info=$(get_selected_gpu_info "$selected_gpu")
-# Convert lshw gathered bus id into Xorg compatible one
-xorg_bus_id=$(convert_bus_id_to_xorg "${gpu_bus_map[$selected_gpu]}")
+# Select the GPU based on user input or first one available
+selected_gpu="${GPU_SELECTION,,:-}"
+if [[ -z "$selected_gpu" ]]; then
+  selected_gpu="${gpu_map[0]}" # Select first available GPU
+  echo "No GPU selected, using first one available: $selected_gpu"
+elif ! selected_gpu=$(check_selected_gpu "$selected_gpu"); then
+  exit 1
+fi
 
-echo "Selected GPU: $gpu_info"
+# Print selected GPU information
+echo "Selected GPU: $(print_gpu_info "$selected_gpu")"
+echo ""
+
+# Get GPU vendor as separate variable
+selected_gpu_vendor=$(get_gpu_vendor "$selected_gpu")
+# Convert lshw gathered bus id into Xorg compatible one
+xorg_bus_id=$(get_gpu_bus_xorg "$selected_gpu")
 
 # Check if the selected GPU is an NVIDIA GPU
-if [[ "${selected_gpu,,}" =~ "nvidia" ]]; then
+if [[ "${selected_gpu_vendor,,}" =~ "nvidia" ]]; then
     echo "Selected GPU is NVIDIA. Handling NVIDIA-specific configuration..."
 
     # Install NVIDIA userspace driver components including X graphic libraries
@@ -138,12 +146,12 @@ if [[ "${selected_gpu,,}" =~ "nvidia" ]]; then
     fi
 
     # Generate /etc/X11/xorg.conf with nvidia-xconfig
-    sudo nvidia-xconfig --virtual="${SIZEW}x${SIZEH}" --depth="$CDEPTH" --mode="$(echo "$MODELINE" | awk '{print $2}' | tr -d '\"')" --allow-empty-initial-configuration --no-probe-all-gpus --busid="$xorg_bus_id" --include-implicit-metamodes --mode-debug --no-sli --no-base-mosaic --only-one-x-screen ${CONNECTED_MONITOR}
+    sudo nvidia-xconfig --virtual="${SIZEW}x${SIZEH}" --depth="$CDEPTH" --mode="$(echo "$custom_modeline" | awk '{print $2}' | tr -d '\"')" --allow-empty-initial-configuration --no-probe-all-gpus --busid="$xorg_bus_id" --include-implicit-metamodes --mode-debug --no-sli --no-base-mosaic --only-one-x-screen ${CONNECTED_MONITOR}
     # Guarantee that the X server starts without a monitor by adding more options to the configuration
     sudo sed -i '/Driver\s\+"nvidia"/a\    Option         "ModeValidation" "NoMaxPClkCheck,NoEdidMaxPClkCheck,NoMaxSizeCheck,NoHorizSyncCheck,NoVertRefreshCheck,NoVirtualSizeCheck,NoExtendedGpuCapabilitiesCheck,NoTotalSizeCheck,NoDualLinkDVICheck,NoDisplayPortBandwidthCheck,AllowNon3DVisionModes,AllowNonHDMI3DModes,AllowNonEdidModes,NoEdidHDMI2Check,AllowDpInterlaced"' /etc/X11/xorg.conf
 
     # Add custom generated modeline to the configuration
-    sudo sed -i '/Section\s\+"Monitor"/a\    '"$MODELINE" /etc/X11/xorg.conf
+    sudo sed -i '/Section\s\+"Monitor"/a\    '"$custom_modeline" /etc/X11/xorg.conf
     # Prevent interference between GPUs, add this to the host or other containers running Xorg as well
     echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf > /dev/null
 else
@@ -152,8 +160,6 @@ else
     # We need permissions for the GPU(s)
     sudo chown -R root:root /dev/dri/*
     sudo chmod -R 777 /dev/dri/*
-
-    modeline_mode="$(echo $MODELINE | sed 's/Modeline //' | grep -o '"[^"]*"')"
 
     # Create common config file
     sudo touch /etc/X11/xorg.conf
@@ -179,28 +185,27 @@ Section \"InputDevice\"
     Driver         \"kbd\"
 EndSection
 
-Section \"Monitor\"
-    $MODELINE
-    Identifier     \"Monitor0\"
-EndSection
-
 Section \"Device\"
     Identifier     \"Device0\"
     Driver         \"modesetting\"
+    Option         \"AsyncFlipSecondaries\" \"yes\"
     BusID          \"$xorg_bus_id\"
 EndSection
 
 Section \"Screen\"
     Identifier     \"Screen0\"
     Device         \"Device0\"
-    Monitor        \"Monitor0\"
     DefaultDepth    $CDEPTH
     Option         \"ModeDebug\" \"True\"
     SubSection     \"Display\"
         Virtual     ${SIZEW} ${SIZEH}
         Depth       $CDEPTH
-        Modes       $modeline_mode
+        Modes       $custom_modeline_identifier
     EndSubSection
+EndSection
+
+Section \"ServerFLags\"
+    Option \"AutoAddGPU\" \"off\"
 EndSection
 "
     echo "$config_common_xorg" | sudo tee /etc/X11/xorg.conf > /dev/null
@@ -222,38 +227,45 @@ until [ -S "/tmp/.X11-unix/X${DISPLAY/:/}" ]; do sleep 1; done
 echo "$(date +"[%Y-%m-%d %H:%M:%S]") X socket is ready"
 
 # Additional non-NVIDIA configuration required
-if [[ ! "${selected_gpu,,}" =~ "nvidia" ]]; then
-  modeline_xrandr="$(echo $MODELINE | sed 's/Modeline //')"
-  modeline_mode="$(echo $modeline_xrandr | grep -o '"[^"]*"')"
-  xrandr --newmode $(echo $modeline_xrandr)
+if [[ ! "${selected_gpu_vendor,,}" =~ "nvidia" ]]; then
+  echo "Creating new output mode: '$custom_modeline_settings'"
+  xrandr --newmode $custom_modeline_settings
 
-  # We need to get a disconnected output for our shenanigans
-  # priorize "HDMI-n" outputs as "DP-n" ones seem to have trouble with configuring output multiple times
-  disconnected_output=$(xrandr --query | grep -Eo 'HDMI-[0-9]+ disconnected' | head -1 | awk '{print $1}')
-  if [ -z "$disconnected_output" ]; then
-    disconnected_output=$(xrandr --query | grep -Eo 'DP-[0-9]+ disconnected' | head -1 | awk '{print $1}')
+  # Look for an output for our shenanigans
+  # If someone has dummy plugs or has a screen connected, use connected output to prevent resolution issues
+  selected_output="$(xrandr --query | grep -Eo 'HDMI-[0-9]+ connected' | head -1 | awk '{print $1}')"
+  if [ -z "$selected_output" ]; then
+    selected_output="$(xrandr --query | grep -Eo 'DP-[0-9]+ connected' | head -1 | awk '{print $1}')"
   fi
 
-  echo "Configuring output: '$disconnected_output' to use mode '$modeline_mode'"
-  xrandr --addmode "$disconnected_output" $(echo $modeline_mode)
-  xrandr --output "$disconnected_output" --primary --mode $(echo $modeline_mode)
+  # Look for disconnected output otherwise
+  # priorizing "HDMI-n" outputs as "DP-n" ones seem to have trouble with configuring output multiple times on Intel GPUs
+  if [ -z "$selected_output" ]; then
+    echo "Could not find a connected output, looking for a disconnected one"
+    selected_output="$(xrandr --query | grep -Eo 'HDMI-[0-9]+ disconnected' | head -1 | awk '{print $1}')"
+    if [ -z "$selected_output" ]; then
+      selected_output="$(xrandr --query | grep -Eo 'DP-[0-9]+ disconnected' | head -1 | awk '{print $1}')"
+    fi
+  fi
+
+  # Sanity check
+  if [ -z "$selected_output" ]; then
+    echo "Could not find an usable output"
+    exit 1
+  fi
+
+  echo "Configuring output: '$selected_output' to use mode '$custom_modeline_identifier'"
+  xrandr --addmode "$selected_output" "$custom_modeline_identifier"
+  xrandr --output "$selected_output" --primary --mode "$custom_modeline_identifier"
 fi
+
+# Make sure gpu-screen-recorder is owned by nestri
+sudo chown nestri:nestri /usr/bin/gpu-screen-recorder
 
 if [[ -z "${SESSION_ID}" ]]; then
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
 else
-  # TODO: gpu-screen-recorder has couple bugs in non-NVIDIA usage, until that's fixed let's use x11grab to ensure we get the whole screen
-  if [[ ! "${selected_gpu,,}" =~ "nvidia" ]]; then
-    # TODO: Handle other vendors unless gpu-screen-recorder is fixed first
-    if [[ "${selected_gpu,,}" =~ "intel" ]]; then
-      ffmpeg -init_hw_device qsv=hw -filter_hw_device hw -hide_banner -v quiet -framerate "${REFRESH}" -re -f x11grab -i :0 -an -c:v h264_qsv -preset fast -bf 0 -p_strategy 2 -global_quality 25 -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
-    else
-      echo "Unsupported GPU: ${gpu_info}"
-      exit 1
-    fi
-  else
-    /usr/bin/gpu-screen-recorder -v no -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
-  fi
+  /usr/bin/gpu-screen-recorder -v no -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
 fi
 
 openbox-session &

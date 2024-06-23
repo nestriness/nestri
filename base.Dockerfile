@@ -131,9 +131,6 @@ RUN dpkg --add-architecture i386 \
     xserver-xorg-video-all \
     xserver-xorg-video-intel \
     xserver-xorg-video-qxl \
-    # Intel QSV required packages
-    libmfx1 \
-    libmfx-gen1.2 \
     # Install OpenGL libraries
     libxau6 \
     libxau6:i386 \
@@ -206,6 +203,8 @@ ENV \
     # Disable VSYNC for NVIDIA GPUs
      __GL_SYNC_TO_VBLANK=0 
 
+COPY .patches /etc/
+
 #Build and install gpu-screen-recorder
 RUN apt-get update -y \
     && apt-get install -y \
@@ -237,6 +236,8 @@ RUN apt-get update -y \
     libkpipewire-dev \
     libxrandr-dev \
     libxfixes-dev \
+    libxi-dev \
+    libxdamage-dev \
     libpulse-dev \
     libswresample-dev \
     libva-dev \
@@ -256,6 +257,7 @@ RUN apt-get update -y \
     && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
     && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
+    && git apply /etc/connectcheckskip.patch \
     && meson setup build \
     && meson configure --prefix=/usr --buildtype=release -Dsystemd=true -Dstrip=true build \
     && ninja -C build install
