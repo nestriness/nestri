@@ -2,5 +2,5 @@
 	path = moq-server
 	url = https://github.com/kixelated/moq-rs
 [submodule "nestri-cli"]
-	path = cli
+	path = nestri-cli
 	url = https://github.com/nestriness/cli
