@@ -233,6 +233,8 @@ RUN apt-get update -y \
     libxcomposite-dev \
     libkpipewire-dev \
     libxrandr-dev \
+    libxi-dev \
+    libxdamage-dev \
     libxfixes-dev \
     libpulse-dev \
     libswresample-dev \
