@@ -231,20 +231,19 @@ if [[ ! "${selected_gpu_vendor,,}" =~ "nvidia" ]]; then
   echo "Creating new output mode: '$custom_modeline_settings'"
   xrandr --newmode $custom_modeline_settings
 
-  # Look for an output for our shenanigans
-  # If someone has dummy plugs or has a screen connected, use connected output to prevent resolution issues
-  selected_output="$(xrandr --query | grep -Eo 'HDMI-[0-9]+ connected' | head -1 | awk '{print $1}')"
-  if [ -z "$selected_output" ]; then
-    selected_output="$(xrandr --query | grep -Eo 'DP-[0-9]+ connected' | head -1 | awk '{print $1}')"
-  fi
+  # Look for any connected output first
+  selected_output="$(xrandr --query | grep ' connected' | head -1 | awk '{print $1}')"
 
-  # Look for disconnected output otherwise
-  # priorizing "HDMI-n" outputs as "DP-n" ones seem to have trouble with configuring output multiple times on Intel GPUs
+  # If none found, look for a disconnected output
   if [ -z "$selected_output" ]; then
     echo "Could not find a connected output, looking for a disconnected one"
-    selected_output="$(xrandr --query | grep -Eo 'HDMI-[0-9]+ disconnected' | head -1 | awk '{print $1}')"
+
+    # Prioritize HDMI for disconnected outputs, due to some GPUs not liking DP being configured multiple times
+    selected_output="$(xrandr --query | grep ' disconnected' | grep -Eo 'HDMI-[0-9]+' | head -1)"
+
+    # If no disconnected HDMI found, take any disconnected output
     if [ -z "$selected_output" ]; then
-      selected_output="$(xrandr --query | grep -Eo 'DP-[0-9]+ disconnected' | head -1 | awk '{print $1}')"
+      selected_output="$(xrandr --query | grep ' disconnected' | head -1 | awk '{print $1}')"
     fi
   fi
 
