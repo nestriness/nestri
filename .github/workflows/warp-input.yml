@@ -47,7 +47,7 @@ jobs:
               uses: docker/setup-buildx-action@v3
             - 
               name: Build Docker image
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@v6
               with:
                 file: warp-input.Dockerfile
                 context: ./
@@ -91,7 +91,7 @@ jobs:
                   type=semver,pattern={{major}}
             - 
               name: Build Docker image
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@v6
               with:
                 file: warp-input.Dockerfile
                 context: ./
@@ -135,7 +135,7 @@ jobs:
                   type=semver,pattern={{major}}
             - 
               name: Build Docker image
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@v6
               with:
                 file: warp-input.Dockerfile
                 context: ./
