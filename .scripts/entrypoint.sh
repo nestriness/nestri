@@ -90,7 +90,7 @@ fi
 # A custom modeline should be generated because there is no monitor to fetch this information normally
 custom_modeline="$(cvt -r "${SIZEW}" "${SIZEH}" "${REFRESH}" | sed -n 2p)"
 custom_modeline_settings="$(echo "$custom_modeline" | sed 's/Modeline //')"
-custom_modeline_identifier="$(echo "$custom_modeline_settings" | grep -o '"[^"]*"')"
+custom_modeline_identifier="$(echo "$custom_modeline_settings" | awk '{print $1}' | tr -d '"')"
 
 # Pre-populate GPU information manually
 if ! check_and_populate_gpus; then
@@ -188,20 +188,13 @@ EndSection
 Section \"Device\"
     Identifier     \"Device0\"
     Driver         \"modesetting\"
-    Option         \"AsyncFlipSecondaries\" \"yes\"
     BusID          \"$xorg_bus_id\"
 EndSection
 
 Section \"Screen\"
     Identifier     \"Screen0\"
     Device         \"Device0\"
-    DefaultDepth    $CDEPTH
     Option         \"ModeDebug\" \"True\"
-    SubSection     \"Display\"
-        Virtual     ${SIZEW} ${SIZEH}
-        Depth       $CDEPTH
-        Modes       $custom_modeline_identifier
-    EndSubSection
 EndSection
 
 Section \"ServerFLags\"
@@ -214,7 +207,7 @@ fi
 # Default display is :0 across the container
 export DISPLAY=":0"
 # Run Xorg server with required extensions
-/usr/bin/Xorg vt7 -noreset -novtswitch -sharevts -dpi "${DPI}" +extension "COMPOSITE" +extension "DAMAGE" +extension "GLX" +extension "RANDR" +extension "RENDER" +extension "MIT-SHM" +extension "XFIXES" +extension "XTEST" "${DISPLAY}" &
+/usr/bin/Xorg vt7 -noreset -novtswitch -sharevts -dpi "${DPI}" -fakescreenfps "${REFRESH}" +extension "COMPOSITE" +extension "DAMAGE" +extension "GLX" +extension "RANDR" +extension "RENDER" +extension "MIT-SHM" +extension "XFIXES" +extension "XTEST" "${DISPLAY}" &
 
 # Wait for X11 to start
 echo "Waiting for X socket"
@@ -228,34 +221,41 @@ echo "$(date +"[%Y-%m-%d %H:%M:%S]") X socket is ready"
 
 # Additional non-NVIDIA configuration required
 if [[ ! "${selected_gpu_vendor,,}" =~ "nvidia" ]]; then
-  echo "Creating new output mode: '$custom_modeline_settings'"
-  xrandr --newmode $custom_modeline_settings
+  # Get a list of all available outputs (connected or disconnected)
+  all_outputs=($(xrandr --query | awk '/ connected| disconnected/ {print $1}'))
 
-  # Look for any connected output first
-  selected_output="$(xrandr --query | grep ' connected' | head -1 | awk '{print $1}')"
+  for selected_output in "${all_outputs[@]}"; do
+    # Create a unique mode identifier by appending the output name
+    unique_mode_identifier="${selected_output}-${custom_modeline_identifier}"
 
-  # If none found, look for a disconnected output
-  if [ -z "$selected_output" ]; then
-    echo "Could not find a connected output, looking for a disconnected one"
+    # Create a unique modeline setting with the new identifier
+    unique_modeline_settings="$(echo "$custom_modeline_settings" | sed "s/$custom_modeline_identifier/$unique_mode_identifier/" | tr -d '"')"
 
-    # Prioritize HDMI for disconnected outputs, due to some GPUs not liking DP being configured multiple times
-    selected_output="$(xrandr --query | grep ' disconnected' | grep -Eo 'HDMI-[0-9]+' | head -1)"
-
-    # If no disconnected HDMI found, take any disconnected output
-    if [ -z "$selected_output" ]; then
-      selected_output="$(xrandr --query | grep ' disconnected' | head -1 | awk '{print $1}')"
+    # Check if the mode already exists for this output (avoid duplicates)
+    if xrandr --query | grep "$selected_output" | grep -q "$unique_mode_identifier"; then
+      echo "Mode '$unique_mode_identifier' already exists for output '$selected_output', skipping.."
+      continue
     fi
-  fi
 
-  # Sanity check
-  if [ -z "$selected_output" ]; then
-    echo "Could not find an usable output"
+    # Add the new mode for the specific output (using the unique settings variable)
+    if xrandr --newmode $unique_modeline_settings; then
+      echo "Successfully added mode '$unique_mode_identifier' for output '$selected_output'"
+
+      # Configure the output to use the new mode
+      if xrandr --addmode "$selected_output" "$unique_mode_identifier" && \
+         xrandr --output "$selected_output" --primary --mode "$unique_mode_identifier"; then
+        echo "Successfully configured output '$selected_output' to use mode '$unique_mode_identifier'"
+        break
+      fi
+    fi
+
+    echo "Failed to configure output '$selected_output' to use mode '$unique_mode_identifier', trying the next output.."
+  done
+
+  if [[ "$selected_output" == "${all_outputs[-1]}" ]]; then
+    echo "Could not configure any output with the desired mode"
     exit 1
   fi
-
-  echo "Configuring output: '$selected_output' to use mode '$custom_modeline_identifier'"
-  xrandr --addmode "$selected_output" "$custom_modeline_identifier"
-  xrandr --output "$selected_output" --primary --mode "$custom_modeline_identifier"
 fi
 
 # Make sure gpu-screen-recorder is owned by nestri
@@ -264,7 +264,7 @@ sudo chown nestri:nestri /usr/bin/gpu-screen-recorder
 if [[ -z "${SESSION_ID}" ]]; then
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
 else
-  /usr/bin/gpu-screen-recorder -v no -w screen -c flv -f 60 -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
+  /usr/bin/gpu-screen-recorder -v no -w screen -c flv -f "${REFRESH}" -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
 fi
 
 openbox-session &
