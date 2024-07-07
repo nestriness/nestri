@@ -4,6 +4,7 @@
 
 declare -ga gpu_map
 declare -gA gpu_bus_map
+declare -gA gpu_card_map
 declare -gA gpu_product_map
 declare -gA vendor_index_map
 declare -gA vendor_full_map
@@ -22,6 +23,7 @@ get_gpu_info() {
   # Clear out previous data
   gpu_map=()
   gpu_bus_map=()
+  gpu_card_map=()
   gpu_product_map=()
   vendor_index_map=()
   vendor_full_map=()
@@ -72,11 +74,18 @@ get_gpu_info() {
       local gpu_index="${vendor_index_map[$vendor]}"
       local gpu_key="$vendor:$gpu_index"
 
+      # Get /dev/dri/cardN of GPU
+      local gpu_card=$({ ls -1d /sys/bus/pci/devices/*${bus_info#pci@}/drm/*; } 2>&1 | grep card* | grep -oP '(?<=card)\d+')
+
       # Store info in maps
       gpu_map+=("$gpu_key")
       gpu_bus_map["$gpu_key"]="$bus_info"
       gpu_product_map["$gpu_key"]="$product"
       vendor_full_map["$gpu_key"]="$vendor_full"
+
+      if [[ -n "$gpu_card" ]]; then
+        gpu_card_map["$gpu_key"]="$gpu_card"
+      fi
 
       # Clear values for additional GPUs
       vendor=""
@@ -161,6 +170,12 @@ print_gpu_info() {
   echo " Vendor: ${vendor_full_map[$selected_gpu]}"
   echo " Product: ${gpu_product_map[$selected_gpu]}"
   echo " Bus: ${gpu_bus_map[$selected_gpu]}"
+
+  # Check if card path was found
+  if [[ "${gpu_card_map[$selected_gpu]}" ]]; then
+    echo " Card: /dev/dri/card${gpu_card_map[$selected_gpu]}"
+  fi
+
   echo
 }
 
@@ -240,4 +255,23 @@ get_gpu_bus_xorg() {
   fi
 
   echo $(convert_bus_id_to_xorg "${gpu_bus_map[$selected_gpu]}")
+}
+
+get_gpu_card() {
+  if ! check_and_populate_gpus; then
+    return 1
+  fi
+
+  local selected_gpu
+  if ! selected_gpu=$(check_selected_gpu "$1"); then
+    return 1
+  fi
+
+  # Check if card path was found
+  if [[ -z "${gpu_card_map[$selected_gpu]}" ]]; then
+    echo "No card device found for GPU: $selected_gpu" >&2
+    return 1
+  fi
+
+  echo "/dev/dri/card${gpu_card_map[$selected_gpu]}"
 }

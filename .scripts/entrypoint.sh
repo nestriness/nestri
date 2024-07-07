@@ -115,6 +115,16 @@ selected_gpu_vendor=$(get_gpu_vendor "$selected_gpu")
 # Convert lshw gathered bus id into Xorg compatible one
 xorg_bus_id=$(get_gpu_bus_xorg "$selected_gpu")
 
+# Get GPU card path if available
+selected_gpu_card=""
+gpu_screen_recorder_device_arg=""
+
+card_result=$(get_gpu_card "$selected_gpu")
+if [[ $? -eq 0 && -n "$card_result" ]]; then
+  selected_gpu_card="$card_result"
+  gpu_screen_recorder_device_arg="-device $selected_gpu_card"
+fi
+
 # Check if the selected GPU is an NVIDIA GPU
 if [[ "${selected_gpu_vendor,,}" =~ "nvidia" ]]; then
     echo "Selected GPU is NVIDIA. Handling NVIDIA-specific configuration..."
@@ -264,7 +274,7 @@ sudo chown nestri:nestri /usr/bin/gpu-screen-recorder
 if [[ -z "${SESSION_ID}" ]]; then
   echo "$(date +"[%Y-%m-%d %H:%M:%S]") No stream name was found, did you forget to set the env variable NAME?" && exit 1
 else
-  /usr/bin/gpu-screen-recorder -v no -w screen -c flv -f "${REFRESH}" -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
+  /usr/bin/gpu-screen-recorder $gpu_screen_recorder_device_arg -v no -w screen -c flv -f "${REFRESH}" -a "$(pactl get-default-sink).monitor" | ffmpeg -hide_banner -v quiet -i pipe:0 -c copy -f mp4 -movflags empty_moov+frag_every_frame+separate_moof+omit_tfhd_offset - | /usr/bin/warp --name "${SESSION_ID}" https://fst.so:4443 &
 fi
 
 openbox-session &
