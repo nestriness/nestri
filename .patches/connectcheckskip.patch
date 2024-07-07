@@ -1,0 +1,28 @@
+diff --git a/src/utils.c b/src/utils.c
+index e00f3c5..4f1f0bf 100644
+--- a/src/utils.c
++++ b/src/utils.c
+@@ -71,7 +71,7 @@ void for_each_active_monitor_output_x11(Display *display, active_monitor_callbac
+     char display_name[256];
+     for(int i = 0; i < screen_res->noutput; ++i) {
+         XRROutputInfo *out_info = XRRGetOutputInfo(display, screen_res, screen_res->outputs[i]);
+-        if(out_info && out_info->crtc && out_info->connection == RR_Connected) {
++        if(out_info && out_info->crtc) {
+             XRRCrtcInfo *crt_info = XRRGetCrtcInfo(display, screen_res, out_info->crtc);
+             if(crt_info && crt_info->mode) {
+                 const XRRModeInfo *mode_info = get_mode_info(screen_res, crt_info->mode);
+@@ -218,10 +218,10 @@ static void for_each_active_monitor_output_drm(const gsr_egl *egl, active_monito
+             if(connector_type)
+                 ++connector_type->count;
+ 
+-            if(connector->connection != DRM_MODE_CONNECTED) {
+-                drmModeFreeConnector(connector);
+-                continue;
+-            }
++            //if(connector->connection != DRM_MODE_CONNECTED) {
++            //    drmModeFreeConnector(connector);
++            //    continue;
++            //}
+ 
+             if(connector_type)
+                 ++connector_type->count_active;
