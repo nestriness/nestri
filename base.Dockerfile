@@ -203,7 +203,7 @@ ENV \
     # Disable VSYNC for NVIDIA GPUs
      __GL_SYNC_TO_VBLANK=0 
 
-COPY .patches /etc/
+COPY .patches /tmp/
 
 #Build and install gpu-screen-recorder
 RUN apt-get update -y \
@@ -259,7 +259,7 @@ RUN apt-get update -y \
     && find . -maxdepth 1 -type f -name "*libnvrtc.so.*" -exec sh -c 'ln -snf $(basename {}) libnvrtc.so' \; \
     && mkdir -p /usr/local/nvidia/lib && mv -f libnvrtc* /usr/local/nvidia/lib \
     && git clone https://repo.dec05eba.com/gpu-screen-recorder && cd gpu-screen-recorder \
-    && git apply /etc/connectcheckskip.patch \
+    && git apply /tmp/connectcheckskip.patch && git apply /tmp/devicearg.patch \
     && meson setup build \
     && meson configure --prefix=/usr --buildtype=release -Dsystemd=true -Dstrip=true build \
     && ninja -C build install
