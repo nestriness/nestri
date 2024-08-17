@@ -1,6 +1,6 @@
 {
-  "name": "my-qwik-empty-starter",
-  "description": "App with Routing built-in ready to create your app",
+  "name": "@nestri/www",
+  "description": "Website for Nestri",
   "engines": {
     "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
   },
@@ -15,9 +15,8 @@
     "build": "qwik build",
     "build.client": "vite build",
     "build.preview": "vite build --ssr src/entry.preview.tsx",
-    "build.server": "vite build -c adapters/vercel-edge/vite.config.ts",
     "build.types": "tsc --incremental --noEmit",
-    "deploy": "vercel deploy",
+    "deploy": "echo 'Run \"npm run qwik add\" to install a server adapter'",
     "dev": "vite --mode ssr",
     "dev.debug": "node --inspect-brk ./node_modules/vite/bin/vite.js --mode ssr --force",
     "fmt": "prettier --write .",
@@ -28,31 +27,18 @@
     "qwik": "qwik"
   },
   "devDependencies": {
-    "@builder.io/qwik": "^1.5.1",
-    "@builder.io/qwik-city": "^1.5.1",
-    "@builder.io/qwik-react": "0.5.0",
-    "@types/eslint": "^8.56.5",
-    "@types/node": "^20.11.24",
-    "@types/react": "^18.2.28",
-    "@types/react-dom": "^18.2.13",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "autoprefixer": "^10.4.14",
-    "eslint": "^8.57.0",
-    "eslint-plugin-qwik": "^1.5.1",
-    "postcss": "^8.4.31",
-    "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.4",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "tailwindcss": "3.3.3",
-    "typescript": "5.3.3",
+    "@builder.io/qwik": "^1.8.0",
+    "@builder.io/qwik-city": "^1.8.0",
+    "@types/eslint": "8.56.10",
+    "@types/node": "20.14.11",
+    "@typescript-eslint/eslint-plugin": "7.16.1",
+    "@typescript-eslint/parser": "7.16.1",
+    "eslint": "8.57.0",
+    "eslint-plugin-qwik": "^1.8.0",
+    "prettier": "3.3.3",
+    "typescript": "5.4.5",
     "undici": "*",
-    "vercel": "^29.1.1",
-    "vite": "^5.1.4",
+    "vite": "5.3.5",
     "vite-tsconfig-paths": "^4.2.1"
-  },
-  "dependencies": {
-    "@fontsource/geist-sans": "^5.0.2"
   }
 }
