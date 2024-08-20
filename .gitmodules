@@ -1,6 +1,0 @@
-[submodule "moq-server"]
-	path = moq-server
-	url = https://github.com/kixelated/moq-rs
-[submodule "cli"]
-	path = cli
-	url = https://github.com/nestriness/cli.git
