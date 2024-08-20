@@ -12,7 +12,9 @@
 &nbsp;
 &nbsp;
 
-An open-source cloud gaming platform built for you to play together with your friends. <br/> A GeForce NOW alternative that can be self-hosted.<br/>
+Nestri is an open-source, self-hosted cloud gaming platform that allows you to play games in your web browser with friends. <strong>Built and shaped by our gaming community.</strong>
+<br/>
+<br/>
 
 </div>
 
