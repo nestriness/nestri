@@ -16,6 +16,8 @@ An open-source cloud gaming platform built for you to play together with your fr
 
 </div>
 
+<div align="center">
+
 [![][github-release-shield]][github-release-link]
 [![][discord-shield]][discord-link]
 [![][github-license-shield]][github-license-link]
