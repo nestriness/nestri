@@ -19,5 +19,10 @@
   "workspaces": [
     "apps/*",
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "core-js-pure",
+    "esbuild",
+    "workerd"
   ]
 }
