@@ -5,15 +5,21 @@
   "files": [
     "library.js",
     "next.js",
-    "react-internal.js"
+    "react-internal.js",
+    "qwik.js"
   ],
   "devDependencies": {
     "@vercel/style-guide": "^5.2.0",
     "eslint-config-turbo": "^2.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-only-warn": "^1.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "typescript": "^5.3.3"
+    "@types/eslint": "8.56.10",
+    "@types/node": "20.14.11",
+    "@typescript-eslint/eslint-plugin": "7.16.1",
+    "@typescript-eslint/parser": "7.16.1",
+    "eslint": "8.57.0",
+    "eslint-plugin-qwik": "^1.8.0",
+    "prettier": "3.3.3",
+    "typescript": "5.4.5"
   }
 }
