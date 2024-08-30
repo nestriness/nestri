@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "prettier": "^3.2.5",
-    "turbo": "^2.0.14",
+    "turbo": "^2.0.12",
     "typescript": "^5.4.5"
   },
   "engines": {
@@ -19,5 +19,10 @@
   "workspaces": [
     "apps/*",
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "core-js-pure",
+    "esbuild",
+    "workerd"
   ]
 }

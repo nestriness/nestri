@@ -8,6 +8,7 @@ import { RouterHead } from "@/components/router-head";
 import { isDev } from "@builder.io/qwik/build";
 
 import "@nestri/ui/globals.css";
+import { Fonts } from "@nestri/ui";
 
 export default component$(() => {
   /**
@@ -18,21 +19,28 @@ export default component$(() => {
    */
 
   return (
-    <QwikCityProvider>
-      <head>
-        <meta charset="utf-8" />
-        {!isDev && (
-          <link
-            rel="manifest"
-            href={`${import.meta.env.BASE_URL}manifest.json`}
-          />
-        )}
-        <RouterHead />
-      </head>
-      <body lang="en">
-        <RouterOutlet />
-        {!isDev && <ServiceWorkerRegister />}
-      </body>
-    </QwikCityProvider>
+    <Fonts>
+      <QwikCityProvider>
+        <head>
+          <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+          <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+          <meta charset="utf-8" />
+          {!isDev && (
+            <link
+              rel="manifest"
+              href={`${import.meta.env.BASE_URL}manifest.json`}
+            />
+          )}
+          <RouterHead />
+        </head>
+        <body
+          class="bg-gray-50 text-primary-950 dark:bg-gray-950 dark:text-primary-50 font-body flex min-h-[100dvh] flex-col overflow-x-hidden antialiased"
+          lang="en">
+          <RouterOutlet />
+          {/* {!isDev && <ServiceWorkerRegister />} */}
+          <ServiceWorkerRegister />
+        </body>
+      </QwikCityProvider>
+    </Fonts>
   );
 });

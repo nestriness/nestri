@@ -26,7 +26,7 @@ export const RouterHead = component$(() => {
       <link rel="icon" type="image/png" sizes="16x16" href="/seo/favicon-16x16.png" />
       <link rel="manifest" href="/manifest.json" />
       {/**@ts-ignore */}
-      <link rel="mask-icon" href="/seo/safari-pinned-tab.svg" color="#5bbad5" />
+      <link rel="mask-icon" href="/seo/safari-pinned-tab.svg" color="#ffede5" />
       <link rel="shortcut icon" href="/seo/favicon.ico" />
       <meta name="msapplication-TileColor" content="#ffede5" />
       <meta name="msapplication-config" content="/seo/browserconfig.xml" />

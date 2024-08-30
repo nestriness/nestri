@@ -17,7 +17,7 @@
         "dist/**"
       ]
     },
-    "www#build": {
+    "web#build": {
       "dependsOn": [
         "^build"
       ],

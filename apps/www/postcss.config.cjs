@@ -1,1 +1,1 @@
-module.exports = require("@nestri/ui/postcss");
+module.exports = require("@nestri/ui/postcss.config");
