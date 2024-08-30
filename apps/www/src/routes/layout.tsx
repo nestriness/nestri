@@ -1,5 +1,6 @@
 import { component$, Slot } from "@builder.io/qwik";
-import type { RequestHandler } from "@builder.io/qwik-city";
+import { NavProgress } from "@nestri/ui";
+import type { DocumentHead, RequestHandler } from "@builder.io/qwik-city";
 
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   // Control caching for this request for best performance and to reduce hosting costs:
@@ -13,5 +14,40 @@ export const onGet: RequestHandler = async ({ cacheControl }) => {
 };
 
 export default component$(() => {
-  return <Slot />;
+  return (
+    <>
+      <NavProgress />
+      <Slot />
+    </>
+  );
 });
+
+export const head: DocumentHead = {
+  title: 'Nestri – Your games. Your rules.',
+  meta: [
+    {
+      name: 'description',
+      content: 'Nestri – Your games. Your rules.',
+    },
+    {
+      name: "og:title",
+      content: "Nestri – Your games. Your rules.",
+    },
+    {
+      name: "og:description",
+      content: "Play games with friends right from your browser.",
+    },
+    {
+      name: "twitter:title",
+      content: "Nestri – Your games. Your rules.",
+    },
+    {
+      name: "twitter:description",
+      content: "Play games with friends right from your browser.",
+    },
+    {
+      name: "twitter:card",
+      content: "summary_large_image",
+    },
+  ],
+};

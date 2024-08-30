@@ -1,0 +1,53 @@
+#nprogress .bar {
+    background: theme("colors.primary.500");
+    height: 2px;
+    z-index: 80;
+}
+
+/* Fancy blur effect */
+#nprogress .peg {
+    box-shadow: 0 0 10px theme("colors.primary.500"),
+        0 0 5px theme("colors.primary.500");
+    z-index: 80;
+}
+
+#nprogress .spinner-icon {
+    border-top-color: theme("colors.primary.500");
+    border-left-color: theme("colors.primary.500");
+    display: none;
+}
+
+html.dark #nprogress .bar {
+    background: theme("colors.primary.500");
+    height: 2px;
+}
+
+html.dark #nprogress .peg {
+    box-shadow: 0 0 10px theme("colors.primary.500"),
+        0 0 5px theme("colors.primary.500");
+}
+
+html.dark .spinner-icon {
+    border-top-color: theme("colors.primary.500");
+    border-left-color: theme("colors.primary.500");
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+
+    #nprogress .bar {
+        background: theme("colors.primary.500");
+        height: 2px;
+    }
+
+    #nprogress .peg {
+        box-shadow: 0 0 10px theme("colors.primary.500"),
+            0 0 5px theme("colors.primary.500");
+    }
+
+    .spinner-icon {
+        border-top-color: theme("colors.primary.500");
+        border-left-color: theme("colors.primary.500");
+        display: none;
+    }
+}
