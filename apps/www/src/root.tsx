@@ -22,6 +22,8 @@ export default component$(() => {
     <Fonts>
       <QwikCityProvider>
         <head>
+          <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+          <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
           <meta charset="utf-8" />
           {!isDev && (
             <link
@@ -31,9 +33,12 @@ export default component$(() => {
           )}
           <RouterHead />
         </head>
-        <body lang="en">
+        <body
+          class="bg-gray-50 text-primary-950 dark:bg-gray-950 dark:text-primary-50 font-body flex min-h-[100dvh] flex-col overflow-x-hidden antialiased"
+          lang="en">
           <RouterOutlet />
-          {!isDev && <ServiceWorkerRegister />}
+          {/* {!isDev && <ServiceWorkerRegister />} */}
+          <ServiceWorkerRegister />
         </body>
       </QwikCityProvider>
     </Fonts>

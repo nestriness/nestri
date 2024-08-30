@@ -1,2 +1,7 @@
 export * from "./hero-section"
 export * from "./react-example"
+export * from "./cursor"
+export * from "./title-section"
+export * from "./motion"
+export * from "./title"
+export * from "./text"

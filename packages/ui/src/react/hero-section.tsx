@@ -1,9 +1,9 @@
 /* eslint-disable qwik/no-react-props */
 /** @jsxImportSource react */
-import * as React from "react"
 import { qwikify$ } from "@builder.io/qwik-react";
 import { motion } from "framer-motion"
-import { ReactDisplay } from "./display"
+import { ReactDisplay } from "@/react/display"
+import * as React from "react"
 // type Props = {
 //     children?: React.ReactElement[]
 // }
@@ -119,4 +119,24 @@ export function ReactHeroSection({ children }: Props) {
     )
 }
 
+// export const ReactGpadAnimation = ({ index, children, className }: { className?: string, index: number, children?: React.ReactElement }) => {
+//     return (
+//         <motion.div
+//             className={className}
+//             animate={{
+//                 scale: [1, 1.1, 1],
+//                 opacity: [0.5, 1, 0.5],
+//             }}
+//             transition={{
+//                 duration: 3,
+//                 repeat: Infinity,
+//                 delay: index * 0.2,
+//             }}
+//         >
+//             {children}
+//         </motion.div>
+//     )
+// }
+
+// export const GpadAnimation = qwikify$(ReactGpadAnimation)
 export const HeroSection = qwikify$(ReactHeroSection)

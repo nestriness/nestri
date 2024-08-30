@@ -8,6 +8,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "./*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  "files": [".eslintrc.js"],
+  "include": ["src", "./*.d.ts"]
 }

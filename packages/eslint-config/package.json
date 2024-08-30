@@ -5,8 +5,8 @@
   "files": [
     "library.js",
     "next.js",
-    "react-internal.js",
-    "qwik.js"
+    "qwik.js",
+    "react-internal.js"
   ],
   "devDependencies": {
     "@vercel/style-guide": "^5.2.0",

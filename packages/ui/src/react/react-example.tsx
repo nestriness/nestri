@@ -1,18 +1,12 @@
 /** @jsxImportSource react */
 //This is used for testing whether the Qwik React components are working
-import { useState } from "react"
 import { qwikify$ } from "@builder.io/qwik-react"
 import { motion } from "framer-motion"
 
 export const ReactExample = () => {
-    const [count, setCount] = useState(0)
     return (
         <div>
-           
-            <motion.div>
-                Hello lovers
-            </motion.div>
-            {/* <motion.div
+            <motion.div
                 style={{
                     width: "100px",
                     height: "100px",
@@ -26,8 +20,7 @@ export const ReactExample = () => {
                 //     rotate: -90,
                 //     borderRadius: "100%"
                 // }}
-            /> */}
-            Hello lovers
+            />
         </div>
     )
 }
