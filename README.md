@@ -3,7 +3,7 @@
 <div align="center">
 <h1>
 <a href="https://nestri.io" >
-<img src="/apps/www/public/images/next.png" alt="Nestri - What will you play next?">
+<img src="/apps/www/public/seo/banner.png" alt="Nestri - What will you play next?">
 </a>
 
 </h1>
