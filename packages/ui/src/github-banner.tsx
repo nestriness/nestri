@@ -15,7 +15,7 @@ export const GithubBanner = component$(() => {
         >
             <section class="w-full flex flex-col items-center justify-center">
                 <div class="w-full max-w-xl mx-auto">
-                    <div class="z-[2] md:flex-row flex-col relative overflow-hidden flex justify-between md:items-center gap-6 p-6 pb-[30px] bg-white dark:bg-black ring-1 ring-neutral-400 dark:ring-neutral-600 rounded-xl">
+                    <div class="z-[2] md:flex-row flex-col relative overflow-hidden flex justify-between md:items-center gap-6 p-6 pb-[30px] bg-white dark:bg-black ring-2 ring-gray-300 dark:ring-gray-700 rounded-xl">
                         <div>
                             <div class="gap-2 w-full flex flex-col">
                                 <div class="flex md:items-center justify-start gap-2 md:flex-row flex-col dark:text-gray-400/70 text-gray-600/70">
@@ -38,7 +38,7 @@ export const GithubBanner = component$(() => {
                             </div>
                         </div>
                         <div class="flex items-center md:flex-col justify-center gap-2 w-max">
-                            <Link class="select-none relative justify-center items-center w-full flex z-[2] px-3 ring-1 ring-neutral-400 dark:ring-neutral-600 rounded-md h-8 min-w-max bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200" rel="noopener noreferrer" href="https://github.com/nestriness/nestri" target="_blank">
+                            <Link class="select-none relative justify-center items-center w-full flex z-[2] px-3 ring-2 ring-gray-300 dark:ring-gray-700 rounded-md h-8 min-w-max bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200" rel="noopener noreferrer" href="https://github.com/nestriness/nestri" target="_blank">
                                 <span class="text-sm dark:text-white text-black w-full">
                                     <div class="flex justify-around items-center w-full h-max">
                                         Self-Host&nbsp;

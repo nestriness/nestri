@@ -41,11 +41,21 @@ export const Card = component$(({ game }: Props) => {
         g = Math.floor(g / count);
         b = Math.floor(b / count);
 
-        // Ensure the color is light enough
-        const minBrightness = 100;
-        r = Math.max(r, minBrightness);
-        g = Math.max(g, minBrightness);
-        b = Math.max(b, minBrightness);
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (isDarkMode) {
+            // Darken the color for dark mode
+            r = Math.floor(r * 0.8);
+            g = Math.floor(g * 0.8);
+            b = Math.floor(b * 0.8);
+        } else {
+            // For light mode, keep the existing logic
+            const minBrightness = 100;
+            r = Math.max(r, minBrightness);
+            g = Math.max(g, minBrightness);
+            b = Math.max(b, minBrightness);
+        }
+
 
         return `rgb(${r},${g},${b})`;
     });

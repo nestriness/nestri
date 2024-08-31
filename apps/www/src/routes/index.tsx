@@ -90,19 +90,17 @@ export default component$(() => {
     <>
       <NavBar />
       <HeroSection client:load>
-        <button class="w-full max-w-xl rounded-xl flex items-center justify-between hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors gap-2 px-4 py-3 h-[45px] border border-gray-300 dark:border-gray-700 mx-autotext-gray-500/70 bg-gray-200/70 dark:bg-gray-800/70">
+        <button class="w-full max-w-xl rounded-xl flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-800 transition-all gap-2 px-4 py-3 h-[45px] ring-2 ring-gray-300 dark:ring-gray-700 mx-auto text-gray-900/70 dark:text-gray-100/70 bg-white dark:bg-black">
           <span class="flex items-center gap-3 h-max justify-center overflow-hidden overflow-ellipsis whitespace-nowrap">
             <svg xmlns="http://www.w3.org/2000/svg" class="size-[18] flex-shrink-0" height="18" width="18" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
             Search for a game to play...
           </span>
           <span class="flex items-center gap-2">
             <div class="flex items-center gap-2 text-base font-title font-bold">
-              <kbd class="border-neutral-300 dark:border-neutral-700 border px-2 py-1 rounded-md">
-                {/* ⌘ */}
+              <kbd class="ring-2 ring-gray-300 dark:ring-gray-700 px-2 py-1 rounded-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5 flex-shrink-0" width="20" height="20" viewBox="0 0 256 256"><path fill="currentColor" d="M180 144h-20v-32h20a36 36 0 1 0-36-36v20h-32V76a36 36 0 1 0-36 36h20v32H76a36 36 0 1 0 36 36v-20h32v20a36 36 0 1 0 36-36m-20-68a20 20 0 1 1 20 20h-20ZM56 76a20 20 0 0 1 40 0v20H76a20 20 0 0 1-20-20m40 104a20 20 0 1 1-20-20h20Zm16-68h32v32h-32Zm68 88a20 20 0 0 1-20-20v-20h20a20 20 0 0 1 0 40" /></svg>
-                {/* <svg xmlns="http://www.w3.org/2000/svg" class="size-5 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M6.5 21q-1.45 0-2.475-1.025T3 17.5t1.025-2.475T6.5 14H8v-4H6.5q-1.45 0-2.475-1.025T3 6.5t1.025-2.475T6.5 3t2.475 1.025T10 6.5V8h4V6.5q0-1.45 1.025-2.475T17.5 3t2.475 1.025T21 6.5t-1.025 2.475T17.5 10H16v4h1.5q1.45 0 2.475 1.025T21 17.5t-1.025 2.475T17.5 21t-2.475-1.025T14 17.5V16h-4v1.5q0 1.45-1.025 2.475T6.5 21m0-2q.625 0 1.063-.437T8 17.5V16H6.5q-.625 0-1.062.438T5 17.5t.438 1.063T6.5 19m11 0q.625 0 1.063-.437T19 17.5t-.437-1.062T17.5 16H16v1.5q0 .625.438 1.063T17.5 19M10 14h4v-4h-4zM6.5 8H8V6.5q0-.625-.437-1.062T6.5 5t-1.062.438T5 6.5t.438 1.063T6.5 8M16 8h1.5q.625 0 1.063-.437T19 6.5t-.437-1.062T17.5 5t-1.062.438T16 6.5z"/></svg> */}
               </kbd>
-              <span class="px-2 py-0.5 rounded-md border border-neutral-300 dark:border-neutral-700">
+              <span class="px-2 py-0.5 rounded-md ring-2 ring-gray-300 dark:ring-gray-700">
                 K
               </span>
             </div>
@@ -128,7 +126,7 @@ export default component$(() => {
                   zIndex: 1 + index,
                   transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
                 }}
-                class={"aspect-[2/3] bg-gray-100 dark:bg-gray-900 rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 ring-1 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}>
+                class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}>
                 {game.image ? <BasicImageLoader width={600} height={900} src={game.image} alt={game.title} /> :
                   <div class="w-full text-gray-900 dark:text-gray-100 h-full flex flex-col px-3 text-center gap-3 items-center justify-center">
                     <p>Can't find your game here?</p>
@@ -214,17 +212,17 @@ export default component$(() => {
           <div class="w-full mx-auto max-w-xl flex items-center flex-col lg:flex-row gap-6 justify-center">
             <div class="flex cursor-default items-end group">
               <div class="flex [transform:perspective(700px)] w-[61px] [transform-style:preserve-3d] relative">
-                <p class="font-bold text-[200px] text-gray-50 dark:text-gray-950 group-hover:text-primary-200 dark:group-hover:text-primary-800 group-hover:-translate-x-2 transition-all duration-200 [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px] leading-[1em]">
+                <p class="font-bold text-[200px] text-white dark:text-black group-hover:text-primary-200 dark:group-hover:text-primary-800 group-hover:-translate-x-2 transition-all duration-200 [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px] leading-[1em]">
                   1
                 </p>
               </div>
-              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-2 ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-white dark:bg-black rounded-2xl overflow-hidden">
                 <div class="flex items-center justify-center" >
                   <div class="z-[4] flex relative items-center justify-center size-[66px] transition-all duration-200 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-500 dark:group-hover:bg-primary-800 group-hover:bg-primary-200 shadow-lg shadow-gray-300 dark:shadow-gray-700" >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" class="size-10 flex-shrink-0 group-hover:hidden" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M6.286 19C3.919 19 2 17.104 2 14.765s1.919-4.236 4.286-4.236q.427.001.83.08m7.265-2.582a5.8 5.8 0 0 1 1.905-.321c.654 0 1.283.109 1.87.309m-11.04 2.594a5.6 5.6 0 0 1-.354-1.962C6.762 5.528 9.32 3 12.476 3c2.94 0 5.361 2.194 5.68 5.015m-11.04 2.594a4.3 4.3 0 0 1 1.55.634m9.49-3.228C20.392 8.78 22 10.881 22 13.353c0 2.707-1.927 4.97-4.5 5.52" opacity=".5" /><path stroke-linejoin="round" d="M12 22v-6m0 6l2-2m-2 2l-2-2" /></g></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" class="size-10 flex-shrink-0 transition-all duration-200 group-hover:block hidden text-primary-500" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M6.286 19C3.919 19 2 17.104 2 14.765s1.919-4.236 4.286-4.236q.427.001.83.08m7.265-2.582a5.8 5.8 0 0 1 1.905-.321c.654 0 1.283.109 1.87.309m-11.04 2.594a5.6 5.6 0 0 1-.354-1.962C6.762 5.528 9.32 3 12.476 3c2.94 0 5.361 2.194 5.68 5.015m-11.04 2.594a4.3 4.3 0 0 1 1.55.634m9.49-3.228C20.392 8.78 22 10.881 22 13.353c0 2.707-1.927 4.97-4.5 5.52" opacity=".5" /><path stroke-linejoin="round" d="m10 19.8l1.143 1.2L14 18" /></g></svg>
                   </div>
-                  <div class="-mx-3 group-hover:-mx-2 transition-all duration-200 size-[90px] rounded-full bg-gray-100 dark:bg-gray-900 shadow-lg shadow-gray-300 dark:shadow-gray-700 z-10 relative flex items-center justify-center">
+                  <div class="-mx-3 group-hover:-mx-2 ring-1 ring-gray-300 dark:ring-gray-700 transition-all duration-200 size-[90px] rounded-full bg-gray-100 dark:bg-gray-900 shadow-lg shadow-gray-300 dark:shadow-gray-700 z-10 relative flex items-center justify-center">
                     <svg
                       width="48.672001"
                       height="36.804001"
@@ -253,11 +251,11 @@ export default component$(() => {
             </div>
             <div class="flex cursor-default group items-end">
               <div class="flex [transform:perspective(700px)] w-[80px] [transform-style:preserve-3d] relative">
-                <p class="font-bold text-[200px] dark:text-gray-950 group-hover:text-primary-200 dark:group-hover:text-primary-800 leading-[1em] group-hover:-translate-x-2 transition-all duration-200 relative text-gray-50 [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px]">
+                <p class="font-bold text-[200px] text-white dark:text-black group-hover:text-primary-200 dark:group-hover:text-primary-800 leading-[1em] group-hover:-translate-x-2 transition-all duration-200 relative [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px]">
                   2
                 </p>
               </div>
-              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-2 ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-white dark:bg-black rounded-2xl overflow-hidden">
                 <div class="flex flex-col gap-2 w-full items-center justify-center">
                   <p class="text-neutral-900/70 dark:text-neutral-100/70 max-w-[80%] text-center mx-auto text-2xl font-title">
                     <strong>Create</strong>&nbsp;or join a Nestri Party
@@ -309,11 +307,11 @@ export default component$(() => {
             </div>
             <div class="flex cursor-none group items-end">
               <div class="flex [transform:perspective(700px)] w-[80px] [transform-style:preserve-3d] relative">
-                <p class="relative font-bold text-[200px] dark:text-gray-950 group-hover:text-primary-200 dark:group-hover:text-primary-800 leading-[1em] group-hover:-translate-x-2 transition-all duration-200 text-gray-50 [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px]">
+                <p class="relative font-bold text-[200px] text-white dark:text-black group-hover:text-primary-200 dark:group-hover:text-primary-800 leading-[1em] group-hover:-translate-x-2 transition-all duration-200 [-webkit-text-stroke-color:theme(colors.primary.500)] [-webkit-text-stroke-width:2px]">
                   3
                 </p>
               </div>
-              <div class="z-[1] relative group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] relative group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-2 ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-white dark:bg-black rounded-2xl overflow-hidden">
                 <div class="absolute top-0 left-0 bottom-0 right-0 w-full h-full z-[3]">
                   <Cursor client:load class="absolute left-4 top-4" text="Wanjohi" />
                   <Cursor client:load color="#3a9a00" flip class="absolute right-2 top-8" text="Jd" />

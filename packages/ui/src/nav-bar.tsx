@@ -29,7 +29,7 @@ export const NavBar = component$(() => {
     );
 
     return (
-        <nav class={cn("sticky top-0 z-50 px-4 text-sm font-extrabold bg-gray-50/70 dark:bg-gray-950/70 before:backdrop-blur-[15px] before:absolute before:-z-[1] before:top-0 before:left-0 before:w-full before:h-full", hasScrolled.value && "shadow-[0_2px_20px_1px] shadow-gray-200 dark:shadow-gray-800")} >
+        <nav class={cn("sticky top-0 z-50 px-4 text-sm font-extrabold bg-gray-100/70 dark:bg-gray-900/70 before:backdrop-blur-[15px] before:absolute before:-z-[1] before:top-0 before:left-0 before:w-full before:h-full", hasScrolled.value && "shadow-[0_2px_20px_1px] shadow-gray-300 dark:shadow-gray-700")} >
             <div class="mx-auto flex max-w-xl items-center border-b-2 dark:border-gray-50/50 border-gray-950/50" >
                 <Link class="outline-none" href="/" >
                     <h1 class="text-lg font-title" >

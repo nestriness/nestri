@@ -24,7 +24,7 @@ export function ReactHeroSection({ children }: Props) {
     return (
         <>
             <section className="px-4" >
-                <header className="overflow-hidden mx-auto max-w-xl pt-20 pb-1">
+                <header className="mx-auto max-w-xl pt-20 pb-1">
                     <motion.img
                         initial={{
                             opacity: 0,

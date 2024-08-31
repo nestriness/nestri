@@ -103,19 +103,19 @@ export default component$(() => {
                             {feedback.map((item, index) => (
                                 <div key={`emoji-${index}`} class="flex relative">
                                     <input type="radio" class="hidden peer" name="feedback-emoji" value={item.rating} id={`emoji-${index + 1}`} />
-                                    <label for={`emoji-${index + 1}`} class="peer-checked:bg-gray-300/70 dark:peer-checked:bg-gray-700/70 border-gray-300 dark:border-gray-700 peer-checked:ring-gray-400 dark:peer-checked:ring-gray-600 peer-checked:ring-offset-gray-50 dark:peer-checked:ring-offset-gray-950 peer-checked:ring-2 peer-checked:ring-offset-2 border cursor-pointer bg-gray-200/70 dark:bg-gray-800/70 rounded-full p-3">
+                                    <label for={`emoji-${index + 1}`} class="peer-checked:bg-gray-300/70 dark:peer-checked:bg-gray-700/70 border-gray-300 dark:border-gray-700 peer-checked:ring-gray-400 dark:peer-checked:ring-gray-600 peer-checked:ring-offset-gray-50 dark:peer-checked:ring-offset-gray-950 peer-checked:ring-2 peer-checked:ring-offset-2 border cursor-pointer bg-gray-200 dark:bg-gray-800 rounded-full p-3">
                                         <item.icon />
                                     </label>
                                 </div>
                             ))}
                         </div>
-                        <div class="bg-gray-200/70 dark:bg-gray-800/70 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/50 dark:focus-within:bg-gray-700/50 border-gray-300 dark:border-gray-700 ">
+                        <div class="bg-gray-200 dark:bg-gray-800 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/70 dark:focus-within:bg-gray-700/70 border-gray-300 dark:border-gray-700 ">
                             <input type="text" class="w-full h-full bg-transparent rounded-lg p-3 focus-within:outline-none focus-within:ring-2 focus-within:ring-gray-400 dark:focus-within:ring-gray-600 focus-within:ring-offset-2 focus-visible:outline-none focus-within:ring-offset-gray-50 dark:focus-within:ring-offset-gray-950 placeholder:text-gray-500/70" placeholder="Full Name" />
                         </div>
-                        <div class="bg-gray-200/70 dark:bg-gray-800/70 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/50 dark:focus-within:bg-gray-700/50 border-gray-300 dark:border-gray-700 ">
+                        <div class="bg-gray-200 dark:bg-gray-800 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/70 dark:focus-within:bg-gray-700/70 border-gray-300 dark:border-gray-700 ">
                             <input type="email" class="w-full h-full bg-transparent rounded-lg p-3 focus-within:outline-none focus-within:ring-2 focus-within:ring-gray-400 dark:focus-within:ring-gray-600 focus-within:ring-offset-2 focus-visible:outline-none focus-within:ring-offset-gray-50 dark:focus-within:ring-offset-gray-950 placeholder:text-gray-500/70" placeholder="Email Address" />
                         </div>
-                        <div class="bg-gray-200/70 dark:bg-gray-800/70 flex rounded-lg w-full relative h-max flex-none border focus-within:bg-gray-300/50 dark:focus-within:bg-gray-700/50 border-gray-300 dark:border-gray-700 ">
+                        <div class="bg-gray-200 dark:bg-gray-800 flex rounded-lg w-full relative h-max flex-none border focus-within:bg-gray-300/70 dark:focus-within:bg-gray-700/70 border-gray-300 dark:border-gray-700 ">
                             <textarea class="resize-y overflow-y-auto whitespace-break-spaces [form-sizing:content] min-h-[193px] w-full h-full bg-transparent rounded-lg p-3 focus-within:outline-none focus-within:ring-2 focus-within:ring-gray-400 dark:focus-within:ring-gray-600 focus-within:ring-offset-2 focus-visible:outline-none focus-within:ring-offset-gray-50 dark:focus-within:ring-offset-gray-950 placeholder:text-gray-500/70" placeholder="Your message" />
                         </div>
                         <button class={cn(buttonVariants.solid({ size: "md", intent: "neutral" }), "w-full")} type="submit" >
