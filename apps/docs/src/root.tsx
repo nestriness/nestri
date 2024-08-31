@@ -34,11 +34,10 @@ export default component$(() => {
           <RouterHead />
         </head>
         <body
-          class="bg-gray-50 text-gray-950 dark:bg-gray-950 dark:text-gray-50 font-body flex min-h-[100dvh] flex-col overflow-x-hidden antialiased"
+          class="bg-gray-50 text-primary-950 dark:bg-gray-950 dark:text-primary-50 font-body flex min-h-[100dvh] flex-col overflow-x-hidden antialiased"
           lang="en">
           <RouterOutlet />
-          {/* {!isDev && <ServiceWorkerRegister />} */}
-          <ServiceWorkerRegister />
+          {!isDev && <ServiceWorkerRegister />}
         </body>
       </QwikCityProvider>
     </Fonts>

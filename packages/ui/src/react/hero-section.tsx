@@ -90,7 +90,7 @@ export function ReactHeroSection({ children }: Props) {
                                 opacity: 1
                             }}
                             viewport={{ once: true }}
-                            className="dark:text-primary-50/70 text-primary-950/70 text-lg font-normal tracking-tight sm:text-xl"
+                            className="dark:text-gray-50/70 text-gray-950/70 text-lg font-normal tracking-tight sm:text-xl"
                         >
                             Nestri lets you play games on your own terms — invite friends to join your gaming sessions, share your game library, and take even more control by hosting your own server.
                         </motion.p>

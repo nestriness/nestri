@@ -153,7 +153,7 @@ export default component$(() => {
         >
           <div class="flex flex-col items-center justify-center text-left px-4 w-full mx-auto gap-4 sm:max-w-[560px] py-8">
             <h2 class="text-5xl font-bold font-title w-full">Why Us?</h2>
-            <p class="text-gray-500 text-2xl">From streaming quality to social integration, we nail the details.</p>
+            <p class="text-neutral-900/70 dark:text-neutral-100/70 text-2xl">From streaming quality to social integration, we nail the details.</p>
           </div>
         </MotionComponent>
         <div class="flex items-center flex-col px-5 gap-5 justify-between w-full mx-auto max-w-xl">
@@ -169,7 +169,7 @@ export default component$(() => {
                 class="w-full"
                 as="div"
               >
-                <div class="w-full flex gap-4 group">
+                <div class="w-full flex gap-4 group ">
                   <div class="size-9 [&>svg]:size-9 group-hover:scale-110 transition-all duration-200">
                     <feature.icon />
                   </div>
@@ -177,7 +177,7 @@ export default component$(() => {
                     <h2 class="text-xl font-bold font-title">
                       {feature.title}
                     </h2>
-                    <p class="text-gray-500">
+                    <p class="text-neutral-900/70 dark:text-neutral-100/70">
                       {feature.description}
                     </p>
                   </div>
@@ -199,7 +199,7 @@ export default component$(() => {
         >
           <div class="flex flex-col items-center justify-center text-left w-full mx-auto px-4 gap-4 sm:max-w-[560px] py-8">
             <h2 class="text-5xl font-bold font-title w-full">How it works</h2>
-            <p class="text-gray-500 text-2xl w-full">From click → play in under three minutes</p>
+            <p class="text-neutral-900/70 dark:text-neutral-100/70 text-2xl w-full">From click → play in under three minutes</p>
           </div>
         </MotionComponent>
         <MotionComponent
@@ -218,7 +218,7 @@ export default component$(() => {
                   1
                 </p>
               </div>
-              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
                 <div class="flex items-center justify-center" >
                   <div class="z-[4] flex relative items-center justify-center size-[66px] transition-all duration-200 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-500 dark:group-hover:bg-primary-800 group-hover:bg-primary-200 shadow-lg shadow-gray-300 dark:shadow-gray-700" >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" class="size-10 flex-shrink-0 group-hover:hidden" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M6.286 19C3.919 19 2 17.104 2 14.765s1.919-4.236 4.286-4.236q.427.001.83.08m7.265-2.582a5.8 5.8 0 0 1 1.905-.321c.654 0 1.283.109 1.87.309m-11.04 2.594a5.6 5.6 0 0 1-.354-1.962C6.762 5.528 9.32 3 12.476 3c2.94 0 5.361 2.194 5.68 5.015m-11.04 2.594a4.3 4.3 0 0 1 1.55.634m9.49-3.228C20.392 8.78 22 10.881 22 13.353c0 2.707-1.927 4.97-4.5 5.52" opacity=".5" /><path stroke-linejoin="round" d="M12 22v-6m0 6l2-2m-2 2l-2-2" /></g></svg>
@@ -245,7 +245,7 @@ export default component$(() => {
                   </div>
                 </div>
                 <div class="flex flex-col gap-2 w-full items-center justify-center">
-                  <p class="text-gray-500 max-w-[80%] text-center mx-auto text-2xl font-title">
+                  <p class="text-neutral-900/70 dark:text-neutral-100/70 max-w-[80%] text-center mx-auto text-2xl font-title">
                     <strong>Add</strong>&nbsp;your game from Steam
                   </p>
                 </div>
@@ -257,10 +257,10 @@ export default component$(() => {
                   2
                 </p>
               </div>
-              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
                 <div class="flex flex-col gap-2 w-full items-center justify-center">
-                  <p class="text-gray-500 max-w-[80%] text-center mx-auto text-2xl font-title">
-                    <strong>Create</strong>&nbsp;or join a Nestri Party 🎈
+                  <p class="text-neutral-900/70 dark:text-neutral-100/70 max-w-[80%] text-center mx-auto text-2xl font-title">
+                    <strong>Create</strong>&nbsp;or join a Nestri Party
                   </p>
                 </div>
                 <div class="w-full [mask-image:linear-gradient(0deg,transparent,#000_30px)] justify-center items-center p-0.5 py-1 pb-0 flex flex-col-reverse">
@@ -313,7 +313,7 @@ export default component$(() => {
                   3
                 </p>
               </div>
-              <div class="z-[1] relative group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-300 dark:ring-gray-700 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
+              <div class="z-[1] relative group-hover:ring-primary-500 gap-4 flex items-center justify-center flex-col transition-all ring-[3px] ring-gray-200 dark:ring-gray-800 duration-200 h-[260px] aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden">
                 <div class="absolute top-0 left-0 bottom-0 right-0 w-full h-full z-[3]">
                   <Cursor client:load class="absolute left-4 top-4" text="Wanjohi" />
                   <Cursor client:load color="#3a9a00" flip class="absolute right-2 top-8" text="Jd" />
@@ -321,7 +321,7 @@ export default component$(() => {
                   <Cursor client:load color="#FF4F01" flip class="hidden transition-all duration-200 absolute top-20 right-6 group-hover:flex" text="You" />
                 </div>
                 <div class="flex z-[2] flex-col gap-2 w-full items-center justify-center">
-                  <p class="text-gray-500 max-w-[80%] text-center mx-auto text-2xl font-title">
+                  <p class="text-neutral-900/70 dark:text-neutral-100/70 max-w-[80%] text-center mx-auto text-2xl font-title">
                     <strong>Play</strong>&nbsp;your game with friends
                   </p>
                 </div>

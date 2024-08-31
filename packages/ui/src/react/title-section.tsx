@@ -73,7 +73,7 @@ export function ReactTitleSection({ title, description }: Props) {
                                 opacity: 1
                             }}
                             viewport={{ once: true }}
-                            className="dark:text-primary-50/70 text-primary-950/70 text-lg font-normal tracking-tight sm:text-xl"
+                            className="dark:text-gray-50/70 text-gray-950/70 text-lg font-normal tracking-tight sm:text-xl"
                         >
                             {Array.isArray(description) ? description.map((item, index) => {
                                 return <span key={`id-${index}`}>{item} <br /> </span>

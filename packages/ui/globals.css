@@ -13,18 +13,22 @@
 
     *::selection {
         background-color: theme("colors.primary.200");
+        color: theme("colors.primary.500");
     }
 
     *::-moz-selection {
         background-color: theme("colors.primary.200");
+        color: theme("colors.primary.500");
     }
 
     html.dark *::selection {
         background-color: theme("colors.primary.800");
+        color: theme("colors.primary.500");
     }
 
     html.dark *::-moz-selection {
         background-color: theme("colors.primary.800");
+        color: theme("colors.primary.500");
     }
 
     html.dark,
@@ -36,10 +40,12 @@
     @media (prefers-color-scheme: dark) {
         *::selection {
             background-color: theme("colors.primary.800");
+            color: theme("colors.primary.500");
         }
 
         *::-moz-selection {
             background-color: theme("colors.primary.800");
+            color: theme("colors.primary.500");
         }
 
         html,
@@ -147,17 +153,6 @@
     justify-items: center;
     flex-direction: column;
 }
-
-/* .marquee-container ul li {
-    height: auto;
-    aspect-ratio: 4 / 3;
-    background: hsl(0 0% 90%);
-    border-radius: 6px;
-    font-size: clamp(2rem, 4vw + 1rem, 8rem);
-    display: grid;
-    place-items: center;
-    border: 1px solid hsl(0 0% 50%);
-} */
 
 [data-play-state=running] :is(ul, li) {
     animation-play-state: running !important;
