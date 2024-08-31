@@ -1,5 +1,5 @@
 {
-  "name": "docs",
+  "name": "@nestri/docs",
   "version": "0.1.0",
   "private": true,
   "scripts": {
