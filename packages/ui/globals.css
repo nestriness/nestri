@@ -12,22 +12,22 @@
     }
 
     *::selection {
-        background-color: theme("colors.primary.200");
+        background-color: theme("colors.primary.100");
         color: theme("colors.primary.500");
     }
 
     *::-moz-selection {
-        background-color: theme("colors.primary.200");
+        background-color: theme("colors.primary.100");
         color: theme("colors.primary.500");
     }
 
     html.dark *::selection {
-        background-color: theme("colors.primary.800");
+        background-color: theme("colors.primary.900");
         color: theme("colors.primary.500");
     }
 
     html.dark *::-moz-selection {
-        background-color: theme("colors.primary.800");
+        background-color: theme("colors.primary.900");
         color: theme("colors.primary.500");
     }
 
@@ -39,12 +39,12 @@
 
     @media (prefers-color-scheme: dark) {
         *::selection {
-            background-color: theme("colors.primary.800");
+            background-color: theme("colors.primary.900");
             color: theme("colors.primary.500");
         }
 
         *::-moz-selection {
-            background-color: theme("colors.primary.800");
+            background-color: theme("colors.primary.900");
             color: theme("colors.primary.500");
         }
 
