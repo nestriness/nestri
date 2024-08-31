@@ -4,7 +4,7 @@ import {
   RouterOutlet,
   ServiceWorkerRegister,
 } from "@builder.io/qwik-city";
-import { RouterHead } from "@/components/router-head";
+import { RouterHead } from "@nestri/ui";
 import { isDev } from "@builder.io/qwik/build";
 
 import "@nestri/ui/globals.css";
