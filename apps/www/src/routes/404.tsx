@@ -1,21 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { buttonVariants, cn } from "@nestri/ui/design";
-//randomly get 20 steam ids like this 2358720
 
-// Function to generate random Steam IDs
-function generateRandomSteamIds(count: number): number[] {
-    const steamIds: number[] = [];
-    for (let i = 0; i < count; i++) {
-        // Generate a random 7-digit number
-        steamIds.push(Math.floor(1000000 + Math.random() * 9000000));
-    }
-    return steamIds;
-}
-
-// Generate 20 random Steam IDs
-const randomSteamIds = generateRandomSteamIds(20);
-console.log(randomSteamIds);
 
 export default component$(() => {
     return (

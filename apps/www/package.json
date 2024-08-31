@@ -43,7 +43,6 @@
     "@typescript-eslint/parser": "7.16.1",
     "eslint": "8.57.0",
     "eslint-plugin-qwik": "^1.8.0",
-    "framer-motion": "^11.3.24",
     "prettier": "3.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
