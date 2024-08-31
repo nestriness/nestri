@@ -17,7 +17,7 @@ const transition = {
 
 type Props = {
     title: string
-    description: string | string[]
+    description?: string | string[]
 }
 
 export function ReactTitleSection({ title, description }: Props) {
@@ -59,7 +59,7 @@ export function ReactTitleSection({ title, description }: Props) {
                                 {title}
                             </motion.span>
                         </ReactDisplay>
-                        <motion.p
+                        {description && (<motion.p
                             initial={{
                                 opacity: 0,
                                 y: 50
@@ -78,7 +78,7 @@ export function ReactTitleSection({ title, description }: Props) {
                             {Array.isArray(description) ? description.map((item, index) => {
                                 return <span key={`id-${index}`}>{item} <br /> </span>
                             }) : description}
-                        </motion.p>
+                        </motion.p>)}
                     </div>
                 </header>
             </section>

@@ -42,9 +42,9 @@ app.notFound((c) => c.json({ message: 'Not Found', ok: false }, 404))
 
 app.get('/:id', middleware, async (c) => {
     const [gameId, imageType] = c.req.param("id").split('.');
-    const width = parseInt(c.req.query("width") || "600");
+    const width = parseInt(c.req.query("width") || "460");
     //We don't even use this, but let us keep it for future use
-    const height = parseInt(c.req.query("height") || "900");
+    const height = parseInt(c.req.query("height") || "215");
     if (!gameId || !imageType) {
         return c.text("Invalid image parameters", 400)
     }
