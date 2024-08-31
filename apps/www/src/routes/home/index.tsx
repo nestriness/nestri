@@ -56,6 +56,33 @@ export default component$(() => {
                             // teams: 10
                         }}
                     />
+                    <Card
+                        game={{
+                            // release_date: 1478710740000,
+                            // compatibility: 'playable',
+                            name: 'Grand Theft Auto V',
+                            id: 271590,
+                            // teams: 10
+                        }}
+                    />
+                    <Card
+                        game={{
+                            // release_date: 1478710740000,
+                            // compatibility: 'playable',
+                            name: 'Apex Legends',
+                            id: 1172470,
+                            // teams: 10
+                        }}
+                    />
+                    <Card
+                        game={{
+                            // release_date: 1478710740000,
+                            // compatibility: 'playable',
+                            name: "Tom Clancy's Rainbow Six Siege",
+                            id: 359550,
+                            // teams: 10
+                        }}
+                    />
                 </div>
             </section>
         </>

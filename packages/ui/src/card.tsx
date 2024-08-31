@@ -13,45 +13,39 @@ export const Card = component$(({ game }: Props) => {
     const ringColor = useSignal<string | undefined>(undefined);
     const imgRef = useSignal<HTMLImageElement>();
 
-    // Function to extract dominant color
     const extractColor = $((img: HTMLImageElement) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) return "rgb(200,200,200)"; // Fallback light gray
 
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let r = 0, g = 0, b = 0, count = 0;
 
-        let r = 0, g = 0, b = 0;
-
-        for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
+        for (let i = 0; i < imageData.length; i += 4) {
+            // Only consider brighter pixels
+            if (imageData[i] > 150 || imageData[i + 1] > 150 || imageData[i + 2] > 150) {
+                r += imageData[i];
+                g += imageData[i + 1];
+                b += imageData[i + 2];
+                count++;
+            }
         }
 
-        r = Math.floor(r / (data.length / 4));
-        g = Math.floor(g / (data.length / 4));
-        b = Math.floor(b / (data.length / 4));
+        if (count === 0) return "rgb(200,200,200)"; // Fallback if no bright pixels found
 
-        return `rgb(${r},${g},${b})`;
-    });
+        r = Math.floor(r / count);
+        g = Math.floor(g / count);
+        b = Math.floor(b / count);
 
-    // Function to darken a color
-    const darkenColor = $((color: string | undefined, amount: number) => {
-        if (!color) return color;
-
-        const rgb = color.match(/\d+/g);
-        if (!rgb || rgb.length !== 3) return color;
-
-        const darkenChannel = (channel: number) => Math.max(0, channel - amount);
-        const r = darkenChannel(parseInt(rgb[0]));
-        const g = darkenChannel(parseInt(rgb[1]));
-        const b = darkenChannel(parseInt(rgb[2]));
+        // Ensure the color is light enough
+        const minBrightness = 100;
+        r = Math.max(r, minBrightness);
+        g = Math.max(g, minBrightness);
+        b = Math.max(b, minBrightness);
 
         return `rgb(${r},${g},${b})`;
     });
@@ -61,19 +55,14 @@ export const Card = component$(({ game }: Props) => {
 
         const img = imgRef.value;
         if (img) {
+            const processImage = async () => {
+                backgroundColor.value = await extractColor(img);
+            };
+
             if (img.complete) {
-                const extractedColor = await extractColor(img);
-                backgroundColor.value = extractedColor;
-                ringColor.value = await darkenColor(extractedColor, 30);
+                await processImage();
             } else {
-                await new Promise<void>((resolve) => {
-                    img.onload = async () => {
-                        const extractedColor = await extractColor(img);
-                        backgroundColor.value = extractedColor;
-                        ringColor.value = await darkenColor(extractedColor, 30);
-                        resolve();
-                    };
-                });
+                img.onload = processImage;
             }
         }
     });
@@ -82,12 +71,10 @@ export const Card = component$(({ game }: Props) => {
         <div
             style={{
                 backgroundColor: backgroundColor.value,
-                "--tw-ring-color": ringColor.value
             }}
-            class="bg-gray-200/70 min-w-[250px] backdrop-blur-sm ring-gray-300 select-none w-full group dark:ring-gray-700 ring dark:bg-gray-800/70 group rounded-3xl dark:text-primary-50/70 text-primary-950/70 duration-300 transition-colors flex flex-col">
+            class="min-w-[250px] group cursor-pointer backdrop-blur-sm select-none w-full group rounded-3xl text-primary-950/70 duration-300 transition-colors flex flex-col">
             <header class="flex gap-4 justify-between p-4">
-                <div
-                    class="flex relative pr-[22px] overflow-hidden text-white overflow-ellipsis whitespace-nowrap" >
+                <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
                     <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
                 </div>
             </header>
@@ -95,9 +82,9 @@ export const Card = component$(({ game }: Props) => {
                 <img
                     ref={imgRef}
                     src={imageUrl}
-                    class="rounded-2xl shadow-2xl shadow-gray-900"
-                    width={270}
-                    height={215}
+                    class="rounded-2xl ring-2 aspect-[2/3] w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-900"
+                    width={250}
+                    height={200}
                     alt={game.name}
                     crossOrigin="anonymous"
                 />
