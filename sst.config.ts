@@ -6,7 +6,7 @@ export default $config({
     return {
       name: "nestri",
       removal: input?.stage === "production" ? "retain" : "remove",
-      home: "cloudflare",
+      home: "aws",
     };
   },
   async run() {

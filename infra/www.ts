@@ -11,7 +11,6 @@ export const www = new cloudflare.PagesProject("www", {
     },
     deploymentConfigs: {
         production: {
-
             compatibilityFlags: ["nodejs_compat"]
         },
         preview: {
@@ -30,3 +29,7 @@ export const www = new cloudflare.PagesProject("www", {
         }
     }
 });
+
+export const outputs = {
+    www: www.subdomain,
+  };
