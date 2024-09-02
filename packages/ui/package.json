@@ -4,7 +4,7 @@
   "private": true,
   "sideEffects": false,
   "files": [
-    "tailwind.config.ts",
+    "tailwind.config.js",
     "postcss.config.js",
     "globals.css"
   ],
