@@ -41,20 +41,12 @@ export const Card = component$(({ game }: Props) => {
         g = Math.floor(g / count);
         b = Math.floor(b / count);
 
-        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        if (isDarkMode) {
-            // Darken the color for dark mode
-            r = Math.floor(r * 0.8);
-            g = Math.floor(g * 0.8);
-            b = Math.floor(b * 0.8);
-        } else {
-            // For light mode, keep the existing logic
-            const minBrightness = 100;
-            r = Math.max(r, minBrightness);
-            g = Math.max(g, minBrightness);
-            b = Math.max(b, minBrightness);
-        }
+        // For light mode, keep the existing logic
+        const minBrightness = 100;
+        r = Math.max(r, minBrightness);
+        g = Math.max(g, minBrightness);
+        b = Math.max(b, minBrightness);
 
 
         return `rgb(${r},${g},${b})`;
@@ -80,9 +72,9 @@ export const Card = component$(({ game }: Props) => {
     return (
         <div
             style={{
-                backgroundColor: backgroundColor.value,
+                "--bg-color": backgroundColor.value,
             }}
-            class="min-w-[250px] group cursor-pointer backdrop-blur-sm select-none w-full group rounded-3xl text-primary-950/70 duration-300 transition-colors flex flex-col">
+            class="min-w-[250px] bg-[--bg-color] group cursor-pointer backdrop-blur-sm select-none w-full group rounded-3xl text-primary-950/70 duration-200 transition-colors flex flex-col">
             <header class="flex gap-4 justify-between p-4">
                 <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
                     <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
