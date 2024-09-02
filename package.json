@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20240821.1",
+    "@types/aws-lambda": "8.10.145",
     "prettier": "^3.2.5",
     "turbo": "^2.0.12",
     "typescript": "^5.4.5"
@@ -27,6 +28,6 @@
     "workerd"
   ],
   "dependencies": {
-    "sst": "3.0.91"
+    "sst": "3.0.94"
   }
 }

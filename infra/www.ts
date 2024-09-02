@@ -1,11 +1,12 @@
 //Deploys the website to cloudflare pages under the domain nestri.io (redirects all requests to www.nestri.io to avoid duplicate content)
+// const cloudflareAccountId = new sst.Secret("CloudflareAccountId");
 
 export const www = new cloudflare.PagesProject("www", {
     name: "nestri",
-    accountId: "nestri",
+    accountId: "8405b2acb6746935b975bc2cfcb5c288",
     productionBranch: "main",
     buildConfig: {
-        rootDir: "./apps/www",
+        rootDir: "apps/www",
         buildCommand: "bun run build",
         destinationDir: "dist"
     },
@@ -32,4 +33,4 @@ export const www = new cloudflare.PagesProject("www", {
 
 export const outputs = {
     www: www.subdomain,
-  };
+};
