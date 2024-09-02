@@ -19,7 +19,7 @@ export default component$(() => {
                 </div>
             </section>
             <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
-                <div class="flex gap-4 mx-auto max-w-xl w-full">
+                <div class="flex gap-4 mx-auto max-w-xl lg:max-w-2xl w-full">
                     {/* <GameCard
                         game={{
                             release_date: 1478710740000,
@@ -38,7 +38,7 @@ export default component$(() => {
                         }}
                     /> */}
                 </div>
-                <div class="gap-4 mx-auto max-w-xl w-full grid grid-cols-1 md:grid-cols-2">
+                <div class="gap-4 w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     <Card
                         game={{
                             // release_date: 1478710740000,
