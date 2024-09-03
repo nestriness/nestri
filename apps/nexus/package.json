@@ -5,7 +5,8 @@
   "description": "Nestri's core",
   "scripts": {
     "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler deploy --minify src/index.ts"
+    "deploy": "wrangler deploy --minify src/index.ts",
+    "launch": "sst start"
   },
   "dependencies": {
     "hono": "^4.5.5"
