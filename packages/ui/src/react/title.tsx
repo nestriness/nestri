@@ -7,7 +7,7 @@ import {
     type TextAlignProp,
     type TextWeightProp,
     cn
-} from "@/design"
+} from "@nestri/ui/design"
 import { qwikify$ } from "@builder.io/qwik-react";
 
 

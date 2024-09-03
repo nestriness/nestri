@@ -1,6 +1,6 @@
 import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
-import { buttonVariants, cn } from "@/design";
+import { buttonVariants, cn } from "./design";
 
 const navLinks = [
     {

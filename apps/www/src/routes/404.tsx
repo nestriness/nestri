@@ -1,7 +1,5 @@
 import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
-import { buttonVariants, cn } from "@nestri/ui/design";
-
 
 export default component$(() => {
     return (

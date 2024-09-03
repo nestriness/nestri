@@ -7,7 +7,7 @@ import {
   type TextAlignProp,
   type TextWeightProp,
   cn
-} from "@/design"
+} from "@nestri/ui/design"
 // import * as ReactBalancer from "react-wrap-balancer"
 import { qwikify$ } from "@builder.io/qwik-react"
 

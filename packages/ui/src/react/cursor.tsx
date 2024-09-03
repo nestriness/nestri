@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import React from 'react'
 import { motion } from 'framer-motion'
-import { cn } from '@/design'
+import { cn } from "@nestri/ui/design"
 import { qwikify$ } from '@builder.io/qwik-react';
 
 export const CursorSVG = ({ flip }: { flip?: boolean }) => (
