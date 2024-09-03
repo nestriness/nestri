@@ -6,9 +6,9 @@ import {
     type DisplayProps as DisplayVariants,
     type TextAlignProp,
     type TextWeightProp
-} from "@/design"
+} from "@nestri/ui/design"
 import * as ReactBalancer from "react-wrap-balancer"
-import { cn } from "@/design"
+import { cn } from "@nestri/ui/design"
 import { qwikify$ } from "@builder.io/qwik-react"
 
 type DisplaySize = DisplayVariants["size"]

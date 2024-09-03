@@ -1,4 +1,4 @@
-import { cn } from "@/design";
+import { cn } from "@nestri/ui/design";
 import { component$, useStore, type Component } from "@builder.io/qwik";
 
 

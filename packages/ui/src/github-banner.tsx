@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { MotionComponent, transition } from "@/react/motion";
+import { MotionComponent, transition } from "@nestri/ui/react";
 import { Link } from "@builder.io/qwik-city";
 
 export const GithubBanner = component$(() => {

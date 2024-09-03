@@ -31,9 +31,9 @@
   "devDependencies": {
     "@builder.io/qwik": "^1.8.0",
     "@builder.io/qwik-city": "^1.8.0",
-    "@nestri/eslint-config": "workspace:*",
-    "@nestri/typescript-config": "workspace:*",
-    "@nestri/ui": "workspace:*",
+    "@nestri/eslint-config": "*",
+    "@nestri/typescript-config": "*",
+    "@nestri/ui": "*",
     "@types/eslint": "8.56.10",
     "@types/node": "20.14.11",
     "@typescript-eslint/eslint-plugin": "7.16.1",

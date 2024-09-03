@@ -1,5 +1,5 @@
 import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
-import { cn } from "@/design";
+import { cn } from "./design";
 
 export const HomeNavBar = component$(() => {
     const hasScrolled = useSignal(false);

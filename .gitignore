@@ -36,3 +36,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# sst
+.sst
+
+#Bun merging errors, EVERY time :(
+bun.lockb

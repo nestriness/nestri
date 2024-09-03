@@ -2,6 +2,7 @@
   "extends": "@nestri/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "./*.config.js","./.eslintrc.js"],
   "exclude": ["node_modules", "dist"]

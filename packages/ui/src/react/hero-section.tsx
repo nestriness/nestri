@@ -2,7 +2,7 @@
 /** @jsxImportSource react */
 import { qwikify$ } from "@builder.io/qwik-react";
 import { motion } from "framer-motion"
-import { ReactDisplay } from "@/react/display"
+import { ReactDisplay } from "./display"
 import * as React from "react"
 // type Props = {
 //     children?: React.ReactElement[]

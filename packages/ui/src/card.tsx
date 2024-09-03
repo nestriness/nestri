@@ -10,7 +10,6 @@ type Props = {
 export const Card = component$(({ game }: Props) => {
     const imageUrl = `http://localhost:8787/image/cover/${game.id}.avif`
     const backgroundColor = useSignal<string | undefined>(undefined);
-    const ringColor = useSignal<string | undefined>(undefined);
     const imgRef = useSignal<HTMLImageElement>();
 
     const extractColor = $((img: HTMLImageElement) => {

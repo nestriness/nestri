@@ -16,7 +16,7 @@
     "@jsquash/avif": "^1.3.0",
     "@jsquash/jpeg": "^1.4.0",
     "@jsquash/resize": "^2.0.0",
-    "@nestri/cache": "workspace:*",
+    "@nestri/cache": "*",
     "tinycolor2": "^1.6.0",
     "wrangler": "^3.72.2"
   }

@@ -4,10 +4,12 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "lint": "turbo lint"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "4.20240821.1",
+    "@types/aws-lambda": "8.10.145",
     "prettier": "^3.2.5",
     "sst": "^3.0.91",
     "turbo": "^2.0.12",
@@ -25,5 +27,8 @@
     "core-js-pure",
     "esbuild",
     "workerd"
-  ]
+  ],
+  "dependencies": {
+    "sst": "3.0.94"
+  }
 }

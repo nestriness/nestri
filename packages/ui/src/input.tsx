@@ -2,7 +2,7 @@ import {
     form,
     cn,
     type InputProps as InputVariants,
-} from "@/design"
+} from "./design"
 import { type QwikIntrinsicElements, component$ } from '@builder.io/qwik';
 
 export interface InputComponentProps extends Omit<QwikIntrinsicElements["input"], 'size'>, InputVariants {

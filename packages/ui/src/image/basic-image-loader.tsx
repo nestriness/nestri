@@ -1,6 +1,6 @@
 /* eslint-disable qwik/no-use-visible-task */
-import { cn } from '@/design';
-import { component$, useSignal, useTask$, useStyles$, useVisibleTask$, $ } from '@builder.io/qwik';
+import { cn } from '@nestri/ui/design';
+import { component$, useSignal, useTask$, useStyles$, useVisibleTask$ } from '@builder.io/qwik';
 
 interface ImageLoaderProps {
   src: string;

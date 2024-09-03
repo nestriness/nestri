@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { GameCard, HomeNavBar, Card } from "@nestri/ui";
+import { HomeNavBar, Card } from "@nestri/ui";
 
 function getGreeting(): string {
     const hour = new Date().getHours();

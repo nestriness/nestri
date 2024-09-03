@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { cn } from "@/design";
+import { cn } from "@nestri/ui/design";
 import { qwikify$ } from "@builder.io/qwik-react";
 import React, { useEffect, useRef, useState } from "react";
 import {
