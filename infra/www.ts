@@ -6,7 +6,7 @@ export const www = new cloudflare.PagesProject("www", {
     productionBranch: "main",
     buildConfig: {
         rootDir: "apps/www",
-        // buildCommand: "bun run build",
+        buildCommand: "bun run build",
         destinationDir: "dist"
     },
     deploymentConfigs: {
@@ -34,14 +34,13 @@ export const www = new cloudflare.PagesProject("www", {
 //TODO: Add a local dev server for Qwik that can be linked with whatever we want
 //TODO: Link the www PageRule with whatever we give to the local dev server
 
-// export const web = new sst.x.DevCommand("www", {
-//     dev: {
-//         command: "bun run dev",
-//         directory: "apps/www",
-//         autostart: true,
-//     },
-//     link: [www]
-// })
+export const wwwDev = new sst.x.DevCommand("www", {
+    dev: {
+        command: "bun run dev",
+        directory: "apps/www",
+        autostart: true,
+    },
+})
 
 // //This creates a resource that can be accessed by itself
 // new sst.Linkable.wrap(cloudflare.PageRule, (resource) => ({
