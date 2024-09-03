@@ -5,7 +5,8 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "launch": "sst start"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20240821.1",
