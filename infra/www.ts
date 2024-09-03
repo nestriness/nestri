@@ -7,7 +7,7 @@ export const www = new cloudflare.PagesProject("www", {
     productionBranch: "main",
     buildConfig: {
         rootDir: "apps/www",
-        buildCommand: "bun run build",
+        // buildCommand: "bun run build",
         destinationDir: "dist"
     },
     deploymentConfigs: {
