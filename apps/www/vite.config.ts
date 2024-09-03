@@ -6,8 +6,10 @@ import { defineConfig, type UserConfig } from "vite";
 import { qwikVite } from "@builder.io/qwik/optimizer";
 import { qwikCity } from "@builder.io/qwik-city/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import pkg from "./package.json";
 import { qwikReact } from "@builder.io/qwik-react/vite";
+import pkg from "./package.json";
+import contentCollections from "@content-collections/vite";
+
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
   dependencies: PkgDep;
@@ -19,9 +21,9 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  * Note that Vite normally starts from `index.html` but the qwikCity plugin makes start at `src/entry.ssr.tsx` instead.
  */
 
-export default defineConfig(({ command, mode }): UserConfig => {
+export default defineConfig((): UserConfig => {
   return {
-    plugins: [qwikCity({ trailingSlash: false }), qwikVite(), tsconfigPaths(), qwikReact()],
+    plugins: [qwikCity({ trailingSlash: false }), qwikVite(), tsconfigPaths(), qwikReact(), contentCollections()],
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
       // Put problematic deps that break bundling here, mostly those with binaries.

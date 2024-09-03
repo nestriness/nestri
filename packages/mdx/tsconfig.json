@@ -3,11 +3,8 @@
   "compilerOptions": {
     "outDir": "tmp",
     "rootDir": ".",
-    "allowImportingTsExtensions": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "allowImportingTsExtensions": true
   },
-  "files": [".eslintrc.js"],
+  "files": [".eslintrc.cjs"],
   "include": ["src", "./*.d.ts"]
 }
