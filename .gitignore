@@ -39,3 +39,6 @@ yarn-error.log*
 
 # sst
 .sst
+
+#Bun merging errors, EVERY time :(
+bun.lockb
