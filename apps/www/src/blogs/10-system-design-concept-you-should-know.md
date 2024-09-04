@@ -8,7 +8,7 @@ createdAt: "2024-08-28T11:24:39.659Z"
 
 Ever wondered how tech giants handle millions of users without breaking a sweat? Or why your app crashes under heavy load? Dive into these 10 crucial system design concepts – explained so simply, even your grandma would get it!
 
-### 1. Scalability: Growing Pains, Solved
+## 1. Scalability: Growing Pains, Solved
 * **What it is**: Making your system handle growth like a champ
 * **Types**:
   - Vertical (beefing up one machine)

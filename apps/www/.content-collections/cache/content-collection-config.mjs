@@ -46,7 +46,6 @@ var blogs = defineCollection({
       const date = await getGitTimestamp(filePath);
       return date ? new Date(date).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
     });
-    console.log("lastModified", lastModified);
     return {
       ...document,
       lastModified,
