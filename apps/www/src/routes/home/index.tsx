@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { HomeNavBar, Card } from "@nestri/ui";
+import { HomeNavBar, Card, LargeCard } from "@nestri/ui";
 
 function getGreeting(): string {
     const hour = new Date().getHours();
@@ -19,26 +19,16 @@ export default component$(() => {
                 </div>
             </section>
             <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
-                <div class="flex gap-4 mx-auto max-w-xl lg:max-w-2xl w-full">
-                    {/* <GameCard
-                        game={{
-                            release_date: 1478710740000,
-                            compatibility: 'playable',
-                            name: 'World of Tanks Blitz',
-                            appid: '444200',
-                            teams: 10
-                        }}
-                    /><GameCard
-                        game={{
-                            release_date: 1478710740000,
-                            compatibility: 'playable',
-                            name: 'World of Tanks Blitz',
-                            appid: '444200',
-                            teams: 10
-                        }}
-                    /> */}
-                </div>
                 <div class="gap-4 w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <LargeCard
+                        game={{
+                            // release_date: 1478710740000,
+                            // compatibility: 'playable',
+                            name: 'The Lord of the Rings: Return to Moria™',
+                            id: 2933130,
+                            // teams: 10
+                        }}
+                    />
                     <Card
                         game={{
                             // release_date: 1478710740000,

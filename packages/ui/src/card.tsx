@@ -8,7 +8,7 @@ type Props = {
 }
 
 export const Card = component$(({ game }: Props) => {
-    const imageUrl = `http://localhost:8787/image/cover/${game.id}.avif`
+    const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/library_600x900_2x.jpg`;
 
     return (
         <button
@@ -25,7 +25,6 @@ export const Card = component$(({ game }: Props) => {
                     width={250}
                     height={200}
                     alt={game.name}
-                    crossOrigin="anonymous"
                 />
             </section>
         </button>
