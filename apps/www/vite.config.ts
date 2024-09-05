@@ -8,7 +8,8 @@ import { qwikCity } from "@builder.io/qwik-city/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { qwikReact } from "@builder.io/qwik-react/vite";
 import pkg from "./package.json";
-import contentCollections from "@content-collections/vite";
+// import contentCollections from "@content-collections/vite";
+import nestriMdx from "@nestri/md/vite";
 
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
@@ -23,7 +24,13 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
 
 export default defineConfig((): UserConfig => {
   return {
-    plugins: [qwikCity({ trailingSlash: false }), qwikVite(), tsconfigPaths(), qwikReact(), contentCollections()],
+    plugins: [
+      qwikCity({ trailingSlash: false }),
+      qwikVite(),
+      tsconfigPaths(),
+      qwikReact(),
+      nestriMdx({ collections: [{ name: "me" }] })
+    ],
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
       // Put problematic deps that break bundling here, mostly those with binaries.

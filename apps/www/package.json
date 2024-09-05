@@ -38,6 +38,7 @@
     "@nestri/eslint-config": "*",
     "@nestri/typescript-config": "*",
     "@nestri/ui": "*",
+    "@nestri/md": "*",
     "@nestri/mdx": "*",
     "@types/eslint": "8.56.10",
     "@types/node": "^22.5.1",

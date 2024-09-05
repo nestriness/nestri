@@ -1,0 +1,10 @@
+{
+  "extends": "@nestri/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "tmp",
+    "rootDir": ".",
+    "allowImportingTsExtensions": true
+  },
+  "files": [".eslintrc.cjs"],
+  "include": ["src", "./*.d.ts"]
+}

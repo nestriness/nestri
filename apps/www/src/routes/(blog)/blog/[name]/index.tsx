@@ -2,6 +2,8 @@
 import { component$ } from "@builder.io/qwik";
 import { allBlogs } from "content-collections";
 import { Link, useLocation, type StaticGenerateHandler } from '@builder.io/qwik-city';
+const files = import.meta.glob('../posts/*.md')
+
 
 function getDaysAgo(date: Date): string {
   const now = new Date();
