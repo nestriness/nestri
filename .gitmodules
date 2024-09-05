@@ -1,0 +1,3 @@
+[submodule "apps/relay"]
+	path = apps/relay
+	url = https://github.com/kixelated/moq-rs
