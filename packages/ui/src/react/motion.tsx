@@ -25,12 +25,12 @@ export const ReactMotionComponent = ({
     ...motionProps
 }: MotionComponentProps) => {
     const MotionTag = motion[as as keyof typeof motion] as React.ComponentType<any>;
+    const MotionTag = motion[as as keyof typeof motion] as React.ComponentType<any>;
 
     return (
-        <MotionTag className={className}
-            {...motionProps}
-            // animate={isInView ? whileInView : undefined}
-        >
+        <MotionTag
+            className={className}
+            {...(motionProps as any)}>
             {children}
         </MotionTag>
     );
