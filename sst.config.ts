@@ -6,7 +6,7 @@ export default $config({
       name: "nestri",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
-      providers: { cloudflare: "5.37.1" },
+      providers: { cloudflare: "5.37.1", tls: "5.0.4", acme: "0.3.1" },
     };
   },
   async run() {
