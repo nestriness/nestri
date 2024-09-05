@@ -57,7 +57,7 @@ cluster.addService("Relay", {
         VERSION: !$dev ? execSync("git rev-parse HEAD").toString().trim() : "",
         RUST_LOG: "info",
         RUST_BACKTRACE: "1",
-        
+
     },
     public: {
         domain:
@@ -65,7 +65,7 @@ cluster.addService("Relay", {
                 ? undefined
                 : {
                     name: domain,
-                    dns: sst.cloudflare.dns(),
+                    dns: sst.aws.dns(),
                 },
         ports: [
             //We just need to expose a single port open, would you look at that :D
