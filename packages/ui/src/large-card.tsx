@@ -21,16 +21,17 @@ export const LargeCard = component$(({ game }: Props) => {
                         <h2 class="font-semibold font-title text-3xl">{game.name}</h2>
                     </div>
                     <div class="flex pt-2 flex-col justify-center gap-2">
-                        <div class="flex -space-x-4">
+                        <div class="flex -space-x-2">
                             {[1, 2, 3, 4, 5].map((_, index) => (
-                                <div key={index} class="inline-block size-8 rounded-full ring-[3px] ring-gray-300/70 dark:ring-gray-700/70 bg-gray-700" style={{ zIndex: 5 + index }}>
+                                <div key={index} class="inline-block size-6 rounded-full ring-[3px] ring-gray-300/70 dark:ring-gray-700/70 bg-gray-700" style={{ zIndex: 5 + index }}>
                                     <img src={`http://localhost:8787/image/avatar/avatar-${index + 1}.png`} height={32} width={32} class="rounded-full size-full" />
                                 </div>
                             ))}
                         </div>
-                        <span class="text-base max-w-[70%]">
-                            {`JD the Smith`}&nbsp;
-                            {"and 15 others"}&nbsp;
+                        <span class="text-sm max-w-[70%]">
+                            <span class="font-semibold font-title">JD the Smith</span>&nbsp;
+                            {"and"}&nbsp;
+                            {"15 others"}&nbsp;
                             {"are playing"}
                         </span>
                     </div>
