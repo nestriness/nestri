@@ -1,9 +1,8 @@
 // How it works:
 // - The relay is a moq-rs docker server hosted on AWS that is used to transmit media to the user
-// - The relay has a side car written in JS that pings cloudflare our API to "register" itself every 1 hour
-// - The API has a route that returns the nearest relay to the user (we use KD trees to get nearest relays based on the user's location)
-// - The API returns the relay URL to the user with the session ID, the expiry time of the session and the auth token to use to connect to the relay
-// - The user connects to the relay and starts transmitting media or receiving media
+// - We have a cron job that runs every hour and pings relay's public IP address to get the IP's location.
+// - Then we user's location to get the closest relay using the saved relay location data
+// - We then use the relay's public IP address to connect to the relay
 
 // The user connects to the relay with the following URL:
 // moq://{relay_url}/?token={auth_token}&session_id={session_id}&origin={origin}
@@ -43,6 +42,26 @@ const reg = new acme.Registration("reg", {
 //             "CLOUDFLARE_API_TOKEN": process.env.CLOUDFLARE_API_TOKEN,
 //         },
 //     }],
+// });
+
+// import * as pulumi from "@pulumi/pulumi";
+// import * as cloudflare from "@pulumi/cloudflare";
+// import * as std from "@pulumi/std";
+
+// const exampleScript = new cloudflare.WorkersScript("example_script", {
+//     accountId: "f037e56e89293a057740de681ac9abbe",
+//     name: "example-script",
+//     content: std.file({
+//         input: "path/to/my.js",
+//     }).then(invoke => invoke.result),
+// });
+// const exampleTrigger = new cloudflare.WorkerCronTrigger("example_trigger", {
+//     accountId: "f037e56e89293a057740de681ac9abbe",
+//     scriptName: exampleScript.name,
+//     schedules: [
+//         "*/5 * * * *",
+//         "10 7 * * mon-fri",
+//     ],
 // });
 
 
