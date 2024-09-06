@@ -67,29 +67,29 @@ export const Footer = component$(() => {
           <section class="gap-4 grid grid-cols-2 sm:grid-cols-3 justify-around py-6 items-start" >
             <div class="flex flex-col gap-2">
               <h2 class="font-title text-sm font-bold" >Product</h2>
-              <div class="text-gray-950/70 dark:text-gray-50/70 flex flex-col gap-2" >
-                <Link href="/pricing" class="text-base hover:text-primary-500" >Pricing</Link>
-                <Link href="/changelog" class="text-base hover:text-primary-500" >Changelog</Link>
+              <div class="text-gray-950/50 dark:text-gray-50/50 flex flex-col gap-2" >
+                <Link href="/pricing" class="text-base hover:text-gray-950 dark:hover:text-gray-50 transition-all duration-200 hover:underline hover:underline-offset-4" >Pricing</Link>
+                <Link href="/changelog" class="text-base hover:text-gray-950 dark:hover:text-gray-50 transition-all duration-200 hover:underline hover:underline-offset-4" >Changelog</Link>
                 <p class="text-base opacity-50 cursor-not-allowed" >Docs</p>
               </div>
             </div>
             <div class="flex flex-col gap-2">
               <h2 class="font-title text-sm font-bold" >Company</h2>
-              <div class="text-gray-950/70 dark:text-gray-50/70 flex flex-col gap-2" >
-                <Link href="/contact" class="text-base hover:text-primary-500" >Contact Us</Link>
+              <div class="text-gray-950/50 dark:text-gray-50/50 flex flex-col gap-2" >
+                <Link href="/contact" class="text-base hover:text-gray-950 dark:hover:text-gray-50 transition-all duration-200 hover:underline hover:underline-offset-4" >Contact Us</Link>
                 <p class="text-base opacity-50 cursor-not-allowed" >Open Nestri</p>
                 <p class="text-base opacity-50 cursor-not-allowed" >Blog</p>
               </div>
             </div>
             <div class="flex flex-col gap-2">
               <h2 class="font-title text-sm font-bold" >Relations</h2>
-              <div class="text-gray-950/70 dark:text-gray-50/70 flex flex-col gap-2" >
-                <Link href="/terms" class="text-base hover:text-primary-500" >Terms of Service</Link>
-                <Link href="/privacy" class="text-base hover:text-primary-500" >Privacy Policy</Link>
+              <div class="text-gray-950/50 dark:text-gray-50/50 flex flex-col gap-2" >
+                <Link href="/terms" class="text-base hover:text-gray-950 dark:hover:text-gray-50 hover:underline underline-offset-4 transition-all duration-200" >Terms of Service</Link>
+                <Link href="/privacy" class="text-base hover:text-gray-950 dark:hover:text-gray-50 hover:underline underline-offset-4 transition-all duration-200" >Privacy Policy</Link>
                 {/**Social Media Icons with Links */}
                 <div class="flex flex-row gap-3">
                   {socialMedia.map((item) => (
-                    <Link key={item.link} href={item.link} class="hover:text-primary-500" target="_blank" rel="noopener noreferrer">
+                    <Link key={item.link} href={item.link} class=" hover:text-gray-950 dark:hover:text-gray-50" target="_blank" rel="noopener noreferrer">
                       {item.icon()}
                     </Link>
                   ))}
