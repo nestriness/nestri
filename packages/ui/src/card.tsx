@@ -12,7 +12,7 @@ export const Card = component$(({ game }: Props) => {
 
     return (
         <button
-            class="min-w-[250px] group hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex flex-col ring-gray-900/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-300 dark:ring-gray-700 text-gray-900/70 dark:text-gray-100/70 bg-gray-300/70 dark:bg-gray-700/70">
+            class="min-w-[250px] group hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex flex-col ring-gray-800/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70">
             <header class="flex gap-4 max-w-full justify-between p-4">
                 <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
                     <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>

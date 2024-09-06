@@ -13,7 +13,7 @@ export const LargeCard = component$(({ game }: Props) => {
 
     return (
         <button
-            class="min-w-[250px] h-[350px] lg:flex-row flex-col group overflow-hidden hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex ring-gray-900/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-300 dark:ring-gray-700 text-gray-900/70 dark:text-gray-100/70 bg-gray-300/70 dark:bg-gray-700/70">
+            class="min-w-[250px] h-[350px] lg:flex-row flex-col group overflow-hidden hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex transition-all gap-2 px-4 py-3 ring-[3px] ring-gray-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70">
             <header class="flex gap-4 lg:w-1/3 h-full w-full justify-between p-4">
                 <div class="flex flex-col gap-4 text-left h-full justify-between relative overflow-hidden p-4" >
                     <div class="flex flex-col gap-2">

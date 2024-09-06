@@ -89,13 +89,13 @@ export default component$(() => {
                 </ul>
             </section>
             <nav class="w-full flex justify-center h-[100px] z-50 items-center gap-4 bg-transparent fixed -bottom-[1px] left-0 right-0">
-                <nav class="flex gap-4 w-max px-4 py-2 rounded-full bg-neutral-900 ring-gray-700 ring-2">
-                    <button class="text-gray-100/70 text-xl font-title">
+                <nav class="flex gap-4 w-max px-4 py-2 rounded-full shadow-2xl shadow-gray-950 bg-neutral-200 text-gray-900 dark:text-gray-100 dark:bg-neutral-800 ring-gray-300 dark:ring-gray-700 ring-1">
+                    <button class="text-xl font-title">
                         <span class="material-symbols-outlined">
                             home
                         </span>
                     </button>
-                    <button class="text-gray-100/70 text-xl font-title">
+                    <button class="text-xl font-title">
                         <span class="material-symbols-outlined">
                             home
                         </span>
