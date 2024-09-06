@@ -19,8 +19,20 @@ export default component$(() => {
                 </div>
             </section>
             <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
-                <div class="gap-4 w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    <LargeCard
+                <ul class="gap-4 relative list-none w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:dark:to-gray-900 after:to-gray-100 after:fixed after:left-0 after:-bottom-[1px] after:z-10 after:backdrop-blur-sm after:h-[100px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.100)_50%,transparent)] after:dark:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
+                    <li class="col-span-full">
+                        <LargeCard
+                            game={{
+                                // release_date: 1478710740000,
+                                // compatibility: 'playable',
+                                name: 'The Lord of the Rings: Return to Moria™',
+                                id: 2933130,
+                                // teams: 10
+                            }}
+                        />
+                    </li>
+                    <li>
+                        <Card
                         game={{
                             // release_date: 1478710740000,
                             // compatibility: 'playable',
@@ -29,15 +41,9 @@ export default component$(() => {
                             // teams: 10
                         }}
                     />
-                    <Card
-                        game={{
-                            // release_date: 1478710740000,
-                            // compatibility: 'playable',
-                            name: 'The Lord of the Rings: Return to Moria™',
-                            id: 2933130,
-                            // teams: 10
-                        }}
-                    /><Card
+                    </li>
+                    <li>
+                        <Card
                         game={{
                             // release_date: 1478710740000,
                             // compatibility: 'playable',
@@ -46,7 +52,9 @@ export default component$(() => {
                             // teams: 10
                         }}
                     />
-                    <Card
+                    </li>
+                    <li>
+                        <Card
                         game={{
                             // release_date: 1478710740000,
                             // compatibility: 'playable',
@@ -55,7 +63,9 @@ export default component$(() => {
                             // teams: 10
                         }}
                     />
-                    <Card
+                    </li>
+                    <li>
+                        <Card
                         game={{
                             // release_date: 1478710740000,
                             // compatibility: 'playable',
@@ -64,16 +74,19 @@ export default component$(() => {
                             // teams: 10
                         }}
                     />
-                    <Card
+                    </li>
+                    <li>
+                        <Card
                         game={{
                             // release_date: 1478710740000,
                             // compatibility: 'playable',
                             name: "Tom Clancy's Rainbow Six Siege",
                             id: 359550,
                             // teams: 10
-                        }}
-                    />
-                </div>
+                            }}
+                        />
+                    </li>
+                </ul>
             </section>
         </>
     )
