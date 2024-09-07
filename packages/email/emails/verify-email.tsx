@@ -1,7 +1,8 @@
+//Sent on sign up or log in to verify the email address
+
 import {
     Body,
     Container,
-    Head,
     Heading,
     Hr,
     Html,
@@ -19,9 +20,9 @@ const baseUrl =
         ? "https://nestri.pages.dev/email"
         : "http://localhost:5173/email";
 
-export default function Invite({
+export default function VerifyEmail({
     name = "Wanjohi",
-    inviteCode = "23476",
+    inviteCode = "230476",
     login = true
 }: {
     name: string;
@@ -96,7 +97,7 @@ export default function Invite({
                         fontStyle="normal"
                     />
                 </head>
-                <Preview>{name}, welcome&nbsp;{login ? "back" : ""}&nbsp;to Nestri</Preview>
+                <Preview>{name}, welcome&nbsp;{login ? "back" : "to Nestri"}</Preview>
                 <Body className="py-8 sm:px-0 px-2 bg-[#FFF] dark:bg-[#000] text-text dark:text-text-dark font-sans">
                     <Container className="max-w-[28rem] mx-auto">
                         <Link href="https://nestri.io">
