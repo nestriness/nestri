@@ -1,5 +1,4 @@
 // Sent after someone signs up for the waitlist
-// Sent to someone who is already on the waitlist and we need to invite to the app// Sent when an adult invites someone to a team as a child or an adult
 
 import {
     Body,
@@ -22,7 +21,7 @@ const baseUrl =
         ? "https://nestri.pages.dev/email"
         : "http://localhost:5173/email";
 
-export default function WelcomeToNestri({
+export default function WelcomeToWaitlist({
     name = "Ryan",
 }: {
     name: string;
@@ -36,7 +35,9 @@ export default function WelcomeToNestri({
                             colors: {
                                 text: {
                                     DEFAULT: "#0a0a0a",
-                                    dark: "#fafafa"
+                                    dark: "#fafafa",
+                                    muted: "#fafafab3",
+                                    mutedDark: "#0a0a0ab3",
                                 },
                                 bg: {
                                     DEFAULT: "#f5f5f5",
@@ -93,7 +94,7 @@ export default function WelcomeToNestri({
                         fontStyle="normal"
                     />
                 </head>
-                <Preview>Welcome to Nestri alpha</Preview>
+                <Preview>You're on the waitlist for Nestri</Preview>
                 <Body className="py-8 sm:px-0 px-2 bg-[#FFF] dark:bg-[#000] text-text dark:text-text-dark font-sans">
                     <Container className="max-w-[28rem] mx-auto">
                         <Link href="https://nestri.io">
@@ -112,26 +113,17 @@ export default function WelcomeToNestri({
                             My name is Wanjohi, I am the founder of Nestri
                         </Text>
                         <Text className="text-base">
-                            I saw you recently got early access to Nestri and I wanted to reach out and say hi!
+                            I saw you recently signed up to the Nestri waitlist and I wanted to reach out and say hi!
                         </Text>
                         <Text className="text-base">
-                            We've been working on Nestri for a few months now, and we've completed the basic functionality required to get started.
+                            If you haven't already, let us get to know you better by joining our&nbsp;<Link style={{ textDecoration: "underline" }} href="https://discord.com/invite/Y6etn3qKZ3" className="underline underline-offset-2 text-[#0a0a0ab3] dark:text-[#fafafab3]">Discord server</Link>&nbsp;and posting in&nbsp;<strong className="text-base font-title font-semibold">#introduce-yourself</strong>&nbsp;and you just might get an invite ;)
                         </Text>
                         <Text className="text-base">
-                            During our <strong>Alpha</strong> phase, you may encounter bugs or find that some features you want are missing - and we would
-                            genuinely want to hear your feedback
-                        </Text>
-                        <Text className="text-base">
-                            Should you have any questions or comments, please don't hesitate to reply directly to this email or&nbsp;<Link style={{ textDecoration: "underline" }} href="https://cal.com/wanjohi/15min" className="underline underline-offset-2 text-[#0a0a0ab3] dark:text-[#fafafab3]">
-                            schedule a 15 minute call with me
-                            </Link>
-                        </Text>
-                        <Text className="text-base">
-                            Thank you for your support and am hoping to hear all about your Nestri experience soon
+                            Thank you for your support and am hoping to see you in the Nestri Discord server soon
                         </Text>
                         <Text className="text-base">
                             Bravo Six Going Dark,
-                            <br/>
+                            <br />
                             <span className="line-through">Wanjohi Ryan</span>
                         </Text>
                         <Hr className="my-2" />
