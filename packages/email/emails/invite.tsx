@@ -21,10 +21,12 @@ const baseUrl =
 
 export default function Invite({
     name = "Wanjohi",
-    inviteCode = "23476"
+    inviteCode = "23476",
+    login = true
 }: {
     name: string;
     inviteCode: string;
+    login: boolean
 }) {
     return (
         <Html lang="en" className="p-0 m-0 w-full">
@@ -94,7 +96,7 @@ export default function Invite({
                         fontStyle="normal"
                     />
                 </head>
-                <Preview>{name}, welcome to Nestri</Preview>
+                <Preview>{name}, welcome&nbsp;{login ? "back" : ""}&nbsp;to Nestri</Preview>
                 <Body className="py-8 sm:px-0 px-2 bg-[#FFF] dark:bg-[#000] text-text dark:text-text-dark font-sans">
                     <Container className="max-w-[28rem] mx-auto">
                         <Link href="https://nestri.io">
@@ -104,13 +106,13 @@ export default function Invite({
                                 src={`${baseUrl}/logo.webp`}
                                 alt="Nestri logo" />
                         </Link>
-                        <Heading className="m-0 text-text dark:text-text-dark font-title font-bold mt-8 text-2xl leading-5" >Hello&nbsp;{name}</Heading>
+                        <Heading className="m-0 text-text dark:text-text-dark font-title font-bold mt-8 text-2xl leading-5" >Hello&nbsp;{name}&nbsp;👋🏾</Heading>
                         <Hr className="my-4" />
                         <Text className="text-base">
-                            Welcome to Nestri!
+                            Welcome&nbsp;{login ? "back!" : "to Nestri!"}&nbsp;
                         </Text>
                         <Text className="text-base">
-                            To verify your e-mail and activate your account, enter the following code.
+                            To verify&nbsp;{!login ? "your e-mail and activate your account" : "it is really you"}, enter the following code:
                         </Text>
                         <Section className="overflow-hidden w-full">
                             <Text className="text-base py-2 px-4 rounded-lg border-[2px] border-solid border-border text-[#0a0a0ab3] dark:text-[#fafafab3] dark:border-border-dark w-max">
