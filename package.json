@@ -26,5 +26,8 @@
     "core-js-pure",
     "esbuild",
     "workerd"
-  ]
+  ],
+  "dependencies": {
+    "sst": "3.0.94"
+  }
 }
