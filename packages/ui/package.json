@@ -29,7 +29,6 @@
     "@nestri/eslint-config": "*",
     "@nestri/typescript-config": "*",
     "@nestri/core": "*",
-    "@turbo/gen": "^1.12.4",
     "@types/eslint": "^8.56.5",
     "@types/node": "^20.11.24",
     "@types/nprogress": "^0.2.3",
