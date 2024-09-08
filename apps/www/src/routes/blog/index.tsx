@@ -11,7 +11,7 @@ export default component$(() => {
             <div class="px-4 w-full flex items-center justify-center">
                 <div class="w-full max-w-xl mx-auto flex flex-col">
                     {[1, 2, 3, 4, 5].map((i) => (
-                        <Link key={i} class="border-b border-gray-300 dark:border-gray-700 outline-none w-full" href="/blog/1">
+                        <Link key={i} class="border-b border-gray-300 dark:border-gray-700 outline-none w-full" href="/blog/lorem-ipsum">
                             <div class="w-full gap-3 py-6 hover:px-2 flex relative items-center rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-all duration-200">
                                 <div class="w-max flex flex-col max-w-[60%]">
                                     <h2 class="text-lg inline-block font-title font-bold dark:text-gray-100 text-gray-800">Blog Post 1</h2>
