@@ -1,0 +1,39 @@
+.blog h1 {
+  @apply text-4xl font-title font-bold text-gray-800 dark:text-gray-200;
+}
+
+.blog h2 {
+  @apply text-3xl font-title font-bold text-gray-800 dark:text-gray-200;
+}
+
+.blog h3 {
+  @apply text-2xl font-title font-bold text-gray-800 dark:text-gray-200;
+}
+
+.blog img {
+  @apply w-full h-auto rounded-lg ring-2 ring-gray-300;
+}
+
+.blog * {
+  @apply text-base text-gray-600 dark:text-gray-400;
+}
+
+.blog strong {
+  @apply text-gray-700 dark:text-gray-300 font-title font-semibold;
+}
+
+.blog ul {
+  @apply list-disc list-inside pl-4;
+}
+
+.blog ol {
+  @apply list-decimal list-inside;
+}
+
+#toc .active {
+  @apply text-gray-900 dark:text-gray-100 transition-all duration-200;
+}
+
+#toc .active svg {
+  @apply text-gray-900 dark:text-gray-100 block transition-all duration-200;
+}

@@ -5,6 +5,6 @@
     "rootDir": ".",
     "allowImportingTsExtensions": true
   },
-  "files": [".eslintrc.js"],
+  "files": [".eslintrc.cjs"],
   "include": ["src", "./*.d.ts"]
 }

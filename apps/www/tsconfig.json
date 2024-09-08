@@ -4,7 +4,12 @@
     "allowJs": true,
     "target": "ES2017",
     "module": "ES2022",
-    "lib": ["es2022", "DOM", "WebWorker", "DOM.Iterable"],
+    "lib": [
+      "es2022",
+      "DOM",
+      "WebWorker",
+      "DOM.Iterable"
+    ],
     "jsx": "react-jsx",
     "jsxImportSource": "@builder.io/qwik",
     "strict": true,
@@ -21,6 +26,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "content-collections": [
+        "./.content-collections/generated"
       ]
     }
   },
@@ -31,6 +39,7 @@
     "src",
     "./*.d.ts",
     "./*.config.ts",
-    "./*.config.js"
+    "./*.config.js",
+    "content-collections.ts"
   ]
 }

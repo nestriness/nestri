@@ -10,7 +10,7 @@ export const GithubBanner = component$(() => {
             viewport={{ once: true }}
             transition={transition}
             client:load
-            class="flex items-center justify-center w-full py-10"
+            class="flex items-center justify-center w-full px-4 py-10"
             as="div"
         >
             <section class="w-full flex flex-col items-center justify-center">
