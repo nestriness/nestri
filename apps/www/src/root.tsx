@@ -22,8 +22,8 @@ export default component$(() => {
     <Fonts>
       <QwikCityProvider>
         <head>
-          <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
-          <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+          <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5" />
+          <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171717" />
           <meta charset="utf-8" />
           {!isDev && (
             <link

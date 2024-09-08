@@ -42,3 +42,7 @@ lerna-debug.log*
 
 # Cloudflare
 functions/**/*.js
+
+#Typescript
+*.tsbuildinfo
+tmp
