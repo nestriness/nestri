@@ -31,5 +31,9 @@
 }
 
 #toc .active {
-  @apply text-gray-900 dark:text-gray-100;
+  @apply text-gray-900 dark:text-gray-100 transition-all duration-200;
+}
+
+#toc .active svg {
+  @apply text-gray-900 dark:text-gray-100 block transition-all duration-200;
 }
