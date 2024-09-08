@@ -13,7 +13,6 @@ import {
     Tailwind,
     Text,
     Font,
-    Button
 } from "@react-email/components";
 
 const baseUrl =
