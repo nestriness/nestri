@@ -92,7 +92,7 @@ export default component$(() => {
                                         ))}
                                     </span>
                                     <span class="text-base dark:text-neutral-400 items-center flex flex-row w-full overflow-ellipsis text-neutral-600 text-nowrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 mr-1" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2M5 3L2 6m20 0l-3-3M6.38 18.7L4 21m13.64-2.33L20 21" /></g></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 mr-1" width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8m-.22-13h-.06c-.4 0-.72.32-.72.72v4.72c0 .35.18.68.49.86l4.15 2.49c.34.2.78.1.98-.24a.71.71 0 0 0-.25-.99l-3.87-2.3V7.72c0-.4-.32-.72-.72-.72"/></svg>
                                         {/* On&nbsp; */}
                                         &nbsp;
                                         {new Date(frontmatter.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
