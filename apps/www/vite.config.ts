@@ -8,8 +8,6 @@ import { qwikCity } from "@builder.io/qwik-city/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { qwikReact } from "@builder.io/qwik-react/vite";
 import pkg from "./package.json";
-// import contentCollections from "@content-collections/vite";
-import nestriMdx from "@nestri/md/vite";
 
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
@@ -29,7 +27,6 @@ export default defineConfig((): UserConfig => {
       qwikVite(),
       tsconfigPaths(),
       qwikReact(),
-      nestriMdx({ collections: [{ name: "me" }] })
     ],
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
