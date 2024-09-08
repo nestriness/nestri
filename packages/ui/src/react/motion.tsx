@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { qwikify$ } from '@builder.io/qwik-react';
 import { motion, type MotionProps } from 'framer-motion';
-import { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 interface MotionComponentProps extends MotionProps {
     as?: keyof JSX.IntrinsicElements;
@@ -27,9 +27,7 @@ export const ReactMotionComponent = ({
     const MotionTag = motion[as as keyof typeof motion] as React.ComponentType<any>;
 
     return (
-        <MotionTag
-            className={className}
-            {...(motionProps as any)}>
+        <MotionTag className={className} {...(motionProps as any)}>
             {children}
         </MotionTag>
     );
