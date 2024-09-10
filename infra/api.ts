@@ -17,6 +17,6 @@ if (!isPermanentStage) {
     })
 }
 
-export const outputs = {
-    api: api.url
-}
+// export const outputs = {
+//     api: api.url
+// }
