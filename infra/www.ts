@@ -1,5 +1,7 @@
 //Deploys the website to cloudflare pages under the domain nestri.io (redirects all requests to www.nestri.io to avoid duplicate content)
 
+import { isPermanentStage } from "./stage";
+
 export const www = new cloudflare.PagesProject("www", {
     name: "nestri",
     accountId: "8405b2acb6746935b975bc2cfcb5c288",
@@ -33,14 +35,15 @@ export const www = new cloudflare.PagesProject("www", {
 //TODO: Maybe handle building Qwik ourselves? This prevents us from relying on CF too much, we are open-source anyway 🤷🏾‍♂️
 //TODO: Add a local dev server for Qwik that can be linked with whatever we want
 //TODO: Link the www PageRule with whatever we give to the local dev server
-
-export const wwwDev = new sst.x.DevCommand("www", {
-    dev: {
-        command: "bun run dev",
-        directory: "apps/www",
-        autostart: true,
-    },
-})
+if (!isPermanentStage) {
+    new sst.x.DevCommand("www", {
+        dev: {
+            command: "bun run dev",
+            directory: "apps/www",
+            autostart: true,
+        },
+    })
+}
 
 // //This creates a resource that can be accessed by itself
 // new sst.Linkable.wrap(cloudflare.PageRule, (resource) => ({
