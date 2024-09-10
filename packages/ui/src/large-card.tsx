@@ -24,7 +24,7 @@ export const LargeCard = component$(({ game }: Props) => {
                         <div class="flex -space-x-2">
                             {[1, 2, 3, 4, 5].map((_, index) => (
                                 <div key={index} class="inline-block size-6 rounded-full ring-[3px] ring-gray-300/70 dark:ring-gray-700/70 bg-gray-700" style={{ zIndex: 5 + index }}>
-                                    <img src={`http://localhost:8787/image/avatar/avatar-${index + 1}.png`} height={32} width={32} class="rounded-full size-full" />
+                                    <img src={`https://nexus.nestri.workers.dev/image/avatar/avatar-${index + 1}.png`} height={32} width={32} class="rounded-full size-full" />
                                 </div>
                             ))}
                         </div>
