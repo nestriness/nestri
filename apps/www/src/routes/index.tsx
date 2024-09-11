@@ -107,7 +107,52 @@ export default component$(() => {
               </div>
             </span>
           </Modal.Trigger>
-
+          <Modal.Panel class="w-full max-w-xl backdrop:backdrop-blur-sm backdrop:bg-white/30 dark:backdrop:bg-black/30 bg-gray-200 dark:bg-gray-800 ring-2 backdrop-blur-sm ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
+            <div class="p-4 gap-2 items-center justify-between flex">
+              <div class="relative box-border" >
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
+              </div>
+              <input type="text" class="w-full max-w-[50%] mx-auto whitespace-nowrap outline-none flex-grow text-sm text-[16px] bg-transparent placeholder:text-gray-400 dark:placeholder:text-gray-600" placeholder="Search for a game to play..." />
+              <Modal.Close class="relative box-border rounded-full outline-none focus:ring-primary-500 hover:ring-primary-500 focus:ring-2 hover:ring-2 transition-all duration-200" >
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5" /><path fill="currentColor" d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 0 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06" /></svg>
+              </Modal.Close>
+            </div>
+            <div class="h-max py-8 w-full px-4 flex flex-col">
+              <div class="flex w-full grow flex-col items-center text-center justify-center gap-2 h-full text-sm font-medium">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  version="1.1"
+                  class="text-gray-600 dark:text-gray-400 size-10 mb-1"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <g
+                    id="layer1">
+                    <path
+                      d="M 2.2673611,5.0942341 H 21.732639 V 6.1658185 H 2.2673611 Z m 0,6.3699749 H 21.732639 v 1.071583 H 2.2673611 Z m 0,6.369972 H 21.732639 v 1.071585 H 2.2673611 Z"
+                      style="font-size:12px;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:currentColor;stroke-width:3.72245;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1" />
+                  </g>
+                </svg>
+                <span class="text-gray-600 dark:text-gray-400 text-lg font-title font-medium">
+                  This is not implemented yet
+                </span>
+                <span class="text-gray-600/70 dark:text-gray-400/70 text-sm">
+                  Try logging in to Steam to see if we can find your game
+                </span>
+                <button class="bg-gray-300 outline-none mt-1 focus:ring-primary-500 hover:ring-primary-500 font-title dark:bg-gray-700 ring-2 ring-gray-400 dark:ring-gray-600 hover:bg-gray-400/70 dark:hover:bg-gray-600/70 transition-all duration-200 py-1 px-2 text-gray-950/70 dark:text-gray-50/70 rounded-lg text-sm">
+                  Log in to Steam
+                </button>
+              </div>
+            </div>
+            <footer class="flex items-center justify-between gap-2 w-full border-t-2 border-gray-300 dark:border-gray-700 pt-4 px-4 pb-4 min-h-[45px]">
+              <div class="text-sm text-gray-700/70 dark:text-gray-300/70 py-1 px-2 rounded-md">
+                0 games indexed
+              </div>
+              <div class="text-xs text-gray-700/70 dark:text-gray-300/70 bg-white/10 ring-1 ring-gray-400 dark:ring-gray-600 dark:bg-black/10 py-1 px-2 rounded-md">
+                ALPHA V1
+              </div>
+            </footer>
+          </Modal.Panel>
         </Modal.Root>
       </HeroSection>
       <MotionComponent
