@@ -1,11 +1,11 @@
-import { type FocusTrap, createFocusTrap } from 'focus-trap';
 import { $ } from '@builder.io/qwik';
+import { type FocusTrap, createFocusTrap } from 'focus-trap';
+import { enableBodyScroll, disableBodyScroll } from 'body-scroll-lock-upgrade';
 
 export type WidthState = {
   width: number | null;
 };
 
-import { enableBodyScroll, disableBodyScroll } from 'body-scroll-lock-upgrade';
 
 export function useModal() {
   /**
