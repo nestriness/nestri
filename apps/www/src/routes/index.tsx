@@ -107,7 +107,7 @@ export default component$(() => {
               </div>
             </span>
           </Modal.Trigger>
-          <Modal.Panel class="w-full max-w-xl backdrop:backdrop-blur-sm backdrop:bg-white/30 dark:backdrop:bg-black/30 bg-gray-200 dark:bg-gray-800 ring-2 backdrop-blur-sm ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
+          <Modal.Panel class="w-full max-w-xl backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
             <div class="p-4 gap-2 items-center justify-between flex">
               <div class="relative box-border" >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
@@ -144,7 +144,7 @@ export default component$(() => {
                 </button>
               </div>
             </div>
-            <footer class="flex items-center justify-between gap-2 w-full border-t-2 border-gray-300 dark:border-gray-700 pt-4 px-4 pb-4 min-h-[45px]">
+            <footer class="flex items-center bg-gray-100 dark:bg-gray-900 backdrop-blur-md justify-between gap-2 w-full border-t-2 border-gray-300 dark:border-gray-700 pt-4 px-4 pb-4 min-h-[45px]">
               <div class="text-sm text-gray-700/70 dark:text-gray-300/70 py-1 px-2 rounded-md">
                 0 games indexed
               </div>
