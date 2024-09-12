@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { HomeNavBar, Card, LargeCard } from "@nestri/ui";
+import { HomeNavBar, Card, LargeCard, Portal } from "@nestri/ui";
 
 function getGreeting(): string {
     const hour = new Date().getHours();
@@ -13,6 +13,9 @@ export default component$(() => {
         <>
             <HomeNavBar />
             <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
+                <Portal />
+            </section>
+            <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
                 <div class="flex flex-col gap-4 mx-auto max-w-2xl w-full">
                     <h1 class="text-5xl font-bold font-title">{getGreeting()},&nbsp;<span>Wanjohi</span></h1>
                     <p class="dark:text-gray-50/70 text-gray-950/70 text-xl">What will you play today?</p>
@@ -23,66 +26,48 @@ export default component$(() => {
                     <li class="col-span-full">
                         <LargeCard
                             game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
-                                name: 'The Lord of the Rings: Return to Moria™',
-                                id: 2933130,
-                                // teams: 10
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
-                                name: 'The Lord of the Rings: Return to Moria™',
-                                id: 2933130,
-                                // teams: 10
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
                                 name: 'Control Ultimate Edition',
-                                id: 870780,
-                                // teams: 10
+                                id: 870780
                             }}
                         />
                     </li>
                     <li>
                         <Card
                             game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
+                                name: 'Black Myth: Wukong',
+                                id: 2358720,
+                            }}
+                        />
+                    </li>
+                    <li>
+                        <Card
+                            game={{
+                                name: 'The Lord of the Rings: Return to Moria™',
+                                id: 2933130,
+                            }}
+                        />
+                    </li>
+                    <li>
+                        <Card
+                            game={{
                                 name: 'Grand Theft Auto V',
                                 id: 271590,
-                                // teams: 10
                             }}
                         />
                     </li>
                     <li>
                         <Card
                             game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
                                 name: 'Apex Legends',
                                 id: 1172470,
-                                // teams: 10
                             }}
                         />
                     </li>
                     <li>
                         <Card
                             game={{
-                                // release_date: 1478710740000,
-                                // compatibility: 'playable',
                                 name: "Tom Clancy's Rainbow Six Siege",
                                 id: 359550,
-                                // teams: 10
                             }}
                         />
                     </li>

@@ -8,7 +8,6 @@ type Props = {
 }
 
 export const LargeCard = component$(({ game }: Props) => {
-    // const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/library_600x900_2x.jpg`;
     const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/header.jpg`;
 
     return (

@@ -18,7 +18,7 @@ export const Card = component$(({ game }: Props) => {
                     <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
                 </div>
             </header>
-            <section class="flex justify-center items-center w-full py-7">
+            <section class="flex justify-center items-center w-full pb-7">
                 <img
                     src={imageUrl}
                     class="rounded-2xl ring-2 aspect-[2/3] w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"

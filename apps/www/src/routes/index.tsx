@@ -139,7 +139,7 @@ export default component$(() => {
                 <span class="text-gray-600/70 dark:text-gray-400/70 text-sm">
                   Try logging in to Steam to see if we can find your game
                 </span>
-                <button class="bg-gray-300 outline-none mt-1 focus:ring-primary-500 hover:ring-primary-500 font-title dark:bg-gray-700 ring-2 ring-gray-400 dark:ring-gray-600 hover:bg-gray-400/70 dark:hover:bg-gray-600/70 transition-all duration-200 py-1 px-2 text-gray-950/70 dark:text-gray-50/70 rounded-lg text-sm">
+                <button class="bg-gray-300 hover:scale-110 focus:scale-110 outline-none mt-1 focus:ring-primary-500 hover:ring-primary-500 font-title dark:bg-gray-700 ring-2 ring-gray-400 dark:ring-gray-600 hover:bg-gray-400/70 dark:hover:bg-gray-600/70 transition-all duration-200 py-1 px-2 text-gray-950/70 dark:text-gray-50/70 rounded-lg text-sm">
                   Log in to Steam
                 </button>
               </div>
