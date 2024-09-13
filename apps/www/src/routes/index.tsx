@@ -1,7 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
-import { HeroSection, Cursor,  MotionComponent, transition } from "@nestri/ui/react"
-import { NavBar, Footer } from "@nestri/ui"
+import { HeroSection, Cursor, MotionComponent, transition } from "@nestri/ui/react"
+import { NavBar, Footer, Modal } from "@nestri/ui"
 import { BasicImageLoader } from "@nestri/ui/image";
 
 const features = [
@@ -90,22 +90,70 @@ export default component$(() => {
     <>
       <NavBar />
       <HeroSection client:load>
-        <button class="w-full max-w-xl rounded-xl flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-800 transition-all gap-2 px-4 py-3 h-[45px] ring-2 ring-gray-300 dark:ring-gray-700 mx-auto text-gray-900/70 dark:text-gray-100/70 bg-white dark:bg-black">
-          <span class="flex items-center gap-3 h-max justify-center overflow-hidden overflow-ellipsis whitespace-nowrap">
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-[18] flex-shrink-0" height="18" width="18" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
-            Search for a game to play...
-          </span>
-          <span class="flex items-center gap-2">
-            <div class="flex items-center gap-2 text-base font-title font-bold">
-              <kbd class="ring-2 ring-gray-300 dark:ring-gray-700 px-2 py-1 rounded-md">
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 flex-shrink-0" width="20" height="20" viewBox="0 0 256 256"><path fill="currentColor" d="M180 144h-20v-32h20a36 36 0 1 0-36-36v20h-32V76a36 36 0 1 0-36 36h20v32H76a36 36 0 1 0 36 36v-20h32v20a36 36 0 1 0 36-36m-20-68a20 20 0 1 1 20 20h-20ZM56 76a20 20 0 0 1 40 0v20H76a20 20 0 0 1-20-20m40 104a20 20 0 1 1-20-20h20Zm16-68h32v32h-32Zm68 88a20 20 0 0 1-20-20v-20h20a20 20 0 0 1 0 40" /></svg>
-              </kbd>
-              <span class="px-2 py-0.5 rounded-md ring-2 ring-gray-300 dark:ring-gray-700">
-                K
-              </span>
+        <Modal.Root class="w-full">
+          <Modal.Trigger class="w-full max-w-xl focus:ring-primary-500 duration-200 outline-none rounded-xl flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-800 transition-all gap-2 px-4 py-3 h-[45px] ring-2 ring-gray-300 dark:ring-gray-700 mx-auto text-gray-900/70 dark:text-gray-100/70 bg-white dark:bg-black">
+            <span class="flex items-center gap-3 h-max justify-center overflow-hidden overflow-ellipsis whitespace-nowrap">
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-[18] flex-shrink-0" height="18" width="18" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
+              Search for a game to play...
+            </span>
+            <span class="flex items-center gap-2">
+              <div class="flex items-center gap-2 text-base font-title font-bold">
+                <kbd class="ring-2 ring-gray-300 dark:ring-gray-700 px-2 py-1 rounded-md">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="size-5 flex-shrink-0" width="20" height="20" viewBox="0 0 256 256"><path fill="currentColor" d="M180 144h-20v-32h20a36 36 0 1 0-36-36v20h-32V76a36 36 0 1 0-36 36h20v32H76a36 36 0 1 0 36 36v-20h32v20a36 36 0 1 0 36-36m-20-68a20 20 0 1 1 20 20h-20ZM56 76a20 20 0 0 1 40 0v20H76a20 20 0 0 1-20-20m40 104a20 20 0 1 1-20-20h20Zm16-68h32v32h-32Zm68 88a20 20 0 0 1-20-20v-20h20a20 20 0 0 1 0 40" /></svg>
+                </kbd>
+                <span class="px-2 py-0.5 rounded-md ring-2 ring-gray-300 dark:ring-gray-700">
+                  K
+                </span>
+              </div>
+            </span>
+          </Modal.Trigger>
+          <Modal.Panel class="w-full max-w-xl backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
+            <div class="p-4 gap-2 items-center justify-between flex">
+              <div class="relative box-border" >
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
+              </div>
+              <input type="text" class="w-full max-w-[50%] mx-auto whitespace-nowrap outline-none flex-grow text-sm text-[16px] bg-transparent placeholder:text-gray-400 dark:placeholder:text-gray-600" placeholder="Search for a game to play..." />
+              <Modal.Close class="relative box-border rounded-full outline-none focus:ring-primary-500 hover:ring-primary-500 focus:ring-2 hover:ring-2 transition-all duration-200" >
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5" /><path fill="currentColor" d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 0 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06" /></svg>
+              </Modal.Close>
             </div>
-          </span>
-        </button>
+            <div class="h-max py-8 w-full px-4 flex flex-col">
+              <div class="flex w-full grow flex-col items-center text-center justify-center gap-2 h-full text-sm font-medium">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  version="1.1"
+                  class="text-gray-600 dark:text-gray-400 size-10 mb-1"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <g
+                    id="layer1">
+                    <path
+                      d="M 2.2673611,5.0942341 H 21.732639 V 6.1658185 H 2.2673611 Z m 0,6.3699749 H 21.732639 v 1.071583 H 2.2673611 Z m 0,6.369972 H 21.732639 v 1.071585 H 2.2673611 Z"
+                      style="font-size:12px;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:currentColor;stroke-width:3.72245;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1" />
+                  </g>
+                </svg>
+                <span class="text-gray-600 dark:text-gray-400 text-lg font-title font-medium">
+                  This is not implemented yet
+                </span>
+                <span class="text-gray-600/70 dark:text-gray-400/70 text-sm">
+                  Try logging in to Steam to see if we can find your game
+                </span>
+                <button class="bg-gray-300 hover:scale-110 focus:scale-110 outline-none mt-1 focus:ring-primary-500 hover:ring-primary-500 font-title dark:bg-gray-700 ring-2 ring-gray-400 dark:ring-gray-600 hover:bg-gray-400/70 dark:hover:bg-gray-600/70 transition-all duration-200 py-1 px-2 text-gray-950/70 dark:text-gray-50/70 rounded-lg text-sm">
+                  Log in to Steam
+                </button>
+              </div>
+            </div>
+            <footer class="flex items-center bg-gray-100 dark:bg-gray-900 backdrop-blur-md justify-between gap-2 w-full border-t-2 border-gray-300 dark:border-gray-700 pt-4 px-4 pb-4 min-h-[45px]">
+              <div class="text-sm text-gray-700/70 dark:text-gray-300/70 py-1 px-2 rounded-md">
+                0 games indexed
+              </div>
+              <div class="text-xs text-gray-700/70 dark:text-gray-300/70 bg-white/10 ring-1 ring-gray-400 dark:ring-gray-600 dark:bg-black/10 py-1 px-2 rounded-md">
+                ALPHA V1
+              </div>
+            </footer>
+          </Modal.Panel>
+        </Modal.Root>
       </HeroSection>
       <MotionComponent
         initial={{ opacity: 0, y: 100 }}

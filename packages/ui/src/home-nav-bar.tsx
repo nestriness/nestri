@@ -30,13 +30,13 @@ export const HomeNavBar = component$(() => {
             <div class="relative flex items-center">
                 <hr class="w-[1px] h-7 bg-neutral-700 dark:bg-neutral-300 mx-3 rotate-[16deg]" />
                 <button class="rounded-full outline-none focus:ring-primary-500 focus:ring-2 transition-all flex items-center duration-200 px-3 h-8 gap-2 select-none cursor-pointer hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70" >
-                    <img src="http://localhost:8787/image/avatar/the-avengers.png" height={16} width={16} class="size-4 rounded-full" alt="Avatar" />
+                    <img src="https://nexus.nestri.workers.dev/image/avatar/the-avengers.png" height={16} width={16} class="size-4 rounded-full" alt="Avatar" />
                     <p class="whitespace-nowrap [text-overflow:ellipsis] overflow-hidden max-w-[20ch]">The Avengers</p>
                     <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 21 21"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m7.5 8.5l3-3l3 3m-6 5l3 3l3-3" /></svg>
                 </button>
             </div>
             <button class="ml-auto focus:ring-primary-500 focus:ring-2 outline-none rounded-full transition-all flex items-center duration-200 px-3 h-8 gap-1 select-none cursor-pointer hover:bg-gray-300/70 dark:hover:bg-gray-700/70" >
-                <img src="http://localhost:8787/image/avatar/wanjohi.png" height={16} width={16} class="size-4 rounded-full" alt="Avatar" />
+                <img src="https://nexus.nestri.workers.dev/image/avatar/wanjohi.png" height={16} width={16} class="size-4 rounded-full" alt="Avatar" />
                 <p class="whitespace-nowrap [text-overflow:ellipsis] overflow-hidden max-w-[20ch]">Wanjohi</p>
                 <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 21 21"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m7.5 8.5l3-3l3 3m-6 5l3 3l3-3" /></svg>
             </button>

@@ -38,7 +38,7 @@ export default component$(() => {
           lang="en">
           <RouterOutlet />
           {/* {!isDev && <ServiceWorkerRegister />} */}
-          <ServiceWorkerRegister />
+          <ServiceWorkerRegister /> 
         </body>
       </QwikCityProvider>
     </Fonts>
