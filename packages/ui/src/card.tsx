@@ -95,14 +95,14 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                     </Modal.Trigger>
                 ) : (
                 <Modal.Trigger
-                    class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}
+                    class={"aspect-[2/3] bg-white relative hover:ring-primary-500 focus:ring-primary-500 dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 focus:!rotate-0 hover:scale-[1.17] focus:!scale-[1.17] hover:!z-10 focus:!z-10 outline-none shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}
                     {...props}
                 >
                     <BasicImageLoader width={600} height={900} src={imageUrl} alt={game.name} />
                 </Modal.Trigger>
             )}
             <Modal.Panel
-                class="w-full overflow-hidden max-w-3xl h-full max-h-[396px] aspect-[1536/496] backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:to-gray-900 after:fixed after:left-0 after:bottom-0 after:z-10 after:backdrop-blur-sm after:h-[200px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
+                class="sm:w-full w-[calc(100%-1rem)] overflow-hidden max-w-3xl h-full max-h-[396px] aspect-[1536/496] backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:to-gray-900 after:fixed after:left-0 after:bottom-0 after:z-10 after:backdrop-blur-sm after:h-[200px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
                 <div
                     style={{
                         '--before-url': `url('${modalUrl}')`,
@@ -111,7 +111,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                         '--after-height': `${titleHeight}%`
                     }}
                     class={cn(
-                        "w-full h-full relative flex",
+                        "w-full mx-auto h-full relative flex",
                         "before:absolute before:left-0 before:top-0 before:w-full before:animate-zoom-out before:h-full before:bg-cover before:bg-center before:bg-no-repeat before:bg-[url:var(--before-url)]",
                         "after:absolute after:w-[var(--after-width)] after:bg-contain after:h-[var(--after-height)] after:left-0 after:m-auto after:right-0 after:bottom-0 after:top-0 after:bg-center after:bg-no-repeat after:bg-[url:var(--title-url)]"
                     )} />

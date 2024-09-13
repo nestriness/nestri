@@ -111,7 +111,7 @@ export default component$(() => {
               </div>
             </span>
           </Modal.Trigger>
-          <Modal.Panel class="w-full max-w-xl backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
+          <Modal.Panel class="sm:w-full w-[calc(100%-1rem)] max-w-xl backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-300 dark:ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100">
             <div class="p-4 gap-2 items-center justify-between flex">
               <div class="relative box-border" >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-gray-500" width="20" height="20" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11.5" cy="11.5" r="9.5" /><path stroke-linecap="round" d="M18.5 18.5L22 22" /></g></svg>
@@ -193,7 +193,7 @@ export default component$(() => {
                     zIndex: 1 + index,
                     transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
                   }}
-                  class="aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"
+                  class="aspect-[2/3] outline-none focus:ring-primary-500 hover:ring-primary-500 bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"
                   onClick$={() => {
                     console.log('clicked')
                   }}
@@ -206,23 +206,6 @@ export default component$(() => {
                   </div>
                 </button>
               )
-
-              // <Link
-              //   key={game.title}
-              //   href={game.link}
-              //   style={{
-              //     zIndex: 1 + index,
-              //     transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
-              //   }}
-              //   class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}>
-              //   { <BasicImageLoader width={600} height={900} src={game.image} alt={game.title} /> :
-              //     <div class="w-full text-gray-900 dark:text-gray-100 h-full flex flex-col px-3 text-center gap-3 items-center justify-center">
-              //       <p>Can't find your game here?</p>
-              //       <span class="text-gray-800 dark:text-gray-200 underline text-sm">
-              //         Import from Steam
-              //       </span>
-              //     </div>}
-              // </Link>
             ))}
           </div>
         </section>
