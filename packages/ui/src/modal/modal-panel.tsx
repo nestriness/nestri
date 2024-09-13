@@ -111,6 +111,7 @@ export const HModalPanel = component$((props: PropsOf<'dialog'>) => {
       data-closed={!context.showSig.value && ''}
       role={context.alert === true ? 'alertdialog' : 'dialog'}
       ref={panelRef}
+      // key={renderKey.value}
       onKeyDown$={[handleKeyDownSync$, handleKeyDown$, props.onKeyDown$]}
       onClick$={async (e) => {
         e.stopPropagation();

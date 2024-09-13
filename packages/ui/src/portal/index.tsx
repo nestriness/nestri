@@ -1,6 +1,9 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import portal from "./play";
 
+//TODO: Fix the portal animation does not restart when a new element renders it. What i mean is, if you click one games, then quit, then click on another, the animation won't show.
+//FIXME: I dunno why the animation is not showing on the second game.
+
 // interface PortalProps {
 //     onComplete$: QRL<() => void>;
 // }

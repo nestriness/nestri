@@ -118,6 +118,14 @@ export default {
           "100%": {
             transform: "translateX(-50%)"
           }
+        },
+        "zoom-out": {
+          "0%": {
+            transform: "scale(1.2)"
+          },
+          "100%": {
+            transform: "scale(1)"
+          }
         }
       },
       animation: {
@@ -125,7 +133,8 @@ export default {
         "fade-up": "fade-up 0.5s",
         "fade-down": "fade-down 0.5s",
         "shake": "shake 0.075s 8",
-        "multicolor": "multicolor 5s linear 0s infinite"
+        "multicolor": "multicolor 5s linear 0s infinite",
+        "zoom-out": "zoom-out 5s ease-out"
       },
     },
     plugins: []
