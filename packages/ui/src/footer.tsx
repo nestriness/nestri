@@ -4,10 +4,6 @@ import { Link } from "@builder.io/qwik-city";
 import { MotionComponent, transition } from "@nestri/ui/react"
 import { GithubBanner } from "./github-banner";
 
-{/* 
-
-
- */}
 const socialMedia = [
   {
     link: "https://github.com/nestriness/nestri",

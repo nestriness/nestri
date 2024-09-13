@@ -1,18 +1,21 @@
-import { $, component$, useVisibleTask$ } from "@builder.io/qwik";
+import { $, component$, type PropsOf, useVisibleTask$ } from "@builder.io/qwik";
 import { Modal, Portal } from "@nestri/ui";
 import { cn } from "@nestri/ui/design"
+import { BasicImageLoader } from "./image";
 
-type Props = {
+interface Props extends PropsOf<"button"> {
     game: {
         name: string;
         id: number;
     },
-    size: "small" | "large";
+    size: "xs" | "small" | "large";
     titleWidth: number;
     titleHeight: number;
 }
 
-export const Card = component$(({ titleWidth, titleHeight, game, size }: Props) => {
+//TODO: Show gradient animation while image loads
+
+export const Card = component$(({ titleWidth, titleHeight, game, size, ...props }: Props) => {
 
     const modalUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/library_hero.jpg`;
     const imageUrl = size == "large" ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/header.jpg` : `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.id}/library_600x900_2x.jpg`;
@@ -31,14 +34,14 @@ export const Card = component$(({ titleWidth, titleHeight, game, size }: Props) 
     // eslint-disable-next-line qwik/no-use-visible-task
     useVisibleTask$(async () => {
         await loadModalImages();
-        // imagesLoaded.value = true;
     });
 
     return (
         <Modal.Root class="w-full">
             {size === "large" ? (
                 <Modal.Trigger
-                    class="min-w-[250px] h-[350px] lg:flex-row flex-col group overflow-hidden hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex transition-all gap-2 px-4 py-3 ring-[3px] ring-gray-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70">
+                    class="min-w-[250px] h-[350px] lg:flex-row flex-col group overflow-hidden hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex transition-all gap-2 px-4 py-3 ring-[3px] ring-gray-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70"
+                    {...props}>
                     <header class="flex gap-4 lg:w-1/3 h-full w-full justify-between p-4">
                         <div class="flex flex-col gap-4 text-left h-full justify-between relative overflow-hidden p-4" >
                             <div class="flex flex-col gap-2">
@@ -49,7 +52,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size }: Props) 
                                 <div class="flex -space-x-2">
                                     {[1, 2, 3, 4, 5].map((_, index) => (
                                         <div key={index} class="inline-block size-6 rounded-full ring-[3px] ring-gray-300/70 dark:ring-gray-700/70 bg-gray-700" style={{ zIndex: 5 + index }}>
-                                            <img src={`https://nexus.nestri.workers.dev/image/avatar/avatar-${index + 1}.png`} height={32} width={32} class="rounded-full size-full" />
+                                            <BasicImageLoader class="rounded-full size-full" width={24} height={24} src={`https://nexus.nestri.workers.dev/image/avatar/avatar-${index + 1}.png`} alt={`avatar-${index + 1}`} />
                                         </div>
                                     ))}
                                 </div>
@@ -63,31 +66,39 @@ export const Card = component$(({ titleWidth, titleHeight, game, size }: Props) 
                         </div>
                     </header>
                     <section class="flex justify-center lg:left-1/3 lg:absolute relative items-center lg:w-3/4 w-full lg:top-10 lg:right-0">
-                        <img
-                            src={imageUrl}
+                        <BasicImageLoader
                             class="lg:rounded-tr-none rounded-t-xl lg:m-0 mx-4 ring-2 aspect-[92/43] w-full ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"
                             width={250}
                             height={400}
-                            alt={game.name}
-                        />
-                    </section>
-                </Modal.Trigger>) : (
-                <Modal.Trigger
-                    class="min-w-[250px] group hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex flex-col ring-gray-800/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70">
-                    <header class="flex gap-4 max-w-full justify-between p-4">
-                        <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
-                            <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
-                        </div>
-                    </header>
-                    <section class="flex justify-center items-center w-full pb-7">
-                        <img
                             src={imageUrl}
-                            class="rounded-2xl ring-2 aspect-[2/3] w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"
-                            width={250}
-                            height={200}
                             alt={game.name}
                         />
                     </section>
+                </Modal.Trigger>) : size == "small" ? (
+                    <Modal.Trigger
+                        class="min-w-[250px] group hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex flex-col ring-gray-800/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70"
+                        {...props}>
+                        <header class="flex gap-4 max-w-full justify-between p-4">
+                            <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
+                                <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
+                            </div>
+                        </header>
+                        <section class="flex justify-center items-center w-full pb-7">
+                            <BasicImageLoader
+                                class="rounded-2xl ring-2 aspect-[2/3] w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"
+                                width={230}
+                                height={345}
+                                src={imageUrl}
+                                alt={game.name}
+                            />
+                        </section>
+                    </Modal.Trigger>
+                ) : (
+                <Modal.Trigger
+                    class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}
+                    {...props}
+                >
+                    <BasicImageLoader width={600} height={900} src={imageUrl} alt={game.name} />
                 </Modal.Trigger>
             )}
             <Modal.Panel

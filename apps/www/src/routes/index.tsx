@@ -1,8 +1,7 @@
 import { component$ } from "@builder.io/qwik";
-import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { type DocumentHead } from "@builder.io/qwik-city";
 import { HeroSection, Cursor, MotionComponent, transition } from "@nestri/ui/react"
-import { NavBar, Footer, Modal } from "@nestri/ui"
-import { BasicImageLoader } from "@nestri/ui/image";
+import { NavBar, Footer, Modal, Card } from "@nestri/ui"
 
 const features = [
   {
@@ -50,32 +49,37 @@ const games = [
   {
     title: "Apex Legends",
     rotate: -5,
-    image: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1172470/library_600x900_2x.jpg",
-    link: "/games/apex-legends"
+    titleWidth: 31.65,
+    titleHeight: 82.87,
+    id: 1172470,
   },
   {
     title: "Control Ultimate Edition",
     rotate: 3,
-    image: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/870780/library_600x900_2x.jpg",
-    link: "/games/control-ultimate-edition"
+    titleWidth: 55.61,
+    titleHeight: 100,
+    id: 870780,
   },
   {
     title: "Black Myth: Wukong",
     rotate: -3,
-    image: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/2358720/library_600x900_2x.jpg",
-    link: "/games/black-myth-wukong"
+    titleWidth: 56.30,
+    titleHeight: 69.79,
+    id: 2358720,
   },
   {
     title: "Shell Runner - Prelude",
     rotate: 2,
-    image: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/2581970/library_600x900_2x.jpg",
-    link: "/games/shell-runner-prelude"
+    id: 2581970,
+    titleWidth: 72.64,
+    titleHeight: 91.26,
   },
   {
     title: "Counter-Strike 2",
     rotate: -5,
-    image: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/730/library_600x900_2x.jpg",
-    link: "/games/counter-strike-2"
+    id: 730,
+    titleWidth: 50.51,
+    titleHeight: 99.65,
   },
   {
     title: "Add from Steam",
@@ -167,22 +171,58 @@ export default component$(() => {
         <section class="relative py-10 flex-col w-full overflow-hidden">
           <div class="grid grid-cols-3 -mx-5 max-w-7xl md:grid-cols-6 lg:mx-auto">
             {games.map((game, index) => (
-              <Link
-                key={game.title}
-                href={game.link}
-                style={{
-                  zIndex: 1 + index,
-                  transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
-                }}
-                class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}>
-                {game.image ? <BasicImageLoader width={600} height={900} src={game.image} alt={game.title} /> :
+              game.titleWidth ? (
+                <Card
+                  key={game.title}
+                  style={{
+                    zIndex: 1 + index,
+                    transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
+                  }}
+                  size="xs"
+                  titleWidth={game.titleWidth}
+                  titleHeight={game.titleHeight}
+                  game={{
+                    name: game.title,
+                    id: game.id,
+                  }}
+                />
+              ) : (
+                <button
+                  key={game.title}
+                  style={{
+                    zIndex: 1 + index,
+                    transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
+                  }}
+                  class="aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"
+                  onClick$={() => {
+                    console.log('clicked')
+                  }}
+                >
                   <div class="w-full text-gray-900 dark:text-gray-100 h-full flex flex-col px-3 text-center gap-3 items-center justify-center">
                     <p>Can't find your game here?</p>
                     <span class="text-gray-800 dark:text-gray-200 underline text-sm">
                       Import from Steam
                     </span>
-                  </div>}
-              </Link>
+                  </div>
+                </button>
+              )
+
+              // <Link
+              //   key={game.title}
+              //   href={game.link}
+              //   style={{
+              //     zIndex: 1 + index,
+              //     transform: game.rotate ? `rotate(${game.rotate}deg)` : undefined,
+              //   }}
+              //   class={"aspect-[2/3] bg-white dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 hover:scale-[1.17] hover:!z-10 shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}>
+              //   { <BasicImageLoader width={600} height={900} src={game.image} alt={game.title} /> :
+              //     <div class="w-full text-gray-900 dark:text-gray-100 h-full flex flex-col px-3 text-center gap-3 items-center justify-center">
+              //       <p>Can't find your game here?</p>
+              //       <span class="text-gray-800 dark:text-gray-200 underline text-sm">
+              //         Import from Steam
+              //       </span>
+              //     </div>}
+              // </Link>
             ))}
           </div>
         </section>
