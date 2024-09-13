@@ -84,8 +84,8 @@ export const Footer = component$(() => {
             <div class="flex flex-col gap-2">
               <h2 class="font-title text-sm font-bold" >Relations</h2>
               <div class="text-gray-950/50 dark:text-gray-50/50 flex flex-col gap-2" >
-                <Link href="/terms" class="text-base hover:text-gray-950 dark:hover:text-gray-50 hover:underline underline-offset-4 transition-all duration-200" >Terms of Service</Link>
                 <Link href="/privacy" class="text-base hover:text-gray-950 dark:hover:text-gray-50 hover:underline underline-offset-4 transition-all duration-200" >Privacy Policy</Link>
+                <Link href="/terms" class="text-base hover:text-gray-950 dark:hover:text-gray-50 hover:underline underline-offset-4 transition-all duration-200" >Terms of Service</Link>
                 {/**Social Media Icons with Links */}
                 <div class="flex flex-row gap-3">
                   {socialMedia.map((item) => (
