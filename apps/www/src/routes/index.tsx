@@ -42,6 +42,13 @@ const features = [
     icon: () => (
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" d="M16.5 7.5h-3" opacity=".5" /><path d="M5 5.217c0-.573 0-.86.049-1.099c.213-1.052 1.1-1.874 2.232-2.073C7.538 2 7.847 2 8.465 2c.27 0 .406 0 .536.011c.56.049 1.093.254 1.526.587c.1.078.196.167.388.344l.385.358c.571.53.857.795 1.198.972c.188.097.388.174.594.228c.377.1.78.1 1.588.1h.261c1.843 0 2.765 0 3.363.5c.055.046.108.095.157.146C19 5.802 19 6.658 19 8.369V9.8c0 2.451 0 3.677-.82 4.438c-.82.762-2.14.762-4.78.762h-2.8c-2.64 0-3.96 0-4.78-.761C5 13.477 5 12.25 5 9.8z" /><path stroke-linecap="round" d="M22 20h-8M2 20h8m2-2v-3" opacity=".5" /><circle cx="12" cy="20" r="2" /></g></svg>
     )
+  },
+  {
+    title: "Play on your own terms",
+    description: "Nestri is fully open-source, inviting you to tweak, enhance, and contribute to the platform. Self-host and cross-play with your own gaming server for ultimate privacy at no extra cost.",
+    icon: () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><circle cx="12" cy="6" r="2" fill="currentColor" /><path fill="currentColor" d="M21 14.94c0-.5-.36-.93-.85-.98c-1.88-.21-3.49-1.13-4.75-2.63l-1.34-1.6c-.38-.47-.94-.73-1.53-.73h-1.05c-.59 0-1.15.26-1.53.72l-1.34 1.6c-1.25 1.5-2.87 2.42-4.75 2.63c-.5.06-.86.49-.86.99c0 .6.53 1.07 1.13 1c2.3-.27 4.32-1.39 5.87-3.19V15l-3.76 1.5c-.65.26-1.16.83-1.23 1.53A1.79 1.79 0 0 0 6.79 20H9v-.5a2.5 2.5 0 0 1 2.5-2.5h3c.28 0 .5.22.5.5s-.22.5-.5.5h-3c-.83 0-1.5.67-1.5 1.5v.5h7.1c.85 0 1.65-.54 1.85-1.37c.21-.89-.27-1.76-1.08-2.08L14 15v-2.25c1.56 1.8 3.57 2.91 5.87 3.19c.6.06 1.13-.4 1.13-1" /></svg>
+    )
   }
 ]
 
