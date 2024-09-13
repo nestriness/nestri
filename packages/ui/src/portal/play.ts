@@ -30,252 +30,280 @@ const icon_assets = {
     }
 }
 
-let currentFrame = 0;  // Define the current frame index and animation speed
-const animationSpeed = 50; // Time in milliseconds between frames
-const buttonQueue: (() => void)[] = []; // Queue to hold the pending button calls
-let isButtonRunning = false; // Flag to track whether the button function is currently running
+export class PortalButton {
+    private canvas: HTMLCanvasElement;
+    private currentFrame: number;
+    private index: number;
+    private buttonQueue: (() => void)[];
+    private isButtonRunning: boolean;
+    private animationSpeed: number;
 
-async function button(canvas: HTMLCanvasElement, type: "intro" | "idle", loop: boolean, image: HTMLImageElement, index?: number) {
-    return new Promise<void>((resolve) => {
-        const buttonTask = () => {
-            // Get the canvas element
-            const ctx = canvas.getContext('2d');
+    constructor(canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+        this.currentFrame = 0;
+        this.index = 0;
+        this.buttonQueue = [];
+        this.isButtonRunning = false;
+        this.animationSpeed = 50;
+    }
 
-            // Load the JSON data
-            const animationData = button_assets[type].json;
+    render(type: "intro" | "idle", loop: boolean, image: HTMLImageElement, index?: number) {
+        if (index) this.index = index
+        return new Promise<void>((resolve) => {
+            const buttonTask = () => {
+                // Get the canvas element
+                const ctx = this.canvas.getContext('2d');
 
-            // Play the animation
-            const frames = animationData.frames;
-            const totalFrames = frames.length;
+                // Load the JSON data
+                const animationData = button_assets[type].json;
 
-            if (index) currentFrame = index;
+                // Play the animation
+                const frames = animationData.frames;
+                const totalFrames = frames.length;
 
-            const targetDim = 100 //target dimensions of the output image (height, width)
+                if (this.index) this.currentFrame = this.index;
 
-            // Start the animation
-            const updateFrame = () => {
+                const targetDim = 100 //target dimensions of the output image (height, width)
 
-                // Check if we have reached the last frame
-                if (!loop && currentFrame === totalFrames - 1) {
-                    // Animation has reached the last frame, stop playing
-                    isButtonRunning = false;
+                // Start the animation
+                const updateFrame = () => {
 
-                    // Resolve the Promise to indicate completion
-                    resolve();
-                    return null;
-                }
+                    // Check if we have reached the last frame
+                    if (!loop && this.currentFrame === totalFrames - 1) {
+                        // Animation has reached the last frame, stop playing
+                        this.isButtonRunning = false;
 
-                // Clear the canvas
-                ctx?.clearRect(0, 0, canvas.width, canvas.height);
+                        // Resolve the Promise to indicate completion
+                        resolve();
+                        return null;
+                    }
 
-                // Get the current frame details
-                const singleFrame = frames[currentFrame];
-                const { frame, sourceSize: ss, rotated, spriteSourceSize: sss, trimmed } = singleFrame;
+                    // Clear the canvas
+                    ctx?.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                canvas.width = targetDim;
-                canvas.height = targetDim;
-                canvas.style.borderRadius = `${ss.h / 2}px`
+                    // Get the current frame details
+                    const singleFrame = frames[this.currentFrame];
+                    const { frame, sourceSize: ss, rotated, spriteSourceSize: sss, trimmed } = singleFrame;
 
-                const newSize = {
-                    w: frame.w,
-                    h: frame.h
-                };
+                    this.canvas.width = targetDim;
+                    this.canvas.height = targetDim;
+                    this.canvas.style.borderRadius = `${ss.h / 2}px`
 
-                const newPosition = {
-                    x: 0,
-                    y: 0
-                };
+                    const newSize = {
+                        w: frame.w,
+                        h: frame.h
+                    };
 
-                if (rotated) {
-                    ctx?.save()
-                    ctx?.translate(canvas.width / 2, canvas.height / 2)
-                    ctx?.rotate(-Math.PI / 2);
-                    ctx?.translate(-canvas.height / 2, -canvas.width / 2);
-
-                    newSize.w = frame.h;
-                    newSize.h = frame.w;
-                }
-
-                if (trimmed) {
-                    newPosition.x = sss.x;
-                    newPosition.y = sss.y;
+                    const newPosition = {
+                        x: 0,
+                        y: 0
+                    };
 
                     if (rotated) {
-                        newPosition.x = canvas.height - sss.h - sss.y;
-                        newPosition.y = sss.x;
+                        ctx?.save()
+                        ctx?.translate(this.canvas.width / 2, this.canvas.height / 2)
+                        ctx?.rotate(-Math.PI / 2);
+                        ctx?.translate(-this.canvas.height / 2, -this.canvas.width / 2);
+
+                        newSize.w = frame.h;
+                        newSize.h = frame.w;
                     }
-                }
 
-                const scaleFactor = Math.min(targetDim / newSize.w, targetDim / newSize.h);
-                const scaledWidth = newSize.w * scaleFactor;
-                const scaledHeight = newSize.w * scaleFactor;
+                    if (trimmed) {
+                        newPosition.x = sss.x;
+                        newPosition.y = sss.y;
 
-                // Calculate the center position to draw the resized image
-                const x = (targetDim - scaledWidth) / 2;
-                const y = (targetDim - scaledHeight) / 2;
+                        if (rotated) {
+                            newPosition.x = this.canvas.height - sss.h - sss.y;
+                            newPosition.y = sss.x;
+                        }
+                    }
 
-                ctx?.drawImage(
-                    image,
-                    frame.x,
-                    frame.y,
-                    newSize.w,
-                    newSize.h,
-                    x,
-                    y,
-                    scaledWidth,
-                    scaledHeight
-                )
+                    const scaleFactor = Math.min(targetDim / newSize.w, targetDim / newSize.h);
+                    const scaledWidth = newSize.w * scaleFactor;
+                    const scaledHeight = newSize.w * scaleFactor;
+
+                    // Calculate the center position to draw the resized image
+                    const x = (targetDim - scaledWidth) / 2;
+                    const y = (targetDim - scaledHeight) / 2;
+
+                    ctx?.drawImage(
+                        image,
+                        frame.x,
+                        frame.y,
+                        newSize.w,
+                        newSize.h,
+                        x,
+                        y,
+                        scaledWidth,
+                        scaledHeight
+                    )
 
 
-                if (rotated) {
-                    ctx?.restore()
-                }
-                // Increment the frame index
-                currentFrame = (currentFrame + 1) % totalFrames
+                    if (rotated) {
+                        ctx?.restore()
+                    }
+                    // Increment the frame index
+                    this.currentFrame = (this.currentFrame + 1) % totalFrames
 
+                    // Schedule the next frame update
+                    setTimeout(updateFrame, this.animationSpeed);
+                };
 
-                // Schedule the next frame update
-                setTimeout(updateFrame, animationSpeed);
-            };
+                return updateFrame()
+            }
+            // Check if the button function is already running
+            if (this.isButtonRunning) {
+                // If running, add the button task to the queue
+                this.buttonQueue.push(buttonTask);
 
-            return updateFrame()
-        }
-        // Check if the button function is already running
-        if (isButtonRunning) {
-            // If running, add the button task to the queue
-            buttonQueue.push(buttonTask);
-
-        } else {
-            // If not running, set the flag and execute the button task immediately
-            isButtonRunning = true;
-            buttonTask();
-        }
-    })
+            } else {
+                // If not running, set the flag and execute the button task immediately
+                this.isButtonRunning = true;
+                buttonTask();
+            }
+        })
+    }
 }
 
-let currentIconFrame = 0;  // Define the current frame index and animation speed
-const iconQueue: (() => void)[] = []; // Queue to hold the pending button calls
-let isIconRunning = false; // Flag to track whether the button function is currently running
+export class PortalIcon {
+    private canvas: HTMLCanvasElement;
+    private currentFrame: number;
+    private index: number;
+    private iconQueue: (() => void)[];
+    private isIconRunning: boolean;
+    private animationSpeed: number;
 
-function icon(canvas: HTMLCanvasElement, type: "loop" | "intro" | "exit", loop: boolean, image: HTMLImageElement, play: boolean) {
-    return new Promise<void>((resolve) => {
-        const iconTask = () => {
-            // Get the canvas element
-            const ctx = canvas.getContext('2d');
+    constructor(canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+        this.currentFrame = 0;
+        this.index = 0;
+        this.iconQueue = [];
+        this.isIconRunning = false;
+        this.animationSpeed = 50;
+    }
 
-            // Load the JSON data
-            const animationData = icon_assets[type].json;
+    render(type: "loop" | "intro" | "exit", loop: boolean, image: HTMLImageElement, play: boolean) {
+        return new Promise<void>((resolve) => {
+            const iconTask = () => {
+                // Get the canvas element
+                const ctx = this.canvas.getContext('2d');
 
-            // Load the image
-            // const image = new Image();
-            image.src = icon_assets[type].image; // Path to the sprite sheet image
+                // Load the JSON data
+                const animationData = icon_assets[type].json;
 
-            // Play the animation
-            const frames = animationData.frames;
-            const totalFrames = frames.length;
+                // Load the image
+                // const image = new Image();
+                image.src = icon_assets[type].image; // Path to the sprite sheet image
 
-            if (!play) {
-                currentIconFrame = totalFrames - 3
-            } else { currentIconFrame = 0 }
+                // Play the animation
+                const frames = animationData.frames;
+                const totalFrames = frames.length;
 
-            // Start the animation
-            const updateFrame = () => {
-
-                // Check if we have reached the last frame
-                if (!loop && currentIconFrame === totalFrames - 1) {
-                    // Animation has reached the last frame, stop playing
-                    isIconRunning = false;
-
-                    // Resolve the Promise to indicate completion
-                    resolve();
-                    return;
-                }
-
-                // Clear the canvas
-                ctx?.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Get the current frame details
-                const singleFrame = frames[currentIconFrame];
-                const { frame, sourceSize: ss, rotated, spriteSourceSize: sss, trimmed } = singleFrame;
-
-                canvas.width = ss.w;
-                canvas.height = ss.h
-                canvas.style.borderRadius = `${ss.h / 2}px`
-
-                const newSize = {
-                    w: frame.w,
-                    h: frame.h
-                };
-
-                const newPosition = {
-                    x: 0,
-                    y: 0
-                };
-
-                if (rotated) {
-                    ctx?.save()
-                    ctx?.translate(canvas.width / 2, canvas.height / 2)
-                    ctx?.rotate(-Math.PI / 2);
-                    ctx?.translate(-canvas.height / 2, -canvas.width / 2);
-
-                    newSize.w = frame.h;
-                    newSize.h = frame.w;
-                }
-
-                if (trimmed) {
-                    newPosition.x = sss.x;
-                    newPosition.y = sss.y;
-
-                    if (rotated) {
-                        newPosition.x = canvas.height - sss.h - sss.y;
-                        newPosition.y = sss.x;
-                    }
-                }
-
-                ctx?.drawImage(
-                    image,
-                    frame.x,
-                    frame.y,
-                    newSize.w,
-                    newSize.h,
-                    newPosition.x,
-                    newPosition.y,
-                    newSize.w,
-                    newSize.h
-                )
-
-
-                if (rotated) {
-                    ctx?.restore()
-                }
-                // Increment the frame index
-                currentIconFrame = (currentIconFrame + 1) % totalFrames
-
-
-                // Schedule the next frame update
                 if (!play) {
-                    isIconRunning = false;
+                    this.currentFrame = totalFrames - 3
+                } else { this.currentFrame = 0 }
 
-                    resolve();
-                    return;
-                }
+                // Start the animation
+                const updateFrame = () => {
 
-                setTimeout(updateFrame, animationSpeed)
-            };
+                    // Check if we have reached the last frame
+                    if (!loop && this.currentFrame === totalFrames - 1) {
+                        // Animation has reached the last frame, stop playing
+                        this.isIconRunning = false;
 
-            return updateFrame();
-        }
-        // Check if the icon function is already running
-        if (isIconRunning) {
-            // If running, add the button icon to the queue
-            iconQueue.push(iconTask);
-        } else {
-            // If not running, set the flag and execute the button task immediately
-            isIconRunning = true;
-            iconTask();
-        }
-    })
+                        // Resolve the Promise to indicate completion
+                        resolve();
+                        return;
+                    }
+
+                    // Clear the canvas
+                    ctx?.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                    // Get the current frame details
+                    const singleFrame = frames[this.currentFrame];
+                    const { frame, sourceSize: ss, rotated, spriteSourceSize: sss, trimmed } = singleFrame;
+
+                    this.canvas.width = ss.w;
+                    this.canvas.height = ss.h
+                    this.canvas.style.borderRadius = `${ss.h / 2}px`
+
+                    const newSize = {
+                        w: frame.w,
+                        h: frame.h
+                    };
+
+                    const newPosition = {
+                        x: 0,
+                        y: 0
+                    };
+
+                    if (rotated) {
+                        ctx?.save()
+                        ctx?.translate(this.canvas.width / 2, this.canvas.height / 2)
+                        ctx?.rotate(-Math.PI / 2);
+                        ctx?.translate(-this.canvas.height / 2, -this.canvas.width / 2);
+
+                        newSize.w = frame.h;
+                        newSize.h = frame.w;
+                    }
+
+                    if (trimmed) {
+                        newPosition.x = sss.x;
+                        newPosition.y = sss.y;
+
+                        if (rotated) {
+                            newPosition.x = this.canvas.height - sss.h - sss.y;
+                            newPosition.y = sss.x;
+                        }
+                    }
+
+                    ctx?.drawImage(
+                        image,
+                        frame.x,
+                        frame.y,
+                        newSize.w,
+                        newSize.h,
+                        newPosition.x,
+                        newPosition.y,
+                        newSize.w,
+                        newSize.h
+                    )
+
+
+                    if (rotated) {
+                        ctx?.restore()
+                    }
+                    // Increment the frame index
+                    this.currentFrame = (this.currentFrame + 1) % totalFrames
+
+
+                    // Schedule the next frame update
+                    if (!play) {
+                        this.isIconRunning = false;
+
+                        resolve();
+                        return;
+                    }
+
+                    setTimeout(updateFrame, this.animationSpeed)
+                };
+
+                return updateFrame();
+            }
+            // Check if the icon function is already running
+            if (this.isIconRunning) {
+                // If running, add the button icon to the queue
+                this.iconQueue.push(iconTask);
+            } else {
+                // If not running, set the flag and execute the button task immediately
+                this.isIconRunning = true;
+                iconTask();
+            }
+        })
+    }
+
 }
 
-const portal = { button, icon, assets: { button_assets, icon_assets } }
+const portal = { assets: { button_assets, icon_assets } }
 export default portal;

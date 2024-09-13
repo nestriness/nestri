@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
-import portal from "./play";
+import portal, { PortalButton, PortalIcon } from "./play";
 
 //TODO: Fix the portal animation does not restart when a new element renders it. What i mean is, if you click one games, then quit, then click on another, the animation won't show.
 //FIXME: I dunno why the animation is not showing on the second game.
@@ -37,23 +37,41 @@ export default component$(() => {
     useVisibleTask$(async ({ track }) => {
         track(() => imagesLoaded.value);
 
+        // let isMounted = true;
+        // cleanup(() => {
+        //     isMounted = false;
+        //     // Reset canvas states if necessary
+        //     if (buttonRef.value) {
+        //         const ctx = buttonRef.value.getContext('2d');
+        //         ctx?.clearRect(0, 0, buttonRef.value.width, buttonRef.value.height);
+        //     }
+        //     if (iconRef.value) {
+        //         const ctx = iconRef.value.getContext('2d');
+        //         ctx?.clearRect(0, 0, iconRef.value.width, iconRef.value.height);
+        //     }
+        // });
+
         if (buttonRef.value && iconRef.value) {
             const [introImg, idleImg, exitImg, , loopImg] = await loadImages();
 
-            await portal.button(buttonRef.value, "intro", false, introImg as HTMLImageElement);
-            await portal.icon(iconRef.value, "exit", false, exitImg as HTMLImageElement, false);
-            await portal.button(buttonRef.value, "idle", true, idleImg as HTMLImageElement, 3);
+            const button = new PortalButton(buttonRef.value);
+            const icon = new PortalIcon(iconRef.value)
+            // if (!isMounted) return;
+
+            await button.render("intro", false, introImg as HTMLImageElement);
+            await icon.render("exit", false, exitImg as HTMLImageElement, false);
+            await button.render("idle", true, idleImg as HTMLImageElement, 3);
 
             // Intro and loop animation
             await Promise.all([
                 (async () => {
                     if (iconRef.value) {
-                        await portal.icon(iconRef.value, "loop", false, loopImg as HTMLImageElement, true);
-                        await portal.icon(iconRef.value, "loop", false, loopImg as HTMLImageElement, true);
-                        await portal.icon(iconRef.value, "exit", false, exitImg as HTMLImageElement, true);
+                        await icon.render("loop", false, loopImg as HTMLImageElement, true);
+                        await icon.render("loop", false, loopImg as HTMLImageElement, true);
+                        await icon.render("exit", false, exitImg as HTMLImageElement, true);
                     }
                 })(),
-                portal.button(buttonRef.value, "idle", true, idleImg as HTMLImageElement, 2),
+                button.render("idle", true, idleImg as HTMLImageElement, 2),
             ]);
         }
     });
