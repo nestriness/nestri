@@ -12,7 +12,6 @@ export default component$(() => {
     const buttonRef = useSignal<HTMLCanvasElement | undefined>();
     const iconRef = useSignal<HTMLCanvasElement | undefined>();
     const imagesLoaded = useSignal(false);
-    // const isPlaying = useSignal(false);
 
     const imageUrls = [
         portal.assets.button_assets["intro"].image,
@@ -36,20 +35,6 @@ export default component$(() => {
     // eslint-disable-next-line qwik/no-use-visible-task
     useVisibleTask$(async ({ track }) => {
         track(() => imagesLoaded.value);
-
-        // let isMounted = true;
-        // cleanup(() => {
-        //     isMounted = false;
-        //     // Reset canvas states if necessary
-        //     if (buttonRef.value) {
-        //         const ctx = buttonRef.value.getContext('2d');
-        //         ctx?.clearRect(0, 0, buttonRef.value.width, buttonRef.value.height);
-        //     }
-        //     if (iconRef.value) {
-        //         const ctx = iconRef.value.getContext('2d');
-        //         ctx?.clearRect(0, 0, iconRef.value.width, iconRef.value.height);
-        //     }
-        // });
 
         if (buttonRef.value && iconRef.value) {
             const [introImg, idleImg, exitImg, , loopImg] = await loadImages();

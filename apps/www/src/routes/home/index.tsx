@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { HomeNavBar, Card, LargeCard } from "@nestri/ui";
+import { HomeNavBar, Card } from "@nestri/ui";
 
 function getGreeting(): string {
     const hour = new Date().getHours();
@@ -21,7 +21,10 @@ export default component$(() => {
             <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
                 <ul class="gap-4 relative list-none w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:dark:to-gray-900 after:to-gray-100 after:fixed after:left-0 after:-bottom-[1px] after:z-10 after:backdrop-blur-sm after:h-[100px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.100)_50%,transparent)] after:dark:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
                     <li class="col-span-full">
-                        <LargeCard
+                        <Card
+                            size="large"
+                            titleWidth={55.61}
+                            titleHeight={100}
                             game={{
                                 name: 'Control Ultimate Edition',
                                 id: 870780
@@ -30,46 +33,56 @@ export default component$(() => {
                     </li>
                     <li>
                         <Card
+                            size="small"
+                            titleWidth={56.30}
+                            titleHeight={69.79}
                             game={{
                                 name: 'Black Myth: Wukong',
                                 id: 2358720,
-                                modalUrl: 'https://images.igdb.com/igdb/image/upload/t_720p/sc8i9c.webp',
                             }}
                         />
                     </li>
                     <li>
                         <Card
+                            size="small"
+                            titleWidth={34.09}
+                            titleHeight={98.26}
                             game={{
                                 name: 'The Lord of the Rings: Return to Moria™',
                                 id: 2933130,
-                                modalUrl: 'https://cdn.mos.cms.futurecdn.net/ttVoacfbU9TuPRMp2aZxVH-970-80.jpg.webp',
                             }}
                         />
                     </li>
                     <li>
                         <Card
+                            size="small"
+                            titleWidth={48.77}
+                            titleHeight={100}
                             game={{
                                 name: 'Grand Theft Auto V',
                                 id: 271590,
-                                modalUrl: "https://images.igdb.com/igdb/image/upload/t_720p/scocxf.webp"
                             }}
                         />
                     </li>
                     <li>
                         <Card
+                            titleWidth={31.65}
+                            titleHeight={82.87}
+                            size="small"
                             game={{
                                 name: 'Apex Legends',
                                 id: 1172470,
-                                modalUrl: "https://images.igdb.com/igdb/image/upload/t_720p/ar4zn.webp"
                             }}
                         />
                     </li>
                     <li>
                         <Card
+                            size="small"
+                            titleHeight={99.75}
+                            titleWidth={73.44}
                             game={{
                                 name: "Tom Clancy's Rainbow Six Siege",
                                 id: 359550,
-                                modalUrl: "https://images.igdb.com/igdb/image/upload/t_720p/pzdzstxdaybngxih7gwf.webp"
                             }}
                         />
                     </li>
