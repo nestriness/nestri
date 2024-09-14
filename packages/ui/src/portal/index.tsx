@@ -63,9 +63,9 @@ export default component$(() => {
 
 
     return (
-        <button class="relative rounded-full size-[100px] outline-none focus:ring-2 focus:ring-primary-500 hover:ring-2 hover:ring-primary-500 transition-all duration-200">
-            <canvas class="absolute w-full h-full left-0 top-0 bottom-0 right-0" height={100} width={100} ref={buttonRef} />
-            <canvas class="relative w-full h-full z-[5] left-0 top-0 bottom-0 right-0" height={100} width={100} ref={iconRef} />
+        <button class="relative inset-0 rounded-full size-[100px] outline-none focus:ring-2 focus:ring-primary-500 hover:ring-2 hover:ring-primary-500 transition-all duration-200">
+            <canvas class="absolute w-full h-full inset-0" height={100} width={100} ref={buttonRef} />
+            <canvas class="relative w-full h-full z-[5] inset-0" height={100} width={100} ref={iconRef} />
         </button>
     )
 })

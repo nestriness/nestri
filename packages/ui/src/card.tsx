@@ -110,7 +110,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                         '--after-height': `${titleHeight}%`
                     }}
                     class={cn(
-                        "w-full mx-auto h-full relative flex overflow-hidden",
+                        "w-full rounded-xl mx-auto inset-0 h-full relative flex overflow-hidden",
                         "before:absolute before:inset-0 before:w-full before:animate-zoom-out before:h-full before:bg-cover before:bg-center before:bg-no-repeat before:bg-[url:var(--before-url)]",
                         "after:absolute after:w-[var(--after-width)] after:bg-contain after:h-[var(--after-height)] after:left-0 after:m-auto after:right-0 after:bottom-0 after:top-0 after:bg-center after:bg-no-repeat after:bg-[url:var(--title-url)]"
                     )} />
