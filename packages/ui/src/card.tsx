@@ -3,7 +3,7 @@ import { Modal, Portal } from "@nestri/ui";
 import { cn } from "@nestri/ui/design"
 import { BasicImageLoader } from "./image";
 
-interface Props extends PropsOf<"button"> {
+interface Props extends PropsOf<"div"> {
     game: {
         name: string;
         id: number;
@@ -37,11 +37,13 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
     });
 
     return (
-        <Modal.Root class="w-full">
+        <Modal.Root
+            class="w-full"
+            {...(props as any)}>
             {size === "large" ? (
                 <Modal.Trigger
                     class="min-w-[250px] h-[350px] lg:flex-row flex-col group overflow-hidden hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex transition-all gap-2 px-4 py-3 ring-[3px] ring-gray-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70"
-                    {...props}>
+                    >
                     <header class="flex gap-4 lg:w-1/3 h-full w-full justify-between p-4">
                         <div class="flex flex-col gap-4 text-left h-full justify-between relative overflow-hidden p-4" >
                             <div class="flex flex-col gap-2">
@@ -77,7 +79,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                 </Modal.Trigger>) : size == "small" ? (
                     <Modal.Trigger
                         class="min-w-[250px] group hover:ring-primary-500 focus:ring-primary-500 outline-none cursor-pointer backdrop-blur-sm select-none w-full group rounded-[20px] duration-200 flex flex-col ring-gray-800/70 transition-all gap-2 px-4 py-3 ring-[3px] ring-neutral-200 dark:ring-gray-800 text-gray-900/70 dark:text-gray-100/70 bg-gray-200/70 dark:bg-gray-800/70"
-                        {...props}>
+                        >
                         <header class="flex gap-4 max-w-full justify-between p-4">
                             <div class="flex relative pr-[22px] overflow-hidden overflow-ellipsis whitespace-nowrap" >
                                 <h3 class="overflow-hidden overflow-ellipsis whitespace-nowrap">{game.name}</h3>
@@ -85,7 +87,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                         </header>
                         <section class="flex justify-center items-center w-full pb-7">
                             <BasicImageLoader
-                                class="rounded-2xl ring-2 aspect-[2/3] w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"
+                                class="rounded-2xl ring-2 w-full max-w-[90%] ring-gray-900/70 group-hover:scale-105 group-focus:scale-105 duration-200 transition-transform shadow-2xl shadow-gray-950"
                                 width={230}
                                 height={345}
                                 src={imageUrl}
@@ -94,11 +96,8 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                         </section>
                     </Modal.Trigger>
                 ) : (
-                <Modal.Trigger
-                    class={"aspect-[2/3] bg-white relative hover:ring-primary-500 focus:ring-primary-500 dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 focus:!rotate-0 hover:scale-[1.17] focus:!scale-[1.17] hover:!z-10 focus:!z-10 outline-none shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}
-                    {...props}
-                >
-                    <BasicImageLoader width={600} height={900} src={imageUrl} alt={game.name} />
+                <Modal.Trigger class="w-full h-full">
+                    <BasicImageLoader width={251} height={314} src={imageUrl} alt={game.name} />
                 </Modal.Trigger>
             )}
             <Modal.Panel

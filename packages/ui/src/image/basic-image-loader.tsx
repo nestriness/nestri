@@ -73,11 +73,12 @@ export const BasicImageLoader = component$((props: ImageLoaderProps) => {
     <>
       {!imageLoaded.value && !hasError.value && (
         <div
-          class={cn("relative x-[20] inset-0 h-full loading-animation bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800", props.class)}
-          style={{
-            height: props.height,
-            aspectRatio: props.width && props.height ? `${props.width} / ${props.height}` : 'auto'
-          }}
+          class={
+            cn(
+              " w-full h-full loading-animation bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800",
+              props.class
+            )
+          }
         />
       )}
       <img

@@ -180,6 +180,7 @@ export default component$(() => {
             {games.map((game, index) => (
               game.titleWidth ? (
                 <Card
+                  class={"bg-white aspect-[2/3] relative hover:ring-primary-500 focus:ring-primary-500 dark:bg-black rounded-md overflow-hidden block hover:!rotate-0 focus:!rotate-0 hover:scale-[1.17] focus:!scale-[1.17] hover:!z-10 focus:!z-10 outline-none shadow-lg shadow-gray-300 dark:shadow-gray-700 ring-2 ring-gray-300 dark:ring-gray-700 transition-all duration-200"}
                   key={game.title}
                   style={{
                     zIndex: 1 + index,
