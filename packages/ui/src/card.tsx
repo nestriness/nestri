@@ -101,7 +101,7 @@ export const Card = component$(({ titleWidth, titleHeight, game, size, ...props 
                 </Modal.Trigger>
             )}
             <Modal.Panel
-                class="sm:w-full w-[calc(100%-1rem)] overflow-hidden max-w-3xl h-full max-h-[396px] aspect-[1536/496] backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:to-gray-900 after:fixed after:left-0 after:bottom-0 after:z-10 after:backdrop-blur-sm after:h-[200px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
+                class="lg:w-full w-[calc(100%-1rem)] overflow-hidden max-w-3xl h-full max-h-[396px] aspect-[1536/496] backdrop:backdrop-blur-sm backdrop:bg-black/10 dark:backdrop:bg-white/10 bg-white dark:bg-black ring-2 backdrop-blur-md ring-gray-700 rounded-xl text-gray-900 dark:text-gray-100 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:to-gray-900 after:fixed after:left-0 after:bottom-0 after:z-10 after:backdrop-blur-sm after:h-[200px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
                 <div
                     style={{
                         '--before-url': `url('${modalUrl}')`,

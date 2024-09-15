@@ -92,7 +92,7 @@ export function ReactHeroSection({ children }: Props) {
                             viewport={{ once: true }}
                             className="dark:text-gray-50/70 text-gray-950/70 text-lg font-normal tracking-tight sm:text-xl"
                         >
-                            Nestri lets you play games on your own terms — invite friends to join your gaming sessions, share your game library, and take even more control by hosting your own server.
+                            Nestri is a cloud gaming platform that lets you play games on your own terms — invite friends to join your gaming sessions, share your game library, and take even more control by hosting your own server.
                         </motion.p>
                         <motion.div
                             initial={{
