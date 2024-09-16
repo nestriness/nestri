@@ -3,6 +3,8 @@ import { Link } from "@builder.io/qwik-city";
 import { TitleSection, MotionComponent, transition  } from "@nestri/ui/react";
 import { TeamCounter, NavBar, Footer } from "@nestri/ui"
 
+//FIXME: Add a FAQ section
+
 export default component$(() => {
     return (
         <>

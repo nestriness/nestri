@@ -29,10 +29,14 @@ const socialMedia = [
   },
 ]
 
-export const Footer = component$(() => {
+type Props = {
+  showGH?: boolean
+}
+
+export const Footer = component$(({ showGH = true }: Props) => {
   return (
     <>
-      <GithubBanner />
+      {showGH && <GithubBanner />}
       <footer class="flex justify-center flex-col items-center w-full pt-8 sm:pb-0 pb-8 [&>*]:w-full px-3">
         <MotionComponent
           initial={{ opacity: 0, y: 50 }}
