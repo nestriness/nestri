@@ -1,13 +1,13 @@
-import { auth } from "@nestri/ui";
+// import { auth } from "@nestri/ui";
 import { Button } from "@nestri/ui/react"
 import { buttonVariants } from "@nestri/ui/design";
 // import { type Provider } from "@supabase/supabase-js";
-import { Link, useLocation } from "@builder.io/qwik-city";
+import { Link } from "@builder.io/qwik-city";
 import { $, component$, useSignal } from "@builder.io/qwik";
 
-type AuthFlowProps = {
-    flow: string
-}
+// type AuthFlowProps = {
+//     flow: string
+// }
 
 const flow: any = "join"
 
@@ -16,7 +16,7 @@ export default component$(() => {
     const isGHLoading = useSignal(false);
     const setIsLoading = $((v: boolean) => isLoading.value = v)
     const setIsGHLoading = $((v: boolean) => isGHLoading.value = v)
-    const location = useLocation();
+    // const location = useLocation();
 
     // const authenticateUser = $(async (provider: any) => {
     //     await auth.openWindow(`${location.url.origin}/api/auth/${provider}`)
