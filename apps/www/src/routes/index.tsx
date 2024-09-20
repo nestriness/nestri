@@ -91,8 +91,6 @@ const games = [
   {
     title: "Add from Steam",
     rotate: 7,
-    image: undefined,
-    link: "/games/add-from-steam"
   }
 ]
 
