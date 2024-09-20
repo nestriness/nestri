@@ -60,4 +60,61 @@ This section lists the labels we use to help us track and manage issues and pull
 * `♻ refactor` - Issues or Pull Requests related to code refactors
 * `good first issue` - Good for newcomers.
 
+## Project Structure
+
+Nestri is organized as a monorepo using Turborepo. Here's an overview of the main directories and their purposes:
+
+### Root Directory
+
+- `apps/`: Contains the main applications
+  - `www/`: The main Nestri website built with Qwik
+- `infra/`: Contains the relevant files to deploy the app using [SST](https://sst.dev)
+- `packages/`: Shared packages and configurations
+  - `api/`: Core API for Nestri
+  - `eslint-config/`: Shared ESLint configurations
+  - `typescript-config/`: Shared TypeScript configurations
+  - `ui/`: Shared UI components and styles
+
+### Key Files
+
+- `package.json`: Root package file defining workspaces and shared dev dependencies
+- `turbo.json`: Turborepo configuration
+- `LICENSE`: GNU Affero General Public License v3.0
+
+### Apps
+
+#### www (Nestri Website)
+
+This is the Nestri website hosted on Cloudflare Pages
+
+### Packages
+
+#### api (Nestri Core)
+
+The core API for Nestri, built with Hono and deployed to Cloudflare Workers.
+
+#### eslint-config
+
+Shared ESLint configurations for maintaining consistent code style across the project.
+
+#### typescript-config
+
+Shared TypeScript configurations to ensure consistent TypeScript settings across the project.
+
+#### ui
+
+Shared UI components and styles used across the Nestri project.
+
+### Infrastructure
+
+- `infra/`: Contains infrastructure-as-code files
+  - `www.ts`: Defines the deployment configuration for the Nestri website
+
+### Development
+
+When working on Nestri, you'll primarily be dealing with the `apps/www` directory for the main website and the various packages in the `packages/` directory for shared functionality.
+
+For more detailed information about each package or app, refer to their respective README files or package.json scripts.
+
+
 Thank you for contributing to Nestri!
