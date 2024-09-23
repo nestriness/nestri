@@ -18,7 +18,7 @@ export default component$(() => {
     const { headings } = useContent();
 
     useOnDocument('load', $(() => {
-        const sections = document.querySelectorAll('.blog h3');
+        const sections = document.querySelectorAll('.blog h2');
         const tocLinks = document.querySelectorAll('#toc a');
 
         const observerOptions = {
@@ -70,7 +70,7 @@ export default component$(() => {
                                         {frontmatter.authors?.map((author: any, index: number) => (
                                             <>
                                                 &nbsp;
-                                                <Link href={author.link} class="underline underline-offset-4 hover:text-gray-900 dark:hover:text-gray-100" key={author.name}>
+                                                <Link href={author.link} target="_blank" class="underline underline-offset-4 hover:text-gray-900 dark:hover:text-gray-100" key={author.name}>
                                                     {author.name}
                                                 </Link>
                                                 &nbsp;

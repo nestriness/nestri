@@ -1,0 +1,77 @@
+---
+title: "Nestri's Architecture so far | Nestri"
+blogTitle: "Nestri's Architecture so far"
+summary: "This is my first post!"
+slug: "how-nestri-works"
+thumbnail: "/seo/banner.png"
+createdAt: "2024-09-20T12:15:22.974Z"
+authors:
+  - name: "Wanjohi Ryan"
+    link: "https://github.com/wanjohiryan"
+---
+
+## Nestri
+
+Nestri is an open-source, self-hosted GeforceNow alternative with more customization options and social features. This blog post aims to share what we've learned and how the system works.
+
+## Welcome to Nestri!
+At Nestri, we want to make gaming more accessible, literally.
+
+## Key Features:
+1. **Play Together**: Join a "party" and play co-op games with friends. You can even pass controls around to let others take a shot at your game.
+2. **Save and Share Progress**: Share your game progress with a single link, just like sharing and embedding YouTube videos.
+3. **One-Click Play**: Play games directly from your browser with a single click.
+4. **Self-Hosted Deployment**: Deploy your own self-hosted GeforceNow system and play with friends on your own GPU.
+
+## The Architecture
+
+Nestri's architecture is designed to be modular and scalable, allowing it to adapt based on user location and demand.
+
+## The Frontend
+This is the website, TV, and mobile apps (coming in the future). It provides the user interface for all Nestri features.
+
+## Input System
+Handles input and transmits it to the server, and sends force feedback from the server/game back to the player. We use Websockets on Cloudflare's Durable Objects with [Party Server](https://github.com/threepointone/partyserver) to send and receive input messages.
+
+## Relay System
+We use [Media Over Quic](https://github.com/moq-wg/moq-transport) to transmit audio and video from the server to the client. MoQ requires "relays"—servers that sit between the server and client for a pub-sub model. The server publishes to the relay, and the client/subscriber accesses the video/audio feed through namespaces.
+
+## API/Nexus
+The backbone of Nestri, tying everything together. It handles user queuing, server authorization, and more.
+
+## Storage
+Our database and storage system handles everything from caching to saving user data. We use S3-compatible storage for downloaded games. For the database, we use InstantDB for its simplicity, especially in authentication and multiplayer support.
+
+## Admin Dashboard
+We use Interval to programmatically create UIs for managing the entire system.
+
+## Infrastructure
+We've limited our infrastructure to Cloudflare and AWS for manageability. For self-hosted versions, you can use Cloudflare and your VPS.
+
+## Games
+We download games on behalf of the user from third-party stores like Epic Store, GOG Store, and Amazon Prime Gaming. Steam is challenging to implement due to the lack of third-party launchers.
+
+## Game Servers
+Games run on remote GPUs orchestrated by Nomad, which manages Nestri Docker containers. Containers are spun up or down based on demand.
+
+## Mail
+Handles communication, including login emails and marketing messages.
+
+## How to Contribute
+
+We welcome contributions from developers of all skill levels. Here are some ways you can get involved:
+
+## Reporting Bugs
+If you find a bug, please report it by creating an issue on our GitHub repository. Include a clear and descriptive title, steps to reproduce the issue, and any relevant screenshots or logs.
+
+## Suggesting Enhancements
+Have an idea for a new feature or improvement? Submit an enhancement suggestion through our GitHub issues page. Provide a detailed description of the enhancement and any relevant examples.
+
+## Pull Requests
+Ready to contribute code? Fork our repository, make your changes, and submit a pull request. Be sure to follow our code of conduct and contribution guidelines.
+
+## Conclusion
+
+Nestri is a community-driven project, and we rely on contributors like you to help us build and improve the platform. Whether you're fixing bugs, adding new features, or simply providing feedback, your contributions are invaluable. Thank you for being a part of the Nestri community!
+
+**Note:** Nestri is a work in progress, and this blog post will be updated as we move towards version 1.0.
