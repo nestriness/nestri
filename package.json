@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20240821.1",
+    "@pulumi/pulumi": "^3.134.0",
     "@types/aws-lambda": "8.10.145",
     "prettier": "^3.2.5",
     "turbo": "^2.0.12",

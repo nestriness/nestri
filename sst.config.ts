@@ -6,7 +6,11 @@ export default $config({
       name: "nestri",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
-      providers: { cloudflare: "5.37.1" },
+      providers: {
+        cloudflare: "5.37.1",
+        docker: "4.5.5",
+        "@pulumi/command": "1.0.1",
+      },
     };
   },
   async run() {
