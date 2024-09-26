@@ -2,7 +2,7 @@
   "extends": "@nestri/typescript-config/base.json",
   "compilerOptions": {
     "allowJs": true,
-    "target": "ES2017",
+    "target": "ES2022",
     "module": "ES2022",
     "lib": [
       "es2022",
