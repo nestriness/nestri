@@ -1,0 +1,18 @@
+{
+	"extends": "../tsconfig.json",
+	"include": ["."],
+	"compilerOptions": {
+		"types": ["dom-mediacapture-transform", "dom-webcodecs"]
+	},
+	"references": [
+		{
+			"path": "../common"
+		},
+		{
+			"path": "../transport"
+		},
+		{
+			"path": "../media"
+		}
+	]
+}

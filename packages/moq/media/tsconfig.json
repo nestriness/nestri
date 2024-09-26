@@ -1,0 +1,15 @@
+{
+	"extends": "../tsconfig.json",
+	"include": ["."],
+	"compilerOptions": {
+		"types": ["mp4box"]
+	},
+	"references": [
+		{
+			"path": "../transport"
+		},
+		{
+			"path": "../common"
+		}
+	]
+}

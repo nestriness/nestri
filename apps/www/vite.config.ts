@@ -27,6 +27,17 @@ export default defineConfig((): UserConfig => {
       qwikVite(),
       tsconfigPaths(),
       qwikReact(),
+      //For Moq-js (SharedArrayBuffer)
+      {
+        name: "configure-response-headers",
+        configureServer: (server) => {
+          server.middlewares.use((_req, res, next) => {
+            res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+            res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+            next();
+          });
+        },
+      },
     ],
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
@@ -51,6 +62,8 @@ export default defineConfig((): UserConfig => {
     //       }
     //     : undefined,
     server: {
+      // https: true,
+      // proxy:{},
       headers: {
         // Don't cache the server response in dev mode
         "Cache-Control": "public, max-age=0",

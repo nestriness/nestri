@@ -1,0 +1,1 @@
+export { asError } from "./error"
