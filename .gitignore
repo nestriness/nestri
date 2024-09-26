@@ -42,3 +42,6 @@ yarn-error.log*
 
 #Bun merging errors, EVERY time :(
 bun.lockb
+
+#tests
+id_*

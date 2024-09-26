@@ -1,0 +1,4 @@
+# note: root .editorconfig is used
+
+# Don't insert semi-colons unless needed
+semi: false

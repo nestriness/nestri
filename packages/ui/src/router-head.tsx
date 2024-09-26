@@ -15,9 +15,9 @@ export const RouterHead = component$(() => {
         {/* {head.title} */}
         {loc.url.pathname === "/"
           ? "Nestri – Your games. Your rules.":
-          loc.url.pathname.startsWith("/blog/")
+          loc.url.pathname.startsWith("/moq/")
             ?
-            head.title 
+            `MoQ – Nestri`
             : `${loc.url.pathname.split("/")[1].charAt(0).toUpperCase() + loc.url.pathname.split("/")[1].slice(1)} – Nestri`
         }
       </title>

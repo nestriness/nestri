@@ -7,10 +7,6 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "Relay": {
-      "type": "sst.aws.Service"
-      "url": string
-    }
   }
 }
 export {}
