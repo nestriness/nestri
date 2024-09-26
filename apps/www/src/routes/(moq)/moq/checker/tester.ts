@@ -37,6 +37,7 @@ export class Broadcast {
         this.namespace = config.namespace
         this.connection = config.connection
         this.config = config
+        //Arbitrary values, just to keep TypeScript happy :)
         this.catalog = {
             version: 1,
             streamingFormat: 1,

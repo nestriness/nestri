@@ -1,15 +1,10 @@
-import { component$, $, useSignal } from "@builder.io/qwik";
-import { TitleSection, Button } from "@nestri/ui/react";
-import { cn } from "@nestri/ui/design";
-import { Broadcast } from "./tester";
-import { routeLoader$ } from "@builder.io/qwik-city";
-import {
-    type InitialValues,
-    type SubmitHandler,
-    useForm,
-    valiForm$
-} from "@modular-forms/qwik"
 import * as v from "valibot"
+import { Broadcast } from "./tester";
+import { cn } from "@nestri/ui/design";
+import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$, $, useSignal } from "@builder.io/qwik";
+import { MotionComponent, transition, TitleSection, Button } from "@nestri/ui/react";
+import { type InitialValues, type SubmitHandler, useForm, valiForm$ } from "@modular-forms/qwik"
 
 const Schema = v.object({
     url: v.pipe(
@@ -51,36 +46,45 @@ export default component$(() => {
     return (
         <>
             <TitleSection client:load title="MoQ Checker" description="Test the connection to your Media-Over-Quic relay!" />
-            <section class="w-full flex flex-col gap-4 justify-center items-center">
-                <Form onSubmit$={handleSubmit} class="w-full max-w-xl flex px-3 gap-2">
-                    <Field name="url">
-                        {(field, props) => {
-                            return (
-                                <div class="w-full flex flex-col gap-2">
-                                    <div class="bg-gray-200 dark:bg-gray-800 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/70 dark:focus-within:bg-gray-700/70 border-gray-300 dark:border-gray-700 ">
-                                        <input type="url" class={cn("w-full relative h-full bg-transparent rounded-lg p-3  focus-within:outline-none focus-within:ring-2 focus-within:ring-gray-400 dark:focus-within:ring-gray-600 focus-within:ring-offset-2 focus-visible:outline-none focus-within:ring-offset-gray-100 dark:focus-within:ring-offset-gray-900 placeholder:text-gray-500/70", typeof broadcasterOk.value !== "undefined" && broadcasterOk.value == true && "ring-2 ring-offset-2 ring-offset-gray-100 dark:ring-offset-gray-900 ring-green-500", typeof broadcasterOk.value !== "undefined" && (broadcasterOk.value == false) && "ring-2 ring-offset-2 ring-offset-gray-100 dark:ring-offset-gray-900 ring-red-500")} placeholder="https://relay.domain.com" {...props} />
+            <MotionComponent
+                initial={{ opacity: 0, y: 100 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={transition}
+                client:load
+                class="flex items-center justify-center w-full"
+                as="div"
+            >
+                <section class="w-full flex flex-col gap-4 justify-center items-center">
+                    <Form onSubmit$={handleSubmit} class="w-full max-w-xl flex px-3 gap-2">
+                        <Field name="url">
+                            {(field, props) => {
+                                return (
+                                    <div class="w-full flex flex-col gap-2">
+                                        <div class="bg-gray-200 dark:bg-gray-800 flex rounded-lg w-full relative h-10 flex-none border focus-within:bg-gray-300/70 dark:focus-within:bg-gray-700/70 border-gray-300 dark:border-gray-700 ">
+                                            <input type="url" class={cn("w-full relative h-full bg-transparent rounded-lg p-3  focus-within:outline-none focus-within:ring-2 focus-within:ring-gray-400 dark:focus-within:ring-gray-600 focus-within:ring-offset-2 focus-visible:outline-none focus-within:ring-offset-gray-100 dark:focus-within:ring-offset-gray-900 placeholder:text-gray-500/70", typeof broadcasterOk.value !== "undefined" && broadcasterOk.value == true && "ring-2 ring-offset-2 ring-offset-gray-100 dark:ring-offset-gray-900 ring-green-500", typeof broadcasterOk.value !== "undefined" && (broadcasterOk.value == false) && "ring-2 ring-offset-2 ring-offset-gray-100 dark:ring-offset-gray-900 ring-red-500")} placeholder="https://relay.domain.com" {...props} />
+                                        </div>
+                                        {field.error && (<p class='text-[0.8rem] font-medium text-danger-600 dark:text-danger-500' >{field.error}</p>)}
                                     </div>
-                                    {field.error && (<p class='text-[0.8rem] font-medium text-danger-600 dark:text-danger-500' >{field.error}</p>)}
-                                </div>
-                            )
-                        }}
-                    </Field>
+                                )
+                            }}
+                        </Field>
 
-                    {/* <button class={cn(buttonVariants.solid({ size: "md", intent: "neutral" }), "w-max space-y-0 relative")} style={{ height: 40, marginTop: 0 }} type="submit" >
+                        {/* <button class={cn(buttonVariants.solid({ size: "md", intent: "neutral" }), "w-max space-y-0 relative")} style={{ height: 40, marginTop: 0 }} type="submit" >
                         Check
                     </button> */}
-                    <Button.Root
-                        disabled={state.submitting}
-                        isLoading={state.submitting}
-                        // setIsLoading={setIsLoading}
-                        client:load
-                        //@ts-ignore
-                        type="submit"
-                        style={{ height: 40, marginTop: 0 }}
-                        intent="neutral"
-                        size="md"
-                        class="w-max space-y-0 relative">
-                        {/* <Button.Icon
+                        <Button.Root
+                            disabled={state.submitting}
+                            isLoading={state.submitting}
+                            // setIsLoading={setIsLoading}
+                            client:load
+                            //@ts-ignore
+                            type="submit"
+                            style={{ height: 40, marginTop: 0 }}
+                            intent="neutral"
+                            size="md"
+                            class="w-max space-y-0 relative">
+                            {/* <Button.Icon
                             isLoading={isLoading.value}
                             client:load>
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16">
@@ -89,25 +93,26 @@ export default component$(() => {
                                 </g>
                             </svg>
                         </Button.Icon> */}
-                        <Button.Label
-                            loadingText="Checking..."
-                            class="text-ellipsis whitespace-nowrap"
-                            isLoading={state.submitting}>
-                            Check
-                        </Button.Label>
-                        <div class="w-[8%]" />
-                    </Button.Root>
-                </Form>
-                {typeof broadcasterOk.value !== "undefined" && broadcasterOk.value == true ? (
-                    <span class="w-full text-green-500 max-w-xl flex space-y-6 px-3 gap-2">
-                        Your relay is doing okay
-                    </span>
-                ) : typeof broadcasterOk.value !== "undefined" && (
-                    <span class="w-full text-red-500 max-w-xl flex space-y-6 px-3 gap-2">
-                        Your relay has an issue
-                    </span>
-                )}
-            </section>
+                            <Button.Label
+                                loadingText="Checking..."
+                                class="text-ellipsis whitespace-nowrap"
+                                isLoading={state.submitting}>
+                                Check
+                            </Button.Label>
+                            <div class="w-[8%]" />
+                        </Button.Root>
+                    </Form>
+                    {typeof broadcasterOk.value !== "undefined" && broadcasterOk.value == true ? (
+                        <span class="w-full text-green-500 max-w-xl flex space-y-6 px-3 gap-2">
+                            Your relay is doing okay
+                        </span>
+                    ) : typeof broadcasterOk.value !== "undefined" && (
+                        <span class="w-full text-red-500 max-w-xl flex space-y-6 px-3 gap-2">
+                            Your relay has an issue
+                        </span>
+                    )}
+                </section>
+            </MotionComponent>
         </>
     )
 })
