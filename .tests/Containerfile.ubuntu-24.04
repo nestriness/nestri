@@ -1,0 +1,13 @@
+FROM ubuntu:24.04
+
+RUN apt update && apt upgrade -y && apt install sudo -y
+
+RUN apt install -y mesa-utils weston xwayland
+
+RUN usermod -p test ubuntu
+
+RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir /tmp/.X11-unix/ && chown ubuntu:ubuntu /tmp/.X11-unix/
+
+CMD ["/bin/bash"]
