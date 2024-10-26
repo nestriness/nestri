@@ -1,0 +1,9 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# TODO(b/192026058): Work around unreadable traffic_class file.
+argv: "mkdir"
+argv: "/tmp/net"
+respawn: false
+wait_for_exit: true

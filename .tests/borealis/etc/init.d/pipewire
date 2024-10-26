@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=pipewire --id=$$)
+
+USERNAME=chronos
+export PIPEWIRE_RUNTIME_DIR=/var/run/pipewire
+if [ ! -d "${PIPEWIRE_RUNTIME_DIR}" ]; then
+  mkdir -p "${PIPEWIRE_RUNTIME_DIR}"
+  chown "${USERNAME}":"${USERNAME}" "${PIPEWIRE_RUNTIME_DIR}"
+fi
+
+# Propagate DBus environment variables to Pipewire, so it can make its
+# DBus interfaces available on the session bus.
+# shellcheck disable=SC1091
+. /tmp/.chronos_dbus_session_env.sh
+
+exec runuser -u "${USERNAME}" -- \
+  /usr/bin/pipewire

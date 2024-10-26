@@ -1,0 +1,52 @@
+{# NOTE: This combines both the client and server APIs together because sommelier is both -#}
+// Copyright 2023 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+// NOTE: This code is automatically generated and  any changes to this file will be overwritten.
+
+#ifndef VM_TOOLS_SOMMELIER_GEN_{{ protocol.name_underscore | upper }}_SHIM_H_
+#define VM_TOOLS_SOMMELIER_GEN_{{ protocol.name_underscore | upper }}_SHIM_H_
+
+#include "{{ protocol.name_hyphen }}-client-protocol.h"  // NOLINT(build/include_directory)
+#include "{{ protocol.name_hyphen }}-server-protocol.h"  // NOLINT(build/include_directory)
+
+{# This generates a series of virtual functions which calls the underlying
+wayland protocol functions. It's mostly modelled off wayland-scanner, ref: 
+https://chromium.googlesource.com/external/wayland/wayland/+/refs/heads/master/src/scanner.c#932 -#}
+{% for interface in protocol.interfaces %}
+class {{ interface.name }} {
+  public:
+    {{ interface.name }}() = default;
+    {{ interface.name }}({{ interface.name }}&&) = delete;
+    {{ interface.name }}& operator=({{ interface.name }}&&) = delete;
+    virtual ~{{interface.name}}() = default;
+
+    {# Logic comes from wayland scanner -#}
+    {# Stub logic -> https://chromium.googlesource.com/external/wayland/wayland/+/refs/heads/master/src/scanner.c#1007 -#}
+    virtual void set_user_data(struct {{ interface.name_underscore }}* {{ interface.name_underscore}}, void* user_data);
+
+    virtual void* get_user_data(struct {{ interface.name_underscore }}* {{ interface.name_underscore }});
+
+    {%- if interface.events|length > 0 %}
+    virtual int add_listener(struct {{ interface.name_underscore }}* {{ interface.name_underscore }}, const struct {{ interface.name_underscore }}_listener* listener, void* data);
+    {% endif %}
+
+    {%- for method in interface.methods %}
+    virtual {{ method.ret }} {{ method.name }}(
+        struct {{ interface.name_underscore }} *{{ interface.name_underscore }}{% for arg in method.args %},
+        {{ arg.type }} {{ arg.name }}{% endfor %});
+    {% endfor -%}
+
+    {# Event logic -> https://chromium.googlesource.com/external/wayland/wayland/+/refs/heads/master/src/scanner.c#1074 -#}
+    {%- for event in interface.events %}
+    virtual void send_{{ event.name }}(
+        struct wl_resource* resource{% for arg in event.args %},
+        {{ arg.type }} {{arg.name}}{% endfor %});
+    {% endfor -%}
+};
+
+{{ interface.name }}* {{ interface.name_underscore | lower }}_shim();
+void set_{{ interface.name_underscore }}_shim ({{ interface.name }}* shim);
+{% endfor %}
+ 
+#endif // VM_TOOLS_SOMMELIER_GEN_{{ protocol.name_underscore | upper}}_SHIM_H_

@@ -1,0 +1,14 @@
+FROM archlinux:latest
+
+RUN pacman -Syu --noconfirm && \
+	pacman -S --noconfirm sudo mesa-utils weston xorg-xwayland
+
+RUN pacman -S --noconfirm vpl-gpu-rt gstreamer gst-plugin-va gst-plugins-base gst-plugins-good gst-plugin-webrtchttp
+RUN pacman -S --noconfirm meson pkgconf cmake git gcc unzip ninja make rustup
+RUN	rustup default stable	
+RUN cargo install cargo-c
+
+RUN git clone https://github.com/games-on-whales/gst-wayland-display.git && \
+		cd gst-wayland-display && \
+		cargo cinstall --prefix=/usr
+

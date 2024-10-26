@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="text_input_x11_unstable_v1">
+
+  <copyright>
+      Copyright 2022 The ChromiumOS Authors
+      Use of this source code is governed by a BSD-style license that can be
+      found in the LICENSE file.
+  </copyright>
+
+  <interface name="zcr_text_input_x11_v1" version="1">
+    <description summary="Extension support for using text_input with X11 apps">
+      Adds functionality for X11 apps running on Xwayland to connect to the
+      Wayland compositor and receive text_input support.
+
+      TODO(b/295265862): Remove this protocol and its implementation some time
+      after M122. It has been replaced by zcr_text_input_crostini_v1 since M118,
+      but users can sometimes end up on older version of cros_im.
+    </description>
+
+    <request name="activate">
+      <description summary="request activation">
+        Calls text_input::activate with the X11 window id converted to the
+        matching wl_surface.
+      </description>
+      <arg name="text_input" type="object" interface="zwp_text_input_v1"/>
+      <arg name="seat" type="object" interface="wl_seat"/>
+      <arg name="x11_window_id" type="uint"/>
+    </request>
+  </interface>
+</protocol>

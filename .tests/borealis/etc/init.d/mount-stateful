@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Redirects the script's error stream to the logs.
+exec 2> >(logger --stderr --tag mount-stateful)
+
+err() {
+  echo "$*" >&2
+}
+
+STATEFUL_DEVICE=/dev/vda
+STATEFUL_MOUNT=/mnt/stateful
+BALLOONFILE=/mnt/stateful/.balloon
+BITMAPFILE=/mnt/stateful/.bitmap_setup
+BTRFS_ARGS=user_subvol_rm_allowed,discard,noatime
+# See https://man7.org/linux/man-pages/man5/ext3.5.html.
+EXT4_ARGS=discard,noatime,init_itable=0
+EXTRA_MOUNT_OPTIONS="$1"
+
+METRICSFILE=/tmp/.disk_metrics
+
+# We decide if the VM should use Ext4 or Btrfs on the host/Chrome side before
+# launch. If Ext4 is selected, we create the filesystem beforehand, otherwise
+# Btrfs is selected and the filesystem is created at launch during this script.
+# Further, when using Ext4 we also expect to use it with storage ballooning
+# functionality and create a balloon file to prepare and signal for this. Using
+# Ext4 also requires checking/repairing the fs before each launch with fsck and
+# we also take extra steps to prevent corruption from over-provisioning (i.e
+# the mount options we use and initially pre-writing out the bitmaps).
+
+# Mounts the STATEFUL_DEVICE to STATEFUL_MOUNT as an |$1| filesystem using |$2|
+# mount options. Also tries using EXTRA_MOUNT_OPTIONS if they exist, falling
+# back to just |$2| on failure.
+mount_stateful() {
+  if "${EXTRA_MOUNT_OPTIONS}" -z ; then
+    if mount -t "$1" -o "$2,${EXTRA_MOUNT_OPTIONS}" "${STATEFUL_DEVICE}" \
+      "${STATEFUL_MOUNT}"; then
+      return
+    fi
+    err "failed to mount ${STATEFUL_DEVICE} with additional mount options" \
+        "{${EXTRA_MOUNT_OPTIONS}}, trying again without these options"
+  fi
+  if ! mount -t "$1" -o "$2" "${STATEFUL_DEVICE}" "${STATEFUL_MOUNT}"; then
+    err "failed to mount ${STATEFUL_DEVICE}"
+    exit 2
+  fi
+}
+
+# Runs e2fsck to see if there are any issues with the filesystem and
+# attempts to fix them.
+repair_stateful() {
+  # TODO(b/253132086): Improve logging and make it less spammy.
+  FSCK_START=$(date +%s%3N)
+  e2fsck -fy "${STATEFUL_DEVICE}" 1>&2
+  FSCK_RESULT=$?
+  FSCK_END=$(date +%s%3N)
+
+  # Add to metrics.
+  echo \
+"borealis-fsck-runtime=$((FSCK_END - FSCK_START))
+borealis-fsck-result=${FSCK_RESULT}" \
+  >> "${METRICSFILE}"
+
+  # Error codes 0 and 1 are varying levels of success. See
+  # https://man7.org/linux/man-pages/man8/e2fsck.8.html#EXIT_CODE
+  if [ "${FSCK_RESULT}" -le 1 ]; then
+    [ "${FSCK_RESULT}" -eq 1 ] && \
+    err "e2fsck successfully corrected some errors"
+    return
+  fi
+  err "e2fsck returned: ${FSCK_RESULT}"
+  exit 3
+}
+
+
+# Forces the block and inode bitmaps (static metadata) to be
+# written out (and be backed by physical storage). This uses a user-space
+# program (setup_bitmaps) that needs to mount the device itself, so we need
+# to unmount the stateful-device before running the program.
+setup_bitmaps() {
+  if ! umount "${STATEFUL_MOUNT}"; then
+    err "failed to umount ${STATEFUL_MOUNT}"
+    exit 4
+  fi
+  if ! /usr/bin/setup_bitmaps "${STATEFUL_DEVICE}"; then
+    err "failed to run setup_bitmaps"
+    exit 4
+  fi
+  if ! mount_stateful ext4 "${EXT4_ARGS}"; then
+    err "failed to remount ${STATEFUL_DEVICE}"
+    exit 4
+  fi
+  touch "${BITMAPFILE}"
+}
+
+# Sets up a file to record metrics in.
+create_metrics_file() {
+  # Remove the file if one already exists.
+  rm "${METRICSFILE}"
+  touch "${METRICSFILE}"
+  # We make the owner chronos so that the metrics collector can delete it later.
+  chown chronos "${METRICSFILE}"
+}
+
+# Records metrics regarding the health of the stateful disk.
+record_stateful_metrics() {
+  INODES=$(df "${STATEFUL_MOUNT}" --output=iused | sed 1d)
+  echo "borealis-inode-count=${INODES}" >> "${METRICSFILE}"
+}
+
+stateful_fs_type="$(blkid --match-tag TYPE --output value "${STATEFUL_DEVICE}")"
+
+if [ "${stateful_fs_type}" == "ext4" ]; then
+  create_metrics_file
+  # Run fsck in case there are any issues with the device.
+  repair_stateful
+  # Try mounting block device. Note that we need to mount the block device,
+  # before setup_bitmaps, to check the existence of $BITMAPFILE and determine
+  # if we need to run setup_bitmaps.
+  mount_stateful ext4 "${EXT4_ARGS}"
+  record_stateful_metrics
+  # Setup bitmaps if required.
+  if [ ! -e "${BITMAPFILE}" ]; then
+    setup_bitmaps
+  fi
+  # If the filesystem is Ext4, then we expect to use storage ballooning and
+  # should create the balloon file.
+  touch "${BALLOONFILE}"
+
+# If the FS isn't Ext4, we should use Btrfs instead.
+else
+  # This will quietly fail if the filesystem has already been created.
+  mkfs.btrfs "${STATEFUL_DEVICE}"
+  mount_stateful btrfs "${BTRFS_ARGS}"
+fi

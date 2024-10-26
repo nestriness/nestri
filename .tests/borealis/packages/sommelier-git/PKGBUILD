@@ -1,0 +1,56 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+# Maintainer: David Riley <davidriley@chromium.org>
+# Maintainer: Nic Hollingum <hollingum@google.com>
+pkgname=sommelier-git
+pkgver=VERSION
+pkgrel=1
+pkgdesc="A nested Wayland compositor with support for X11 forwarding."
+arch=('x86_64')
+url="https://chromium.googlesource.com/chromiumos/platform2/+/HEAD/vm_tools/sommelier/"
+license=('BSD')
+groups=()
+depends=('gtest' 'libevdev' 'libxkbcommon' 'mesa-libgl' 'pixman' 'wayland')
+makedepends=('git' 'meson')
+provides=("${pkgname%-git}")
+conflicts=("${pkgname%-git}")
+replaces=()
+backup=()
+options=(debug strip)
+install=
+source=('LICENSE')
+noextract=()
+sha512sums=('SKIP'
+  '00e7239987e00b95fdabaad4a0cbd009194bb695f742891295ef57339d09f6a26e260d5e60a1b43cf56f928f3b542862b43503c03231d42d98ac04e2a613e8a4')
+# Please refer to the 'USING VCS SOURCES' section of the PKGBUILD man page for
+# a description of each element in the source array.
+pkgver() {
+  cd "$srcdir/"
+  cat ./VERSION
+}
+prepare() {
+  cd "$srcdir/${pkgname%-git}"
+}
+build() {
+  cd "$srcdir/${pkgname%-git}"
+  meson setup . _build \
+    -Dgamepad=true \
+    -Dwith_tests=false \
+    -Dtracing=true \
+    -Dcommit_loop_fix=true \
+    -Dquirks=true \
+    -Dxwayland_path=/usr/bin/Xwayland \
+    -Dxwayland_gl_driver_path=/usr/lib/dri
+  meson configure _build
+  ninja -C _build
+}
+check() {
+  cd "$srcdir/${pkgname%-git}"
+}
+package() {
+  cd "$srcdir/${pkgname%-git}"
+  DESTDIR="$pkgdir/" ninja -C _build install
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" "${srcdir}/../LICENSE"
+  install -m755 -Dt "${pkgdir}/usr/bin" "scripts/get_frame_summary.py"
+}

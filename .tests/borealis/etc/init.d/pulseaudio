@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=pulseaudio --id=$$)
+
+USERNAME=chronos
+export PULSE_RUNTIME_PATH=/var/run/pulse
+if [ ! -d "${PULSE_RUNTIME_PATH}" ]; then
+  mkdir -p "${PULSE_RUNTIME_PATH}"
+  chown "${USERNAME}":"${USERNAME}" "${PULSE_RUNTIME_PATH}"
+fi
+
+# Propagate DBus environment variables to Pulseaudio, so it can make its
+# DBus interfaces available on the session bus.
+# shellcheck disable=SC1091
+. /tmp/.chronos_dbus_session_env.sh
+
+# Start pulseaudio with `--daemonize=no` option to let maitred detect
+# service failure and respawn the service.
+
+exec runuser -u "${USERNAME}" -- \
+  /usr/bin/pulseaudio --start --log-target=syslog --daemonize=no

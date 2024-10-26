@@ -1,0 +1,109 @@
+#******************************************************************************
+#                                                                       initial
+#******************************************************************************
+FROM archlinux:latest AS base
+
+RUN pacman -Syu --noconfirm
+
+#******************************************************************************
+#                                                                       builder
+#******************************************************************************
+FROM base AS builder
+
+RUN \
+	pacman -Su --noconfirm \
+		base-devel \
+        	clang \
+       		cmake \
+        	git \
+        	llvm \
+        	meson \
+        	ninja \
+        	python3 \
+        	sudo \
+        	vim \
+		pkgconf \
+		gcc \
+		unzip \
+		make \
+		rustup \
+		pkgconf
+
+RUN \
+		sudo rustup default stable \
+		&& sudo cargo install -j4 cargo-c
+RUN \
+	echo "nobody ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/pacman_nobody
+
+WORKDIR /scratch
+
+ENV ARTIFACTS=/artifacts
+
+RUN mkdir -p /artifacts
+
+RUN chgrp nobody /scratch /artifacts \
+	&& chmod g+ws /scratch /artifacts
+
+#******************************************************************************
+#                                                           gst-wayland-build
+#******************************************************************************
+
+FROM builder AS gst-wayland-build
+
+RUN \
+	pacman -Su --noconfirm \
+		wayland \
+		vpl-gpu-rt \
+		gstreamer \
+		gst-plugin-va \
+		gst-plugins-base \
+		gst-plugins-good \
+		mesa-utils \
+		weston \
+		xorg-xwayland
+
+#COPY packages/gst-wayland-git/ /scratch/gst-wayland-git
+
+# Allow makepkg to be run as nobody.
+RUN chgrp -R nobody /scratch && chmod -R g+ws /scratch
+
+#USER nobody
+
+#WORKDIR /scratch/
+
+RUN \
+	git clone https://github.com/games-on-whales/gst-wayland-display.git /scratch/gst-wayland-git
+
+WORKDIR /scratch/gst-wayland-git/
+
+RUN \
+ 	cargo cinstall --prefix=/usr
+
+#RUN makepkg && cp /scratch/gst-wayland-git/*.zst "$ARTIFACTS"
+
+#******************************************************************************
+#                                                             runtime_base_pkgs
+#******************************************************************************
+FROM base AS runtime_base_pkgs
+
+WORKDIR /scratch
+
+ENV GST_PLUGIN_PATH=/usr/lib/gstreamer-1.0/
+#COPY --from=gst-wayland-build /artifacts/*.zst pkgs/
+
+COPY --from=gst-wayland-build /usr/lib/gstreamer-1.0/* $GST_PLUGIN_PATH
+COPY --from=gst-wayland-build /usr/lib/libgstwaylanddisplay* /usr/lib/
+
+
+#******************************************************************************
+#                                                                  runtime_base
+#******************************************************************************
+
+FROM runtime_base_pkgs AS runtime_base
+
+WORKDIR /scratch
+
+
+#RUN  pacman -U --noconfirm pkgs/*.zst && rm -r pkgs
+
+

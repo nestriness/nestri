@@ -1,0 +1,11 @@
+post_install() {
+	echo "Run steamcmd with no arguments before first use."
+}
+
+post_upgrade() {
+	post_install
+}
+
+post_remove() {
+	rm -rf /usr/share/steamcmd
+}

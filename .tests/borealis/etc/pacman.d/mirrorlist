@@ -1,0 +1,7 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# ToT Arch mirror
+Server = https://storage.googleapis.com/chromeos-mirror/archlinux/$repo/os/$arch
+Usage = Install Upgrade Search

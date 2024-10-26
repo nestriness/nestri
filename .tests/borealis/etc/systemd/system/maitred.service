@@ -1,0 +1,8 @@
+[Unit]
+Description=maitred
+
+[Service]
+ExecStart=/opt/google/cros-containers/bin/maitred
+
+[Install]
+WantedBy=multi-user.target

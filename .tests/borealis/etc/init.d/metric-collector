@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=metric-collector --id=$$)
+
+USERNAME=chronos
+
+exec runuser -u "${USERNAME}" -g "${USERNAME}" \
+  -- /usr/bin/metric_collector.py --sommelier

@@ -1,0 +1,44 @@
+# Maintainer: Chloe Pelling <cpelling@google.com>
+
+pkgname=cros-wayland
+pkgver=1.21.0
+pkgrel=1
+pkgdesc='wayland library'
+arch=('x86_64')
+url='https://wayland.freedesktop.org/'
+license=('MIT')
+depends=('glibc' 'libffi')
+makedepends=('meson' 'ninja' 'graphviz' 'docbook-xsl')
+conflicts=('wayland')
+provides=('wayland' libwayland-{client,cursor,egl,server}.so)
+validpgpkeys=('C7223EBE4EF66513B892598911A30156E0E67611'  # Bryce Harrington
+              'C0066D7DB8E9AC6844D728715E54498E697F11D7'  # Derek Foreman
+              '34FF9526CFEF0E97A340E2E40FDE7BE0E88F5E48') # emersion <contact@emersion.fr>
+_borealis_branch_tracked=('borealis')
+_borealis_current_ref=('commit=8230237744099f1c6c3229de2ce8720dd413c933')
+source=("wayland::git+https://chromium.googlesource.com/chromiumos/third_party/wayland#${_borealis_current_ref}")
+sha256sums=('SKIP')
+options=(debug strip)
+
+build() {
+  cd ${srcdir}/wayland
+  meson build --buildtype=release --prefix=/usr \
+    -Ddocumentation="false" \
+    -Ddtd_validation="false" \
+    -Ddebug_util="true"
+  # b/336808513 queue-test fails on some builders.
+  # Speculatively increase timeout.
+  sed "s/test_set_timeout(2);/test_set_timeout(10);/" -i "tests/queue-test.c"
+  ninja -C build
+}
+
+check() {
+  cd ${srcdir}/wayland
+  ninja -C build test
+}
+
+package() {
+  cd ${srcdir}/wayland
+  DESTDIR="$pkgdir" ninja -C build install
+  install -Dm 644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}

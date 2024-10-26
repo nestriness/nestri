@@ -1,0 +1,8 @@
+[Unit]
+Description=vshd
+
+[Service]
+ExecStart=/opt/google/cros-containers/bin/vshd
+
+[Install]
+WantedBy=basic.target

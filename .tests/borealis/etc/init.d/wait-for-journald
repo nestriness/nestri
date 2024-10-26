@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Other processes in init rely on journald, we need to wait until it is
+# running in order to procede with the init safely.
+until echo Waiting for systemd-journal to start | systemd-cat;
+do
+  sleep 0.5;
+done

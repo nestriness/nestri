@@ -1,0 +1,12 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Note: We run sommelier and Steam separately rather than running
+# `sommelier -X steam`. This is necessary because Steam restarts itself in some
+# cases, and sommelier does not handle that well.
+
+argv: "/etc/init.d/sommelier-x"
+
+respawn: true
+wait_for_exit: false

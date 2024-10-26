@@ -1,0 +1,33 @@
+# Maintainer: Syed Faaiz Hussain <syedfaaiz@google.com>
+
+_pkgname=vdf
+pkgname=python-vdf
+pkgver=3.4
+pkgrel=2
+pkgdesc="vdf python library"
+arch=('any')
+url='https://github.com/ValvePython/vdf'
+license=('MIT')
+depends=(python)
+makedepends=(python-setuptools)
+checkdepends=(python python-nose python-coverage)
+
+pinned_ref='8104cb27c0b222bd802b69df58204ab389fc714c'
+source=("${pkgname}::git+https://github.com/ValvePython/vdf.git#commit=${pinned_ref}")
+sha512sums=('SKIP')
+
+build() {
+  cd "$pkgname"
+  python setup.py build
+}
+
+check() {
+  cd "$pkgname"
+  python setup.py test
+}
+
+package() {
+  cd "$pkgname"
+  python setup.py install --optimize=1 --root="${pkgdir}/"
+  install -D -m644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

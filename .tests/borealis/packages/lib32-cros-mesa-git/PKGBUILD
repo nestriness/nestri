@@ -1,0 +1,122 @@
+# Maintainer: David Riley <davidriley@chromium.org>
+
+pkgname=lib32-cros-mesa-git
+pkgdesc="mesa library (32-bit)"
+pkgver=22.0.0_devel.148092.af4d277cccb
+pkgrel=1
+arch=('x86_64')
+makedepends=('python-mako' 'lib32-libxml2' 'lib32-libx11' 'xorgproto'
+             'git' 'lib32-libglvnd' 'wayland-protocols'
+             'meson' 'lib32-libxrandr' 'glslang' 'lib32-llvm')
+depends=('cros-mesa-git' 'lib32-gcc-libs' 'lib32-libdrm' 'lib32-wayland' 'lib32-libxxf86vm'
+         'lib32-libxdamage' 'lib32-libxshmfence' 'lib32-libelf' 'lib32-libunwind'
+         'lib32-lm_sensors' 'lib32-vulkan-icd-loader' 'lib32-zstd'
+        'lib32-llvm-libs')
+optdepends=('opengl-man-pages: for the OpenGL API man pages')
+provides=('lib32-cros-mesa' 'lib32-mesa' 'lib32-vulkan-virtio' 'lib32-opengl-driver' 'lib32-vulkan-driver')
+conflicts=('lib32-cros-mesa' 'lib32-mesa' 'lib32-vulkan-virtio')
+url="https://www.mesa3d.org"
+license=('custom')
+_borealis_branch_tracked=('upstream/main')
+_borealis_current_ref=('commit=9bce6f5cc44d239bcc8ba8d92c4569eae38d99a8')
+source=("mesa::git+https://chromium.googlesource.com/chromiumos/third_party/mesa.git#${_borealis_current_ref}"
+        'LICENSE'
+        'llvm32.native')
+md5sums=('SKIP'
+         '5c65a0fe315dd347e09b1f2826a1df5a'
+         '6b4a19068a323d7f90a3d3cd315ed1f9')
+sha512sums=('SKIP'
+            '25da77914dded10c1f432ebcbf29941124138824ceecaf1367b3deedafaecabc082d463abcfa3d15abff59f177491472b505bcb5ba0c4a51bb6b93b4721a23c2'
+            'c7dbb390ebde291c517a854fcbe5166c24e95206f768cc9458ca896b2253aabd6df12a7becf831998721b2d622d0c02afdd8d519e77dea8e1d6807b35f0166fe')
+options=(debug strip)
+
+pkgver() {
+    cd mesa
+    read -r _ver <VERSION
+    echo ${_ver/-/_}.$(git rev-list --count HEAD).$(git rev-parse --short HEAD)
+}
+
+prepare() {
+    if [  -d _build ]; then
+        rm -rf _build
+    fi
+
+    local _patchfile
+    for _patchfile in "${source[@]}"; do
+        _patchfile="${_patchfile%%::*}"
+        _patchfile="${_patchfile##*/}"
+        [[ $_patchfile = *.patch ]] || continue
+        patch --directory=mesa --forward --strip=1 --input="${srcdir}/${_patchfile}"
+    done
+}
+
+build () {
+    if [[ "${BUILD_NATIVE_DRIVERS}" == "1" ]]; then
+        EXTRA_GALLIUM_DRIVERS="iris,radeonsi,"
+        EXTRA_VULKAN_DRIVERS="amd,intel,"
+    else
+        EXTRA_GALLIUM_DRIVERS=""
+        EXTRA_VULKAN_DRIVERS=""
+    fi
+
+    export CC="${CC:-gcc}"
+    export CXX="${CXX:-g++}"
+    CC="$CC -m32"
+    CXX="$CXX -m32"
+
+    export PKG_CONFIG=/usr/bin/i686-pc-linux-gnu-pkg-config
+
+    meson setup mesa _build \
+        --native-file llvm32.native \
+        -D b_ndebug=true \
+        -D buildtype=release \
+        -D b_lto=true \
+        --wrap-mode=nofallback \
+        -D prefix=/usr \
+        -D sysconfdir=/etc \
+        --libdir=/usr/lib32 \
+        -D platforms=x11,wayland \
+        -D gallium-drivers="${EXTRA_GALLIUM_DRIVERS}"swrast,virgl,zink \
+        -D vulkan-drivers="${EXTRA_VULKAN_DRIVERS}"virtio \
+        -D dri3=enabled \
+        -D egl=enabled \
+        -D gbm=enabled \
+        -D gles1=enabled \
+        -D gles2=enabled \
+        -D opengl=true \
+        -D glvnd=true \
+        -D glx=dri \
+        -D libunwind=enabled \
+        -D llvm=enabled \
+        -D lmsensors=enabled \
+        -D shared-glapi=enabled \
+        -D valgrind=disabled \
+        -D vulkan-layers=device-select,overlay \
+        -D tools=[] \
+        -D zstd=enabled \
+        -D microsoft-clc=disabled \
+        -D perfetto=true
+
+    meson configure _build
+
+    ninja  $NINJAFLAGS -C _build
+}
+
+package() {
+    DESTDIR="$pkgdir" ninja $NINJAFLAGS -C _build install
+
+    # remove files provided by mesa-git
+    rm -rf "$pkgdir"/etc
+    rm -rf "$pkgdir"/usr/include
+    rm -rf "$pkgdir"/usr/share/glvnd/
+    rm -rf "$pkgdir"/usr/share/drirc.d/
+    rm -rf "$pkgdir"/usr/share/vulkan/explicit_layer.d/
+    rm -rf "$pkgdir"/usr/share/vulkan/implicit_layer.d/VkLayer_MESA_device_select.json
+
+    rm "${pkgdir}/usr/bin/mesa-overlay-control.py"
+    rm "${pkgdir}/usr/bin/pps-producer"
+    rmdir "${pkgdir}/usr/bin"
+
+    ln -s /usr/lib32/libGLX_mesa.so.0 "${pkgdir}/usr/lib32/libGLX_indirect.so.0"
+    install -m644 -Dt  "$pkgdir"/usr/share/licenses/$pkgbase/ "$srcdir"/LICENSE
+}

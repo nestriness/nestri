@@ -1,0 +1,20 @@
+# Block crash reports for Steam and games. Steam games typically live within
+# /home/chronos/.steam/steam/steamapps, but in principle could extract
+# binaries anywhere in chronos's home directory.
+# Steam and games always run as the chronos user, so it's not necessary to
+# block all of /home.
+filters {
+  blocked_path: "/home/chronos/"
+}
+
+# Block crash reports for any other paths that might be writable.
+# For example, some games are known to extract binaries to /tmp.
+filters {
+  blocked_path: "/mnt/external/"
+}
+filters {
+  blocked_path: "/mnt/stateful/"
+}
+filters {
+  blocked_path: "/tmp/"
+}

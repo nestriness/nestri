@@ -1,0 +1,23 @@
+Force usage of GBM_BO_USE_SCANOUT
+
+Ensure that virgl-allocated WSI buffers with implicit modifiers
+are resolved by host minigbm to scanout-capable layouts.
+
+TODO(b/283830223): evaluate whether still needed)
+---
+ hw/xwayland/xwayland-glamor-gbm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/xwayland/xwayland-glamor-gbm.c b/hw/xwayland/xwayland-glamor-gbm.c
+index cfcd39a35..0f5727d42 100644
+--- a/hw/xwayland/xwayland-glamor-gbm.c
++++ b/hw/xwayland/xwayland-glamor-gbm.c
+@@ -347,7 +347,7 @@ xwl_glamor_gbm_create_pixmap_internal(struct xwl_screen *xwl_screen,
+                     usage |= GBM_BO_USE_LINEAR;
+             }
+
+-            bo = gbm_bo_create(xwl_gbm->gbm, width, height, format, usage);
++            bo = gbm_bo_create(xwl_gbm->gbm, width, height, format, usage | GBM_BO_USE_SCANOUT);
+         }
+
+         if (bo) {

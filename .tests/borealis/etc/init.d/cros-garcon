@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=cros-garcon --id=$$)
+
+USERNAME=chronos
+export DISPLAY=:0
+
+# Propagate DBus environment variables to Garcon, so it can make its
+# DBus interfaces available on the session bus.
+# shellcheck disable=SC1091
+. /tmp/.chronos_dbus_session_env.sh
+
+exec runuser -u "${USERNAME}" -g "${USERNAME}" \
+  -G audio \
+  -G input \
+  -G render \
+  -G traced-producer \
+  -G video \
+  -- /opt/google/cros-containers/bin/garcon --server --allow_any_user

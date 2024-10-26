@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Redirects the script's std stream to the logs.
+exec 1> >(logger --std --tag log-disk)
+
+# Simple script to dump disk stats at startup.
+echo "mount"
+mount
+echo "df"
+df
+exit 0

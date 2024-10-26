@@ -1,0 +1,422 @@
+# Quirks rules applied by default.
+
+# Default
+sommelier {
+  condition {
+    always: true
+  }
+  enable: FEATURE_BLACK_SCREEN_FIX
+}
+
+# Counter-Strike
+sommelier {
+  condition {
+    steam_game_id: 10
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Team Fortress 2
+sommelier {
+  condition {
+    steam_game_id: 440
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Left 4 Dead 2
+sommelier {
+  condition {
+    steam_game_id: 550
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Portal 2
+sommelier {
+  condition {
+    steam_game_id: 620
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# CS2
+sommelier {
+  condition {
+    steam_game_id: 730
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Steam window
+sommelier {
+  condition {
+    steam_game_id: 769
+  }
+  disable: FEATURE_BLACK_SCREEN_FIX
+  disable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Garry's Mod
+# Note: runtime must be set to Proton.
+sommelier {
+  condition {
+    steam_game_id: 4000
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Total War: MEDIEVAL II - Definitive Edition
+sommelier {
+  condition {
+    steam_game_id: 4700
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Sid Meier's Civilization V (Linux)
+sommelier {
+  condition {
+    steam_game_id: 8930
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Borderlands 2
+sommelier {
+  condition {
+    steam_game_id: 49520
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Sid Meier's Civilization V
+sommelier {
+  condition {
+    steam_game_id: 50100
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Don't Starve
+sommelier {
+  condition {
+    steam_game_id: 219740
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Euro Truck Simulator 2
+# Note: runtime must be set to Proton.
+sommelier {
+  condition {
+    steam_game_id: 227300
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Path of Exile
+sommelier {
+  condition {
+    steam_game_id: 238960
+  }
+  enable: FEATURE_X11_MOVE_WINDOWS
+}
+
+# The Forest
+sommelier {
+  condition {
+    steam_game_id: 242760
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Darkest Dungeon
+sommelier {
+  condition {
+    steam_game_id: 262060
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# American Truck Simulator
+# Note: runtime must be set to Proton.
+sommelier {
+  condition {
+    steam_game_id: 270880
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Stellaris
+sommelier {
+  condition {
+    steam_game_id: 281990
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Tabletop Simulator
+sommelier {
+  condition {
+    steam_game_id: 286160
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Heroes of Might & Magic III - HD Edition
+sommelier {
+  condition {
+    steam_game_id: 297000
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Geometry Dash
+sommelier {
+  condition {
+    steam_game_id: 322170
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Don't Starve Together
+sommelier {
+  condition {
+    steam_game_id: 322330
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# ARK: Survival Evolved
+sommelier {
+  condition {
+    steam_game_id: 346110
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Dragon's Dogma: Dark Arisen
+sommelier {
+  condition {
+    steam_game_id: 367500
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Hollow Knight
+sommelier {
+  condition {
+    steam_game_id: 367520
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Fishing Planet
+sommelier {
+  condition {
+    steam_game_id: 380600
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# BioShock Remastered
+sommelier {
+  condition {
+    steam_game_id: 409710
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Stardew Valley
+sommelier {
+  condition {
+    steam_game_id: 413150
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Oxygen Not Included
+sommelier {
+  condition {
+    steam_game_id: 457140
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Dead Cells
+sommelier {
+  condition {
+    steam_game_id: 588650
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Risk of Rain 2
+sommelier {
+  condition {
+    steam_game_id: 632360
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Ravenfield
+sommelier {
+  condition {
+    steam_game_id: 636480
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Slay the Spire
+sommelier {
+  condition {
+    steam_game_id: 646570
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Swords & Souls: Neverseen
+sommelier {
+  condition {
+    steam_game_id: 679900
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Overcooked 2
+sommelier {
+  condition {
+    steam_game_id: 728880
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Age of Empires II: Definitive Edition
+sommelier {
+  condition {
+    steam_game_id: 813780
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Valheim
+sommelier {
+  condition {
+    steam_game_id: 892970
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Among Us
+sommelier {
+  condition {
+    steam_game_id: 945360
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# People Playground
+sommelier {
+  condition {
+    steam_game_id: 1118200
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# The Sims 4
+sommelier {
+  condition {
+    steam_game_id: 1222670
+  }
+  enable: FEATURE_X11_MOVE_WINDOWS
+}
+
+# Cats Organized Neatly
+sommelier {
+  condition {
+    steam_game_id: 1269340
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# DEVOUR
+sommelier {
+  condition {
+    steam_game_id: 1274570
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Loop Hero
+sommelier {
+  condition {
+    steam_game_id: 1282730
+  }
+  enable: FEATURE_X11_MOVE_WINDOWS
+}
+
+# Disney Dreamlight Valley
+sommelier {
+  condition {
+    steam_game_id: 1401590
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Cookie Clicker
+sommelier {
+  condition {
+    steam_game_id: 1454400
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+  enable: FEATURE_FORCE_X11_UNMAXIMIZE
+}
+
+# Goose Goose Duck
+sommelier {
+  condition {
+    steam_game_id: 1568590
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Stumble Guys
+sommelier {
+  condition {
+    steam_game_id: 1677740
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Persona 5 Royal
+sommelier {
+  condition {
+    steam_game_id: 1687950
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# DAVE THE DIVER
+sommelier {
+  condition {
+    steam_game_id: 1868140
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Lethal Company
+sommelier {
+  condition {
+    steam_game_id: 1966720
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}
+
+# Magic the Gathering: Arena
+sommelier {
+  condition {
+    steam_game_id: 2141910
+  }
+  enable: FEATURE_CONTAINERIZE_WINDOWS
+}

@@ -1,0 +1,50 @@
+// Copyright 2023 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+// NOTE: This code is automatically generated and  any changes to this file will be overwritten.
+
+#include "{{ protocol.name_hyphen }}-shim.h"
+
+{%- for interface in protocol.interfaces %}
+
+void {{ interface.name }}::set_user_data(struct {{interface.name_underscore}} *{{interface.name_underscore}}, void* user_data) {
+  {{ interface.name_underscore }}_set_user_data({{ interface.name_underscore }}, user_data);
+}
+
+void* {{ interface.name }}::get_user_data(struct {{ interface.name_underscore }} *{{interface.name_underscore}}) {
+  return {{ interface.name_underscore }}_get_user_data({{ interface.name_underscore }});
+}
+
+{%- if interface.events|length > 0 %}
+int {{ interface.name }}::add_listener(struct {{ interface.name_underscore }}* {{ interface.name_underscore }}, const struct {{ interface.name_underscore }}_listener* listener, void* data) {
+  return {{ interface.name_underscore }}_add_listener({{ interface.name_underscore }}, listener, data);
+}
+{% endif %}
+
+{%- for method in interface.methods %}
+{{ method.ret }} {{ interface.name }}::{{method.name}}(
+    struct {{ interface.name_underscore }} *{{ interface.name_underscore }}{% for arg in method.args %},
+    {{ arg.type }} {{ arg.name }}{%endfor%}) {
+  {% if method.ret %}return {% endif %}{{ interface.name_underscore }}_{{ method.name }}({{ interface.name_underscore }}{% for arg in method.args %}, {{ arg.name }}{% endfor %});
+}
+{% endfor -%}
+
+{%- for event in interface.events %}
+void {{ interface.name}}::send_{{event.name}}(
+    struct wl_resource* resource{% for arg in event.args %},
+    {{ arg.type }} {{ arg.name }}{% endfor %}) {
+  {{ interface.name_underscore }}_send_{{ event.name }}(resource{% for arg in event.args %}, {{ arg.name }}{% endfor %});
+}
+{% endfor -%}
+
+
+static {{ interface.name }}* {{ interface.name_underscore }}_singleton = nullptr;
+
+{{ interface.name }}* {{ interface.name_underscore | lower }}_shim() {
+  return {{ interface.name_underscore }}_singleton;
+}
+
+void set_{{ interface.name_underscore }}_shim ({{ interface.name }}* shim) {
+  {{ interface.name_underscore }}_singleton = shim;
+}
+{% endfor -%}

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This script mounts host shadercached user cryptohome (shared as virtiofs
+# "precompiled_gpu_cache") to /run/shadercache on VM launch.
+# If Steam's shader cache directory is symlinked to /run/shadercache, it allows
+# precompiled cache (downloaded by Steam) to be used by host Mesa via
+# shadercached.
+
+set -e
+exec 2> >(logger --tag=mount-gpu-precompiled-cache --id=$$)
+
+virtiofs_name="precompiled_gpu_cache"
+shader_cache_path="/run/shadercache"
+
+mkdir -p "${shader_cache_path:?}"
+if mountpoint -q "${shader_cache_path:?}"; then
+  echo "Already mounted!"
+  exit 0
+fi
+
+if ! mount --type virtiofs "${virtiofs_name:?}" "${shader_cache_path:?}"; then
+  log "Failed to mount ${virtiofs_name} viriotfs at ${shader_cache_path}"
+  rmdir "${shader_cache_path}"
+  exit 1
+fi
+echo "Successfully mounted into empty directory!"
+exit 0

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="text_input_crostini_unstable_v1">
+
+  <copyright>
+      Copyright 2023 The ChromiumOS Authors
+      Use of this source code is governed by a BSD-style license that can be
+      found in the LICENSE file.
+  </copyright>
+
+  <interface name="zcr_text_input_crostini_manager_v1" version="1">
+    <description summary="factory for zcr_text_input_crostini_v1">
+    </description>
+
+    <enum name="error">
+      <entry name="text_input_crostini_exists" value="0"
+             summary="the text_input already has an text_input_crostini object associated"/>
+    </enum>
+
+    <request name="get_text_input_crostini">
+      <description summary="get zcr_text_input_crostini_v1 object">
+        Create a zcr_text_input_crostini_v1 object for a text_input.
+        If an object has already been created, the text_input_crostini_exists
+        protocol error is raised.
+      </description>
+      <arg name="id" type="new_id" interface="zcr_text_input_crostini_v1"/>
+      <arg name="text_input" type="object" interface="zwp_text_input_v1"/>
+    </request>
+
+  </interface>
+
+  <interface name="zcr_text_input_crostini_v1" version="1">
+    <description summary="Crostini extension support for text_input">
+      Adds extra text_input functionality specific to Crostini. This is only
+      used between sommelier and cros_im.
+    </description>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy zcr_text_input_crostini_v1 object"/>
+    </request>
+
+    <request name="activate_x11">
+      <description summary="request activation">
+        Calls text_input::activate with the X11 window id converted to the
+        matching wl_surface.
+      </description>
+      <arg name="seat" type="object" interface="wl_seat"/>
+      <arg name="x11_window_id" type="uint"/>
+    </request>
+  </interface>
+</protocol>

@@ -1,0 +1,65 @@
+# Copyright 2020 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+option('xwayland_path',
+  type: 'string',
+  value: '/opt/google/cros-containers/bin/Xwayland',
+  description: 'path to Xwayland'
+)
+
+option('xwayland_gl_driver_path',
+  type: 'string',
+  value: '/opt/google/cros-containers/lib',
+  description: 'the GL driver path to use for Xwayland'
+)
+
+option('frame_color',
+  type: 'string',
+  value: '#f2f2f2',
+  description: 'frame color to use for Xwayland clients'
+)
+
+option('dark_frame_color',
+  type: 'string',
+  value: '#323639',
+  description: 'dark frame color to use for Xwayland clients'
+)
+
+option('tracing',
+  type: 'boolean',
+  value: false,
+  description: 'enable tracing via perfetto'
+)
+
+option('gamepad',
+  type: 'boolean',
+  value: false,
+  description: 'enable gamepad support'
+)
+
+# TODO(b/181077580): remove this in favour of a proper fix to the busy
+# loop issue.
+option('commit_loop_fix',
+  type: 'boolean',
+  value: false,
+  description: 'enable a fix to the commit-cycle, which is known to break some apps'
+)
+
+option('quirks',
+  type: 'boolean',
+  value: false,
+  description: 'support "quirks mode" config files'
+)
+
+option('with_tests',
+  type: 'boolean',
+  value: true,
+  description: 'build the sommelier_test target'
+)
+
+option('log_level',
+  type: 'integer',
+  value: 0,
+  description: 'log level to print, -1 prints everything, default is 0 (up to INFO)'
+)

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=proton-user-settings --id=$$)
+
+# TODO(davidriley): This entire file should be deleted once Proton works
+# without it.
+
+NAME=proton-user-settings
+USERNAME=chronos
+SKELDIR="/etc/skel"
+HOMEDIR="/home/${USERNAME}"
+COMMONDIR="${HOMEDIR}/.steam/steam/steamapps/common"
+
+HASH[0]=9e0073ece78708953df7ee8724dc245f387475424703cc50b0f70489423e4ef4
+HASH[1]=64b2f2bf393b8956706cd04029c6bc0904f2c9cd51628068fd109f51240be865
+
+update_settings_file() {
+  # Only update user_settings.py files in the user's Steam installation
+  # if custom modifications have not been made.
+
+  settings="${1}"
+
+  userhash="$(sha256sum "${settings}" | awk '{print $1}')"
+  for h in "${HASH[@]}"; do
+    if [[ "${userhash}" = "$h" ]]; then
+      rm "${settings}"
+    fi
+  done
+}
+
+while ! mountpoint -q "${HOMEDIR}"; do
+  sleep 1
+done
+
+if [ -d "${COMMONDIR}" ]; then
+  for pdir in "${COMMONDIR}"/Proton*; do
+    settings="${pdir}/user_settings.py"
+    if [ -f "${settings}" ]; then
+      update_settings_file "${settings}"
+    fi
+  done
+fi

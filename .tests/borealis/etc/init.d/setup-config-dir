@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=setup-config-dir --id=$$)
+
+USERNAME=chronos
+CONFIG_DIR="/home/${USERNAME}/.config"
+
+if [[ ! -d "${CONFIG_DIR}" ]]; then
+  mkdir "${CONFIG_DIR}"
+fi
+
+# Written outside of the if statement to fix .config directory that might be
+# owned by root and doesn't have the correct permissions.
+chown "${USERNAME}:${USERNAME}" "${CONFIG_DIR}"
+chmod 0755 "${CONFIG_DIR}"

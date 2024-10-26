@@ -1,0 +1,176 @@
+#!/bin/bash
+
+# Copyright 2021-2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -eu
+
+borealis_log() {
+  logger --tag "steam-wrapper" "$@"
+}
+
+setup_nvidia_dgpu_render_offload() {
+  # If VM has NVIDIA dGPU present and NVIDIA driver loaded, then setup the
+  # enviroment variables for NVIDIA dGPU render offload.
+  if [ -f /proc/driver/nvidia/version ]; then
+    export __VK_LAYER_NV_optimus=NVIDIA_only
+    export __GLX_VENDOR_LIBRARY_NAME=nvidia
+    export __NV_PRIME_RENDER_OFFLOAD=1
+  fi
+}
+
+# TODO(b/186602033): These waits should be removed. Instead we should have a way
+# for sommelier and maitred to signal readiness to chrome, which would allow
+# chrome to block launching applications until the VM is ready.
+wait_for_setup() {
+  # Setup NVIDIA dGPU render offload.
+  setup_nvidia_dgpu_render_offload
+
+  # Wait until home directory is mounted.
+  while ! mountpoint -q "${HOME}"; do
+    sleep 0.1
+  done
+
+  # Wait for sommelier.
+  while [ ! -S /tmp/.X11-unix/X0 ]; do
+    sleep 0.1
+  done
+
+  # Wait for DBus session bus.
+  # TODO(cpelling): Remove check when Arch is the only distribution in use.
+  if [[ "$(lsb_release -is)" == "Arch" ]]; then
+    while [[ ! -f /tmp/.chronos_dbus_session_env.sh ]]; do
+      sleep 0.1
+    done
+  fi
+}
+
+wait_for_setup
+
+# Propagate DBus environment variables to Steam+games so they can connect
+# to the session bus if they need to.
+# shellcheck disable=SC1091
+source /tmp/.chronos_dbus_session_env.sh
+
+# Workaround for a crash in mono-based games, which crash on certain TERM
+# values. See b/194801727.
+if [[ -v TERM && "${TERM}" =~ ^xterm- ]]; then
+  borealis_log "Overriding \$TERM to \"xterm\", was \"${TERM}\""
+  export TERM="xterm"
+fi
+
+# Workaround for Warframe and (potentially) other games which embed CEF
+# See b/202531087 for further details
+# Set LANG and LC_ALL to a default to prevent CEF from crashing on init
+: "${LANG:=en_US.utf8}"
+: "${LC_ALL:=en_US.utf8}"
+export LANG
+export LC_ALL
+
+# Launch all games through wrapper.  Don't override any environment previously
+# set.
+: "${STEAM_GAME_LAUNCH_SHELL:=/usr/bin/launch-wrap.sh}"
+export STEAM_GAME_LAUNCH_SHELL
+
+# Launch Fossilize replay through wrapper.  Don't override any environment
+# previously set.
+: "${FOSSILIZE_REPLAY_WRAPPER:=/usr/bin/fossilize-wrap.sh}"
+export FOSSILIZE_REPLAY_WRAPPER
+
+# Use GDK_SCALE to zoom applications.
+#
+# TODO(b/236788462): Steam should really be scaling itself, this flag is a
+# temporary measure which we will eventually remove.
+if [ -e "${HOME}/.borealis_flags/BorealisForceDoubleScale" ]; then
+  export GDK_SCALE=2
+fi
+
+if [ -e "${HOME}/.borealis_flags/BorealisScaleClientByDPI" ]
+then
+SCALE=$(python /usr/bin/get_client_ui_scale.py)
+desktop_scale_flags=("-forcedesktopscaling" "${SCALE}")
+else
+desktop_scale_flags=()
+fi
+
+# Decide what chromeos integration flags to use.
+# TODO(b/234764695): remove preallocate flag.
+chromeos_integrations_flags=("-chromeos" "-chromeosnopreallocate")
+# Choose whether to use chromeosdiskmanagement if the filesystem is btrfs.
+stateful_fs_type="$(df --output=fstype "${HOME}" | tail -n 1)"
+if [ "${stateful_fs_type}" == "btrfs" ]; then
+  INSTALL_URL="https://g.co/SteamOnChromeOS#instructions"
+  EXPORT_URL="https://g.co/SteamOnChromeOS#export-data"
+  DISPLAY=:0 zenity --warning --text="To take advantage of new features, \
+Steam will need to be reinstalled. You can uninstall Steam \
+from the \"Manage apps\" page in the ChromeOS settings \
+and then follow the <a href=\"${INSTALL_URL}\">updated \
+instructions</a> to reinstall Steam. If you need to export files \
+beforehand, you can follow the steps at: <a href=\"${EXPORT_URL}\">\
+${EXPORT_URL}</a>."
+  exit
+fi
+# Choose whether to use chromeos integrations based on the flag file.
+if [ -e "${HOME}/.borealis_flags/BorealisLinuxMode" ]; then
+  chromeos_integrations_flags=()
+fi
+
+# The beta_setup script might print out some flags we should use on first-time
+# launch. If it doesnt, $clientbeta_flags will be an empty array.
+read -r -a clientbeta_flags <<<"$(beta_setup)"
+
+STEAM_LOG_FILE="/tmp/steam-log.txt"
+CONFIG_DIR="${HOME}/.config/steam"
+if [[ -f "${CONFIG_DIR}/persistent-logs" ]]; then
+  CACHE_DIR="${HOME}/.cache/steam"
+  if [[ ! -d "${CACHE_DIR}" ]]; then
+    # When this script runs, ${HOME}/.cache should already be created
+    # by maitred's setup-cache-dir.
+    mkdir -m 0755 "${CACHE_DIR}"
+  fi
+  STEAM_LOG_FILE="${CACHE_DIR}/steam-log.txt"
+fi
+borealis_log "Redirecting steam logs to ${STEAM_LOG_FILE}"
+
+# Absolute paths to Steam's shadercache directory and mounted path
+shadercache_path="/home/chronos/.steam/steam/steamapps/shadercache"
+# 'precompiled_gpu_cache' virtiofs mount created by maitred.
+mounted_shadercache_path="/run/shadercache"
+# Steam apps path is created on first login
+steam_apps_path="/home/chronos/.steam/steam/steamapps"
+if [[ -d "${steam_apps_path}" ]]; then
+  # If there is steamapps path, simply launch migrate_shadercache.sh in blocking
+  # mode to migrate existing files before launching Steam (if any).
+
+  # Silently fail (logger output done by migrate_shadercache.sh) on shader cache
+  # migration failure.
+  # This is triggered if user has not migrated yet but 'closes' Steam then
+  # launch via shelf. We don't want to output to logger every time, so we only
+  # echo for development purposes.
+  # Games will still work as intended but in suboptimal performance (warned
+  # during migration progress bar).
+  /usr/bin/migrate_shadercache.sh \
+    "${shadercache_path}" \
+    "${mounted_shadercache_path}" || echo "One-time migration failed"
+else
+  # There is no steamapps path, which means this is a fresh installation and we
+  # don't have to migrate anything. We need to wait for the initial login, which
+  # is when Steam creates Steam library folder.
+  /usr/bin/link_shadercache_on_login.sh \
+    "${shadercache_path}" \
+    "${mounted_shadercache_path}" \
+    "${steam_apps_path}" &
+fi
+
+# Kick off the de-boost script
+/usr/bin/deboost_steamwebhelper.sh &
+
+/usr/lib/steam/bin_steam.sh \
+  "${chromeos_integrations_flags[@]}" \
+  "${clientbeta_flags[@]}" \
+  "${desktop_scale_flags[@]}" \
+  "$@" 2>&1 | tee -a "${STEAM_LOG_FILE}"
+EXIT_STATUS="$?"
+borealis_log "steam exited with status=${EXIT_STATUS}"
+exit "${EXIT_STATUS}"

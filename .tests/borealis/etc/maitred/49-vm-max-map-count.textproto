@@ -1,0 +1,11 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# b/217962642: Some Proton games need a large number of virtual memory mappings
+
+argv: "sysctl"
+argv: "-w"
+argv: "vm.max_map_count=1048576"
+respawn: false
+wait_for_exit: true

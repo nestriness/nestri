@@ -1,0 +1,63 @@
+# Copyright 2019 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# GN template to generate static library for given Wayland protorol description files.
+# Parameters:
+#   sources
+#       Wayland protocol description XML file paths.
+#   out_dir (optional)
+#       Directory to output generated source files. Relative to gen/ directory.
+template("wayland_protocol_library") {
+  forward_variables_from(invoker, [ "out_dir" ])
+  if (!defined(out_dir)) {
+    out_dir = "."
+  }
+  wayland_dir = "${root_gen_dir}/${out_dir}"
+
+  generators = [
+    {
+      subcommand = "code"
+      output_suffix = "-protocol.c"
+    },
+    {
+      subcommand = "client-header"
+      output_suffix = "-client-protocol.h"
+    },
+    {
+      subcommand = "server-header"
+      output_suffix = "-server-protocol.h"
+    },
+  ]
+  generator_actions = []
+  foreach(g, generators) {
+    action_name = "${target_name}_${g.subcommand}"
+    generator_actions += [ ":" + action_name ]
+    action_foreach(action_name) {
+      sources = invoker.sources
+      script = "//common-mk/file_generator_wrapper.py"
+      output_file = "${wayland_dir}/{{source_name_part}}${g.output_suffix}"
+      outputs = [ output_file ]
+      args = [
+        "wayland-scanner",
+        g.subcommand,
+        "{{source}}",
+        output_file,
+      ]
+    }
+  }
+
+  static_library(target_name) {
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+    deps = generator_actions
+    sources = []
+    foreach(t, deps) {
+      sources += get_target_outputs(t)
+    }
+    if (defined(invoker.deps)) {
+      deps += invoker.deps
+    }
+  }
+}

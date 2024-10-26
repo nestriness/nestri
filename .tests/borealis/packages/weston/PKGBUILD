@@ -1,0 +1,47 @@
+# Maintainer: Chloe Pelling <cpelling@google.com>
+
+pkgname=weston
+pkgver=12.0.1
+pkgrel=1
+pkgdesc='weston server'
+arch=('x86_64')
+url='https://wayland.freedesktop.org/'
+license=('MIT')
+depends=('glibc' 'wayland' 'libxkbcommon' 'libinput' 'libunwind' 'pixman'
+         'libdrm' 'pam' 'systemd-libs' 'cairo' 'libpng' 'libjpeg-turbo' 'libwebp'
+         'mesa' 'libegl' 'libgles' 'glib2' 'pango' 'lcms2' 'mtdev' 'libx11'
+         'libxcb' 'dbus' 'libva' 'libxcursor' 'colord' 'seatd')
+makedepends=('wayland-protocols' 'meson' 'ninja' 'libpipewire'
+             'xorg-xwayland' 'xcb-util-cursor')
+optdepends=('xorg-xwayland: support x11 backend'
+            'libpipewire: support pipewire backend')
+options=(!lto)
+source=("https://gitlab.freedesktop.org/wayland/weston/-/releases/$pkgver/downloads/weston-$pkgver.tar.xz")
+sha256sums=('b18591eab278bc191720f6c09158040b795e7118af1d5ddca6acd9a8e2039535')
+
+prepare() {
+  cd $pkgname-$pkgver
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    patch -Np1 < "../$src"
+  done
+}
+
+build() {
+  arch-meson $pkgname-$pkgver build \
+    --libexec=lib/weston -D b_lto=false \
+    -D backend-rdp=false \
+    -D backend-vnc=false \
+    -D screenshare=false \
+    -D remoting=false \
+
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" meson install -C build
+  install -Dm644 $pkgname-$pkgver/COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=fix-traffic-class --id=$$)
+
+for tc in $(find /sys/devices/pci0000:00 -type f -name traffic_class); do
+  if ! cat "${tc}" >/dev/null 2>&1; then
+    echo "Replacing ${tc} with placeholder /tmp/traffic_class"
+    echo 0 >/tmp/traffic_class
+    mount --bind /tmp/traffic_class "${tc}"
+  fi
+done

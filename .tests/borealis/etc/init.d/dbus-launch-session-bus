@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=dbus-launch-session-bus --id=$$)
+
+# Launches a session bus and writes its DBUS_SESSION_BUS_ADDRESS env variable
+# to a script, which can be sourced before starting any app that needs the
+# session bus.
+runuser -u chronos -g chronos -- \
+    dbus-launch --sh-syntax > /tmp/.chronos_dbus_session_env.sh.tmp
+chmod a=r /tmp/.chronos_dbus_session_env.sh.tmp
+mv /tmp/.chronos_dbus_session_env.sh.tmp /tmp/.chronos_dbus_session_env.sh

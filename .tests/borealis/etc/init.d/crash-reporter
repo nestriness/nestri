@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=crash-reporter --id=$$)
+
+SOURCEBASEDIR="/mnt/stateful"
+LIBSOURCEDIR="${SOURCEBASEDIR}/crash-lib"
+LIBDESTDIR="/var/lib/crash_reporter"
+SPOOLSOURCEDIR="${SOURCEBASEDIR}/crash-spool"
+SPOOLDESTDIR="/var/spool/crash"
+
+mkdir -p "${LIBSOURCEDIR}"
+mount --bind "${LIBSOURCEDIR}" "${LIBDESTDIR}"
+mkdir -p "${SPOOLSOURCEDIR}"
+mount --bind "${SPOOLSOURCEDIR}" "${SPOOLDESTDIR}"
+
+exec /opt/google/cros-containers/bin/crash_reporter --init

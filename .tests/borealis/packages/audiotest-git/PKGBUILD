@@ -1,0 +1,49 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Maintainer: Norman Bintang <normanbt@google.com>
+
+pkgname=audiotest-git
+pkgver=VERSION
+pkgrel=1
+pkgdesc="Audio test tools"
+arch=('x86_64')
+url=""
+license=('BSD')
+groups=()
+depends=('alsa-lib')
+makedepends=()
+provides=("${pkgname%-git}")
+conflicts=("${pkgname%-git}")
+replaces=()
+backup=()
+options=(debug strip)
+install=
+_borealis_branch_tracked=('main')
+_borealis_current_ref=('commit=8b9777142b9b573a118459cf118363ca5129936b')
+source=("audiotest::git+https://chromium.googlesource.com/chromiumos/platform/audiotest#${_borealis_current_ref}"
+        'LICENSE')
+noextract=()
+sha512sums=('SKIP'
+        '172229255e35daa646b09f834dd9b55f35fcee25ccedf8d82c0a33333161344c2d5394107c23b5aaebf5dae5a2c4eaac914da7caae8701b79da399681d28f5e2')
+
+pkgver() {
+        cd "$srcdir/${pkgname%-git}"
+        echo $(git rev-list --count HEAD).$(git rev-parse --short HEAD)
+}
+
+prepare() {
+        cd "$srcdir/${pkgname%-git}"
+}
+
+build() {
+        cd "$srcdir/${pkgname%-git}"
+        CFLAGS=-Wno-error make loopback_latency
+}
+
+package() {
+        cd "$srcdir/${pkgname%-git}"
+        install -m755 -Dt "${pkgdir}/usr/bin" loopback_latency/loopback_latency script/cyclic_bench.py
+        install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" "${srcdir}/LICENSE"
+}

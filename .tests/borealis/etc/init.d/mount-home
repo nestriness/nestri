@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=mount-home --id=$$)
+
+USERNAME=chronos
+SKELDIR="/etc/skel"
+SOURCEBASEDIR="/mnt/stateful"
+SOURCEDIR="${SOURCEBASEDIR}/${USERNAME}"
+DESTDIR="/home/${USERNAME}"
+
+if [ ! -d "${SOURCEDIR}" ]; then
+  mkdir -p "${SOURCEDIR}"
+  cp -p "${DESTDIR}"/.??* "${SOURCEDIR}"
+  if [ -d "${SKELDIR}" ]; then
+    cp -rT "${SKELDIR}" "${SOURCEDIR}"
+  fi
+  chown -R "${USERNAME}:${USERNAME}" "${SOURCEDIR}"
+  chmod -R go-rwx "${SOURCEDIR}"
+fi
+
+if ! mountpoint -q "${DESTDIR}"; then
+  mkdir -p "${DESTDIR}"
+  mount --bind "${SOURCEDIR}" "${DESTDIR}"
+fi

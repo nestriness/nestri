@@ -1,0 +1,48 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# GN template to generate wayland shmis given Wayland XML files.
+# Parameters:
+#   sources
+#       Wayland protocol description XML file paths.
+#   out_dir (optional)
+#       Directory to output generated source files. Relative to gen/ directory.
+template("gen_shim") {
+  forward_variables_from(invoker, [ "out_dir" ])
+  if (!defined(out_dir)) {
+    out_dir = "."
+  }
+  wayland_dir = "${root_gen_dir}/${out_dir}"
+
+  action_foreach("gen-shims") {
+    sources = invoker.sources
+    data = [
+      "gen/mock-protocol-shim.h.jinja2",
+      "gen/protocol-shim.h.jinja2",
+      "gen/protocol-shim.cc.jinja2",
+    ]
+    script = "gen-shim.py"
+    outputs = [
+      "${wayland_dir}/{{source_name_part}}-shim.h",
+      "${wayland_dir}/{{source_name_part}}-shim.cc",
+      "${wayland_dir}/mock-{{source_name_part}}-shim.h",
+    ]
+    args = [
+      "{{source}}",
+      "${wayland_dir}",
+    ]
+  }
+
+  static_library(target_name) {
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+    deps = [ ":gen-shims" ]
+    sources = []
+    sources += get_target_outputs(":gen-shims")
+    if (defined(invoker.deps)) {
+      deps += invoker.deps
+    }
+  }
+}

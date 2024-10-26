@@ -1,0 +1,20 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Simplified Pacman config. This alternate config is used to fetch database
+# updates from a dated historic mirror. See /etc/pacman.conf.common for the
+# actual configuration.
+
+# Pacman config base containing the common config
+Include = /etc/pacman.conf.common
+
+# Database repositories
+[core]
+Include = /etc/pacman.d/mirrorlist.db
+[extra]
+Include = /etc/pacman.d/mirrorlist.db
+[community]
+Include = /etc/pacman.d/mirrorlist.db
+[multilib]
+Include = /etc/pacman.d/mirrorlist.db

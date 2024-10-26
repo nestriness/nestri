@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# beta_setup
+#
+# Puts steam into the correct beta configuration for the current borealis
+# settings. This means:
+#  - If steam has not been set up (first time install) then we print the value
+#    of the steam flags that are needed for this invocation
+#  - Otherwise, we amend the value in ${steam_root}/package/beta
+
+set -eu
+
+LINUX_BETA_CHANNEL="publicbeta"
+CROS_BETA_CHANNEL="chromeos_publicbeta_27a058066d723f423464f76fb73bcf7f7e585f6a"
+CROS_STABLE_CHANNEL="chromeos_public_88ac3843c888c7adb9cd406fbac4ff7a7d2cde9b"
+
+function beta_log {
+  logger --tag "beta_setup" "$@"
+}
+
+function has_flag {
+  [ -e "${HOME}/.borealis_flags/$1" ]
+}
+
+function get_steam_path {
+  if [ -d "${HOME}/.local/share/Steam" ]; then
+    readlink -f "${HOME}/.local/share/Steam"
+    return
+  elif [ -d "${HOME}/.steam/root" ]; then
+    # The above is probably sufficient but steam heroically tries to configure
+    # itself to work with directories it deprecated years ago, so can't hurt to
+    # double check one of those as well. Who knows how old the user's
+    # configuration might be...
+    readlink -f "${HOME}/.steam/root"
+    return
+  fi
+}
+
+function get_beta_version {
+  if has_flag "BorealisLinuxMode"; then
+    if has_flag "BorealisForceBetaClient"; then
+      echo "${LINUX_BETA_CHANNEL}"
+    else
+      # Print nothing, which causes the beta file to be removed.
+      true
+    fi
+  elif has_flag "BorealisForceBetaClient"; then
+    echo "${CROS_BETA_CHANNEL}"
+  else
+    echo "${CROS_STABLE_CHANNEL}"
+  fi
+}
+
+function main {
+  local steam_path
+  local beta_version
+  steam_path="$(get_steam_path)"
+  beta_version="$(get_beta_version)"
+
+  # Print args for steam if we can't tell where the beta file should go.
+  if [ -z "${steam_path}" ] || [ ! -d "${steam_path}/package" ]; then
+    beta_log "Detected no steam installation, using flags for first-time setup"
+    [ -z "${beta_version}" ] || echo "-clientbeta" "${beta_version}"
+    return
+  fi
+
+  # Write the beta file if steam has been set up already.
+  local beta_path="${steam_path}/package/beta"
+  beta_log "Setting beta \"${beta_version}\" in ${beta_path}"
+  if [ -z "${beta_version}" ]; then
+    # If there is no beta version, remove the relevant file.
+    rm -f "${beta_path}"
+  else
+    echo "${beta_version}" > "${beta_path}"
+  fi
+}
+
+main "$@"

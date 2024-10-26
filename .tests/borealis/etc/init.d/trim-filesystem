@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Redirects the script's error stream to the logs.
+exec 2> >(logger --stderr --tag trim-filesystem)
+
+err() {
+  echo "$*" >&2
+}
+
+STATEFUL_MOUNT=/mnt/stateful
+fstrim -v "${STATEFUL_MOUNT}" 1>&2
+FSTRIM_RESULT=$?
+
+if [ "${FSTRIM_RESULT}" -ne 0 ]; then
+  err "failed to trim ${STATEFUL_MOUNT}"
+fi

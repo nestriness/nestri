@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+exec > >(logger --stderr --tag wireplumber) 2>&1
+
+set -e
+
+USERNAME=chronos
+export PIPEWIRE_RUNTIME_DIR=/var/run/pipewire
+while [ ! -d "${PIPEWIRE_RUNTIME_DIR}" ]; do
+  sleep 0.1
+done
+
+
+# Propagate DBus environment variables to wireplumber, so it can make
+# its DBus interfaces available on the session bus.
+# shellcheck disable=SC1091
+. /tmp/.chronos_dbus_session_env.sh
+
+exec runuser -u "${USERNAME}" -- \
+  /usr/bin/wireplumber | logger

@@ -1,0 +1,131 @@
+#!/bin/bash
+# Copyright 2021 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# recover_steam_install
+#
+# A utility to wipe a users steam installation (while attempting to preserve
+# the user's game library).
+
+set -eu
+
+GAMES_ROOT=""
+GAMES_PATH=""
+BACKUP_PATH="${HOME}/.games_backup"
+RECOVERY_LOG="${HOME}/steam_recovery_logs_$(date +%Y%m%d_%H%M%S).txt"
+
+function rsi_log {
+  logger --tag "recover_steam_install" "$@"
+}
+
+function rsi_err {
+  logger --tag "recover_steam_install_error" "$@"
+  >&2 echo "$@"
+}
+
+function steam_is_running {
+  pidof steam > /dev/null
+}
+
+function steam_is_updated {
+  # All of these directories are created last, and show that steam is finished
+  # updating.
+  #
+  # For weird reasons, they aren't all always created ... So better check for
+  # any one of them.
+  [ -d "${GAMES_PATH}" ] \
+    || [ -d "${GAMES_ROOT}/appcache" ] \
+    || [ -d "${GAMES_ROOT}/config" ]
+}
+
+function needs_backup {
+  # GAMES_PATH needs to be nonzero, a directory, and nonempty
+  [ -n "${GAMES_PATH}" ] \
+    && [ -d "${GAMES_PATH}" ] \
+    && [ "$(ls -A "${GAMES_PATH}")" ]
+}
+
+function ensure_steam_not_running {
+  if steam_is_running; then
+    rsi_err "Recovery failed, steam is still running."
+    rsi_err "Please exit and try again."
+    exit 1
+  fi
+}
+
+function determine_install_path {
+  local path
+  for path in ~/.steam/root ~/.steam/steam ~/.local/share/Steam; do
+    export GAMES_ROOT="$(readlink -f ${path})"
+    export GAMES_PATH="${GAMES_ROOT}/steamapps"
+    if steam_is_updated; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+function maybe_backup_games {
+  rsi_log "Checking if we need to backup steam games in: \"${GAMES_PATH}\""
+  if needs_backup; then
+    rsi_log "Saving games in ${GAMES_PATH} to ${BACKUP_PATH}"
+    if [ -d "${BACKUP_PATH}" ]; then
+      rsi_err "Unable to backup games in ${GAMES_PATH}"
+      rsi_err "${BACKUP_PATH} already exists."
+      rsi_err "Remove either ${BACKUP_PATH} or ${GAMES_PATH}, and re-run" \
+        "this script"
+      exit 1
+    fi
+    mv "${GAMES_PATH}" "${BACKUP_PATH}"
+  else
+    rsi_log "No games found, not creating backup"
+  fi
+}
+
+function clean_steam_install {
+  rsi_log "cleaning steam installation"
+  rm -rf ~/.steam/
+  rm -rf ~/.local/share/Steam
+}
+
+function remake_steam {
+  export DISPLAY="${DISPLAY:-:0}"
+  steam 1>"${RECOVERY_LOG}" 2>&1 &
+  local steam_pid="$!"
+  rsi_log "Steam is running as PID ${steam_pid}"
+  rsi_log "Waiting for ${GAMES_PATH}"
+
+  # First wait for steam to install itself.
+  while ! steam_is_updated; do
+    if ! ps -p "${steam_pid}" > /dev/null; then
+      rsi_err "Steam exited while recovering"
+      exit 1
+    fi
+    sleep 0.5
+    # We need to re-determine the install path in-case it changed due to an
+    # update
+    determine_install_path
+  done
+  rsi_log "Steam has re-initialized itself successfully in ${GAMES_ROOT}"
+  # Steam seems to check its game library only at startup, so we need to
+  # restart it, or it won't see the games we're about to move back.
+  while ps -p "${steam_pid}" > /dev/null; do
+    pkill steam
+    sleep 1
+  done
+}
+
+function apply_backup {
+  rm -rf "${GAMES_PATH}"
+  mv "${BACKUP_PATH}" "${GAMES_PATH}"
+  rsi_log "${BACKUP_PATH} was returned to ${GAMES_PATH}"
+}
+
+ensure_steam_not_running
+determine_install_path
+maybe_backup_games
+clean_steam_install
+remake_steam
+apply_backup
+rsi_log "Steam recovery completed"

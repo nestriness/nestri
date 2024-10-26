@@ -1,0 +1,12 @@
+
+prefix=/usr
+libdir=${prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+datarootdir=${prefix}/share
+pkgdatadir=${datarootdir}/wayland
+bindir=${prefix}/bin
+wayland_scanner=${bindir}/wayland-scanner
+Name: Wayland Scanner
+Description: Wayland scanner
+Version: 1.19.0
+Cflags: -I${includedir}

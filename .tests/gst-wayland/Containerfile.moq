@@ -1,0 +1,136 @@
+#******************************************************************************
+#                                                                       initial
+#******************************************************************************
+FROM archlinux:latest AS base
+
+RUN pacman -Syu --noconfirm
+
+#******************************************************************************
+#                                                                       builder
+#******************************************************************************
+FROM base AS builder
+
+RUN \
+	pacman -Su --noconfirm \
+		base-devel \
+        	clang \
+       		cmake \
+        	git \
+        	llvm \
+        	meson \
+        	ninja \
+        	python3 \
+        	sudo \
+        	vim \
+		pkgconf \
+		gcc \
+		unzip \
+		make \
+		rustup \
+		pkgconf
+
+RUN \
+		sudo rustup default stable \
+		&& sudo cargo install -j4 cargo-c
+RUN \
+	echo "nobody ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/pacman_nobody
+
+WORKDIR /scratch
+
+ENV ARTIFACTS=/artifacts
+
+RUN mkdir -p /artifacts
+
+RUN chgrp nobody /scratch /artifacts \
+	&& chmod g+ws /scratch /artifacts
+
+#******************************************************************************
+#                                                           gst-wayland-build
+#******************************************************************************
+
+FROM builder AS gst-wayland-build
+
+RUN \
+	pacman -Su --noconfirm \
+		wayland \
+		vpl-gpu-rt \
+		gstreamer \
+		gst-plugin-va \
+		gst-plugins-base \
+		gst-plugins-good \
+		gst-plugin-fmp4 \
+		mesa-utils \
+		weston \
+		xorg-xwayland
+
+#COPY packages/gst-wayland-git/ /scratch/gst-wayland-git
+
+# Allow makepkg to be run as nobody.
+# RUN chgrp -R nobody /scratch && chmod -R g+ws /scratch
+
+#USER nobody
+
+#WORKDIR /scratch/
+
+RUN \
+	git clone https://github.com/games-on-whales/gst-wayland-display.git /scratch/gst-wayland-git
+
+WORKDIR /scratch/gst-wayland-git/
+
+RUN \
+ 	cargo cinstall --prefix=/usr
+
+#RUN makepkg && cp /scratch/gst-wayland-git/*.zst "$ARTIFACTS"
+
+#******************************************************************************
+#                                                                 gst-moq-build
+#******************************************************************************
+
+FROM builder AS gst-moq-build
+
+RUN \
+	pacman -Su --noconfirm \
+		gstreamer \
+		gst-plugins-base \
+		gst-plugins-good
+
+# RUN chgrp -R nobody . && chmod -R g+ws .
+
+RUN \
+	git clone https://github.com/kixelated/moq-gst /scratch/gst-moq-git
+
+WORKDIR /scratch/gst-moq-git/
+
+ARG GST_PLUGIN_PATH=plugins
+
+RUN \
+	mkdir -p $GST_PLUGIN_PATH \
+	&& cargo build --release --target-dir=$GST_PLUGIN_PATH -j 4 
+
+#******************************************************************************
+#                                                             runtime_base_pkgs
+#******************************************************************************
+FROM base AS runtime_base_pkgs
+
+WORKDIR /scratch
+
+ENV GST_PLUGIN_PATH=/usr/lib/gstreamer-1.0/
+#COPY --from=gst-wayland-build /artifacts/*.zst pkgs/
+
+COPY --from=gst-wayland-build /usr/lib/gstreamer-1.0/* $GST_PLUGIN_PATH
+COPY --from=gst-wayland-build /usr/lib/libgstwaylanddisplay* /usr/lib/
+COPY --from=gst-moq-build /scratch/gst-moq-git/plugins/* $GST_PLUGIN_PATH
+
+
+#******************************************************************************
+#                                                                  runtime_base
+#******************************************************************************
+
+FROM runtime_base_pkgs AS runtime_base
+
+WORKDIR /scratch
+
+
+#RUN  pacman -U --noconfirm pkgs/*.zst && rm -r pkgs
+
+

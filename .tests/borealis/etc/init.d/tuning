@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+exec 2> >(logger --tag=tuning --id=$$)
+
+# The default value of vfs_cache_pressure is 100. From experiments tracked via:
+# b:279506527, we get better gaming performance with it set to 150.
+echo "150" > /proc/sys/vm/vfs_cache_pressure
+
+# The default value of dirty_background_ratio is 10. From experiments tracked
+# via: b:279975319, we get overally better gaming performance with it set to 8.
+echo "8" > /proc/sys/vm/dirty_background_ratio
+
+# The default value of dirty_expire_centisecs is 3000. From experiments tracked
+# via: b:280681331, we can get slightly better gaming performance with it set to
+# 2500.
+echo "2500" > /proc/sys/vm/dirty_expire_centisecs

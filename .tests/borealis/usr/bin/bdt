@@ -1,0 +1,521 @@
+#!/usr/bin/env python3
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""Borealis debugging command-line tool."""
+
+import argparse
+import datetime
+import sys
+import unittest
+from unittest import mock
+
+from bdt_lib import commands  # pylint: disable=import-error
+from bdt_lib import quirks  # pylint: disable=import-error
+from bdt_lib import window_trace  # pylint: disable=import-error
+
+
+# To run tests:
+# bdt test
+# To test coverage:
+# pip install coverage
+# python3 -m coverage run bdt test
+# python3 -m coverage report
+
+
+def add_launch_wrapper_option(subparsers, command):
+    """Add argument parsing for a launch-wrapper option."""
+    parser = subparsers.add_parser(
+        command, help=f"launch-wrapper set {command}"
+    )
+    parser.set_defaults(
+        func=lambda args: commands.launch_option_set(
+            command, args.on, args.file
+        )
+    )
+    parser.add_argument(
+        "--on",
+        dest="on",
+        action="store_true",
+        default=True,
+        help="enable option",
+    )
+    parser.add_argument(
+        "--off", dest="on", action="store_false", help="disable option"
+    )
+    parser.add_argument(
+        "--file",
+        default=commands.LAUNCH_OPTIONS_FILENAME,
+        help="launch options filename",
+    )
+
+
+def add_config_option(subparsers, command):
+    """Add argument parsing for a launch-wrapper option."""
+    parser = subparsers.add_parser(
+        command, help=f"launch-wrapper set {command}"
+    )
+    parser.set_defaults(
+        func=lambda args: commands.config_option_set(
+            command, args.on, args.component
+        )
+    )
+    parser.add_argument(
+        "--on",
+        dest="on",
+        action="store_true",
+        default=True,
+        help="enable option",
+    )
+    parser.add_argument(
+        "--off", dest="on", action="store_false", help="disable option"
+    )
+    parser.add_argument(
+        "--component",
+        default=None,
+        help="component to configure (omit to configure all applicable)",
+    )
+
+
+def create_parser():
+    """Create command line parser."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.set_defaults(func=None)
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Enable, disable and set launch-wrapper options as a list.
+    # e.g. bdt enable env proton
+    parser_enable = subparsers.add_parser(
+        "enable", help="enable launch options"
+    )
+    parser_enable.set_defaults(func_unpack=commands.enable_options)
+    parser_enable.add_argument(
+        "options",
+        nargs="+",
+        choices=sorted(
+            list(commands.LAUNCH_ALIASES.keys())
+            + list(commands.CONFIG_ALIASES.keys())
+        ),
+    )
+    parser_enable.add_argument(
+        "--file",
+        default=commands.LAUNCH_OPTIONS_FILENAME,
+        help="launch options filename",
+    )
+    parser_enable.add_argument(
+        "--component",
+        default=None,
+        help="component to configure (omit to configure all applicable)",
+    )
+
+    parser_disable = subparsers.add_parser(
+        "disable", help="disable launch options"
+    )
+    parser_disable.set_defaults(func_unpack=commands.disable_options)
+    parser_disable.add_argument(
+        "options",
+        nargs="+",
+        choices=sorted(
+            list(commands.LAUNCH_ALIASES.keys())
+            + list(commands.CONFIG_ALIASES.keys())
+        ),
+    )
+    parser_disable.add_argument(
+        "--file",
+        default=commands.LAUNCH_OPTIONS_FILENAME,
+        help="launch options filename",
+    )
+    parser_disable.add_argument(
+        "--component",
+        default=None,
+        help="component to configure (omit to configure all applicable)",
+    )
+
+    parser_set = subparsers.add_parser("set", help="set launch options")
+    parser_set.set_defaults(func_unpack=commands.set_options)
+    # Allow set to be called with no arguments to clear which requires
+    # adding an empty list as an a choice.
+    parser_set.add_argument(
+        "options",
+        nargs="*",
+        choices=sorted(
+            list(commands.LAUNCH_ALIASES.keys())
+            + list(commands.CONFIG_ALIASES.keys())
+        )
+        + [[]],
+    )
+    parser_set.add_argument(
+        "--file",
+        default=commands.LAUNCH_OPTIONS_FILENAME,
+        help="launch options filename",
+    )
+    parser_set.add_argument(
+        "--component",
+        default=None,
+        help="component to configure (omit to configure all applicable)",
+    )
+
+    # Quick aliases to toggle single launch-wrapper options on and off.
+    # e.g. bdt strace; bdt apitrace --off
+    for command in commands.LAUNCH_ALIASES.keys():
+        add_launch_wrapper_option(subparsers, command)
+
+    # Quick aliases to toggle single config options on and off.
+    # e.g. bdt wayland-debug-exo; bdt wayland-debug-exo --off
+    for command in commands.CONFIG_ALIASES.keys():
+        add_config_option(subparsers, command)
+
+    parser_login = subparsers.add_parser(
+        "login", help="log in to log upload service"
+    )
+    parser_login.set_defaults(func=commands.login)
+
+    parser_report = subparsers.add_parser("report", help="capture report")
+    parser_report.set_defaults(func_unpack=commands.report)
+    parser_report.add_argument(
+        "--output",
+        "-o",
+        default=commands.REPORT_FILENAME,
+        help="filename of report",
+    )
+    parser_report.add_argument(
+        "--upload",
+        "-u",
+        action="store_true",
+        help="upload report to log service",
+    )
+    parser_report.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="print extra upload debug info",
+    )
+
+    parser_start = subparsers.add_parser("start", help="start game")
+    parser_start.set_defaults(func_unpack=commands.start_game)
+    parser_start.add_argument(
+        "--timeout", type=int, help="how long to wait for in seconds"
+    )
+    parser_start.add_argument(
+        "--wait",
+        "-w",
+        choices=sorted(commands.AWAIT_ALIASES.keys()),
+        help="event to wait for",
+    )
+    parser_start.add_argument("game", nargs="?", help="steam game id")
+
+    parser_install = subparsers.add_parser("install", help="install game")
+    parser_install.set_defaults(func_unpack=commands.install_game)
+    parser_install.add_argument(
+        "--layer",
+        "-l",
+        help=(
+            "steam compatiblity layer "
+            f"({', '.join(commands.COMPAT_ALIASES.keys())})"
+        ),
+    )
+    parser_install.add_argument("game", help="steam game id")
+
+    parser_shader_prune = subparsers.add_parser(
+        "shader-prune", help="delete Fossilized shader replay cache"
+    )
+    parser_shader_prune.set_defaults(func_unpack=commands.shader_prune)
+    parser_shader_prune.add_argument(
+        "--game",
+        type=str,
+        default=None,
+        help=(
+            "steam game id or name. Default attempts to delete previously "
+            "run game."
+        ),
+    )
+    parser_shader_prune.add_argument(
+        "--timeout",
+        type=int,
+        default=10,
+        help="how long to wait for in seconds",
+    )
+    parser_shader_prune.add_argument(
+        "--cache-directories",
+        type=list,
+        default=[
+            "/mnt/external/*/*/steamapps/shadercache",
+            "~/.steam/steam/steamapps/shadercache",
+        ],
+        help=(
+            "List of directories to search for shader caches. Supports glob "
+            "wildcards."
+        ),
+    )
+
+    parser_stop = subparsers.add_parser("stop", help="stop game")
+    parser_stop.set_defaults(func_unpack=commands.stop_game)
+    parser_stop.add_argument("game", nargs="?", help="steam game id")
+
+    parser_kill = subparsers.add_parser("kill", help="kill game")
+    parser_kill.set_defaults(func_unpack=commands.kill_game)
+    # Dest of sig to avoid conflicts with module signal.
+    parser_kill.add_argument(
+        "--signal",
+        "-s",
+        dest="sig",
+        default="SIGHUP",
+        help="signal to send to kill game",
+    )
+    parser_kill.add_argument(
+        "--kill-wrapper",
+        action="store_true",
+        help="kill the launch-wrapper as well",
+    )
+    parser_kill.add_argument("pid", nargs="?", help="PID of game process")
+
+    parser_compat = subparsers.add_parser(
+        "compat", help="set compatibility layer"
+    )
+    parser_compat.set_defaults(func_unpack=commands.set_compat)
+    parser_compat.add_argument(
+        "--layer",
+        "-l",
+        default="none",
+        help=(
+            "steam compatiblity layer "
+            f"({', '.join(commands.COMPAT_ALIASES.keys())})"
+        ),
+    )
+    parser_compat.add_argument("game", nargs="?", help="steam game id")
+
+    parser_timing_log = subparsers.add_parser(
+        "timing-log", help="generate timing log"
+    )
+    parser_timing_log.set_defaults(func_unpack=commands.dump_timing_log)
+    parser_timing_log.add_argument("--pid", "-p", help="Sommelier PID")
+    parser_timing_log.add_argument(
+        "--signal",
+        "-s",
+        dest="sig",
+        default="SIGUSR1",
+        help="signal to send to generate timing log",
+    )
+
+    parser_await = subparsers.add_parser("await", help="await launch log")
+    parser_await.set_defaults(func_unpack=commands.await_log)
+    parser_await.add_argument("--pattern", help="pattern to match")
+    parser_await.add_argument(
+        "--timeout", type=int, help="how long to wait for in seconds"
+    )
+    parser_await.add_argument(
+        "event",
+        nargs="?",
+        choices=sorted(commands.AWAIT_ALIASES.keys()),
+        help="event to wait for",
+    )
+
+    parser_clean = subparsers.add_parser(
+        "clean", help="clean files from previous runs"
+    )
+    parser_clean.add_argument(
+        "--all",
+        "-a",
+        dest="all_files",
+        action="store_true",
+        help="clean the launch log and options as well",
+    )
+    parser_clean.add_argument(
+        "--dry-run", "-n", action="store_true", help="dry-run only"
+    )
+    parser_clean.set_defaults(func_unpack=commands.clean_files)
+
+    parser_save_compat = subparsers.add_parser(
+        "compat-data", help="save compat data"
+    )
+    parser_save_compat.set_defaults(func_unpack=commands.save_compat)
+    parser_save_compat.add_argument("--path", help="compat data path to save")
+    parser_save_compat.add_argument(
+        "--env", dest="env", default="/tmp/game.env", help="game.env"
+    )
+    parser_save_compat.add_argument("--game", "-g", help="steam game id")
+    parser_save_compat.add_argument(
+        "--output",
+        "-o",
+        default=commands.COMPAT_SNAPSHOT_FILENAME,
+        help="filename to store compat data in",
+    )
+    parser_save_compat.add_argument(
+        "--delete",
+        action="store_true",
+        help="delete the original directory after",
+    )
+
+    parser_no_start = subparsers.add_parser(
+        "no-start", help="debug non-starting game"
+    )
+    parser_no_start.set_defaults(func_unpack=commands.script_no_start)
+    parser_no_start.add_argument("--game", "-g", help="steam game id")
+    parser_no_start.add_argument(
+        "--timeout",
+        default=60,
+        type=int,
+        help="how long to wait for in seconds",
+    )
+    parser_no_start.add_argument("stage", help="stage to try")
+
+    parser_quirk = subparsers.add_parser(
+        "quirk", help="Enable/disable system configuration options per-game."
+    )
+    parser_quirk.add_argument(
+        "--game",
+        type=int,
+        required=True,
+        help="Steam App ID of the game to configure.",
+    )
+    quirk_action = parser_quirk.add_mutually_exclusive_group(required=True)
+    quirk_action.add_argument("--enable", help="Feature flag to enable.")
+    quirk_action.add_argument("--disable", help="Feature flag to disable.")
+    quirk_action.add_argument(
+        "--reset",
+        action="store_true",
+        help="Remove user configuration for the specified game.",
+    )
+
+    parser_quirk.set_defaults(func_unpack=quirks.quirk_command)
+
+    parser_validate_quirks = subparsers.add_parser(
+        "validate-quirks", help="Check the quirks config for errors."
+    )
+    parser_validate_quirks.add_argument(
+        "--config", default=quirks.USER_QUIRKS_CONFIG, help="File to check."
+    )
+    parser_validate_quirks.add_argument(
+        "--print",
+        dest="print_config",
+        action="store_true",
+        help="Print the validated config, if possible.",
+    )
+    parser_validate_quirks.set_defaults(
+        func_unpack=quirks.validate_quirks_command
+    )
+
+    parser_window_trace = subparsers.add_parser(
+        "window-trace",
+        help="trace Wayland and X11 requests",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser_window_trace.add_argument(
+        "--out",
+        default="/tmp/windowtrace_%Y%m%d_%H%M%S.tar.gz",
+        type=datetime.datetime.now().strftime,
+        help="Write trace output to this filename. "
+        "May use datetime format codes to embed the current time.",
+    )
+    parser_window_trace.add_argument(
+        "--xserver",
+        default="/usr/bin/Xwayland",
+        help="name or ID of X server process",
+    )
+    parser_window_trace.set_defaults(
+        func_unpack=window_trace.collect_window_trace_command
+    )
+
+    parser_window_info = subparsers.add_parser(
+        "window-info", help="Log X11 window info"
+    )
+    parser_window_info.set_defaults(func_unpack=commands.window_info)
+    parser_window_info.add_argument(
+        "--out",
+        type=str,
+        default="/tmp/borealis-window-info.log",
+        help="Path to a file where to save the window info.",
+    )
+
+    parser_metrics = subparsers.add_parser(
+        "metrics", help="Monitor and log guest-side metrics"
+    )
+    parser_metrics.set_defaults(func_unpack=commands.metrics)
+    parser_metrics.add_argument(
+        "--out",
+        type=str,
+        default="/tmp/metrics.json",
+        help="Path to a file where to save the metrics collected.",
+    )
+
+    parser_test = subparsers.add_parser("test", help="run unittests")
+    parser_test.add_argument(
+        "test_args", nargs="*", help="additional test args"
+    )
+    parser_test.set_defaults(func_unpack=run_tests)
+    return parser
+
+
+def launch_subcommand(args):
+    """Launch the subcommand as specified by the parsed args."""
+    if args.func:
+        args.func(args)
+    elif args.func_unpack:
+        kwargs = vars(args).copy()
+        # Remove common arguments.
+        for key in ["command", "func", "func_unpack"]:
+            kwargs.pop(key)
+        args.func_unpack(**kwargs)
+
+
+def run_tests(test_args):
+    """Run the unittests."""
+    unittest.main(argv=sys.argv[:1] + test_args)
+
+
+class TestParser(unittest.TestCase):
+    """Test command line parsing."""
+
+    def setUp(self):
+        """Test set up."""
+        self.parser = create_parser()
+
+    def test_basic(self):
+        """Test basic invocation."""
+        args = vars(self.parser.parse_args(["start", "27"]))
+        self.assertEqual(args["command"], "start")
+        self.assertEqual(args["game"], "27")
+
+
+class TestLaunchSubcommand(unittest.TestCase):
+    """Test launching bdt commands"""
+
+    def test_launch_command(self):
+        """Test launch_subcommand()."""
+        args = mock.Mock()
+        args.func = mock.Mock()
+        args.func_unpack = None
+        self.assertIsNone(launch_subcommand(args))
+        args.func.assert_called_once_with(args)
+
+    def test_launch_command_func_unpack(self):
+        """Test launch_subcommand() with func_unpack."""
+
+        # Can't use Mock() due to unpack issues.
+        class FakeArgs:
+            """Test helper."""
+
+            def __init__(self):
+                self.func = None
+                self.func_unpack = mock.Mock()
+                self.test = True
+                self.command = "test"
+
+        args = FakeArgs()
+        self.assertIsNone(launch_subcommand(args))
+        args.func_unpack.assert_called_once_with(test=True)
+
+
+def main():
+    """Command-line front end for Borealis debugging."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    commands.log(f'Invoked as: {" ".join(sys.argv[1:])}')
+    launch_subcommand(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,9 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Make the directory where systemd-journald will store its files.
+argv: "mkdir"
+argv: "-p"
+argv: "/run/systemd/journal"
+wait_for_exit: true

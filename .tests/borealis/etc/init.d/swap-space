@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+
+# Redirect both stdout and stderr to the logs.
+exec > >(logger --tag=swap-space --id=$$)
+exec 2>&1
+
+SWAPFILE=/mnt/stateful/swap
+STATEFUL=/mnt/stateful
+
+stateful_fs_type="$(df --output=fstype "${STATEFUL}" | tail -n 1)"
+stateful_size="$(df --output=size "${STATEFUL}" | tail -n 1)"
+
+# Tailor swapfile size to device disk capacity
+if [[ "${stateful_size}" -gt $((32 * 1024 * 1024)) ]]; then
+  # Device disk is 64GB or larger
+  MB=4096
+else
+  # Device has a <=32GB disk; use a smaller swapfile
+  MB=1024
+fi
+
+# TODO(b/215263397) Remove once crrev.com/c/4926929 has landed
+if [[ -f /proc/sys/vm/disk_based_swap ]]; then
+  echo "1" > /proc/sys/vm/disk_based_swap
+fi
+
+# Clean up existing but incorrectly sized swapfiles
+if [[ -f "${SWAPFILE}" ]]; then
+  if [[ $(stat -c '%s' "${SWAPFILE}") -ne $(("${MB}" * 1048576)) ]]; then
+    echo "Deleting existing swapfile ${SWAPFILE}"
+    rm -f "${SWAPFILE}"
+  fi
+fi
+
+# Make the swapfile if necessary
+if [[ ! -f "${SWAPFILE}" ]]; then
+  # Make sure we have enough free space
+  free_space="$(df --output=avail "${STATEFUL}" | tail -n 1)"
+  echo "Swap creation pre-check: ${free_space} kB free"
+  if [[ "${free_space}" -lt $((("${MB}" + 2048) * 1024)) ]]; then
+    # TODO(b/338649151) Notify user that they're out of space
+    echo "Insufficient free space for ${MB} MB swapfile"
+    exit 1
+  fi
+
+  echo "Creating ${MB}M swapfile ${SWAPFILE}"
+  touch "${SWAPFILE}"
+  # If the filesystem is btrfs, then we need to add 'C' to the swapfile
+  # so that it is not subject to copy-on-write updates.
+  if [[ "${stateful_fs_type}" == "btrfs" ]]; then
+    chattr +C "${SWAPFILE}"
+  fi
+  chmod 600 "${SWAPFILE}"
+  # Fill with zeros, deleting the file if we run out of space
+  dd if=/dev/zero bs=1M count="${MB}" of="${SWAPFILE}" || (
+    rm -f "${SWAPFILE}"; exit 1)
+fi
+
+# Reset and mount!
+mkswap "${SWAPFILE}"
+swapon "${SWAPFILE}"

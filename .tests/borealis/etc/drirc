@@ -1,0 +1,36 @@
+<!--
+Copyright 2022 The ChromiumOS Authors
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<driconf>
+    <device screen="0" driver="venus">
+        <application name="all">
+            <!-- Don't wait for fences before submitting buffers to Xwayland -->
+            <option name="vk_xwayland_wait_ready" value="false"/>
+
+            <!-- Sommelier waits for fences so enable implicit fencing -->
+            <option name="venus_implicit_fencing" value="true"/>
+        </application>
+    </device>
+
+    <device screen="0" driver="zink">
+        <!-- Override zink default and disable glthread on top of venus -->
+        <option name="mesa_glthread_driver" value="false"/>
+    </device>
+
+    <device screen="0" driver="virtio_gpu">
+        <!-- TODO(b/318897429, b/329097774): Remove once fixed in Proton -->
+        <application executable="Paradox Launcher.exe">
+            <option name="force_gl_vendor" value="AMD" />
+            <option name="force_gl_renderer" value="AMD Radeon Graphics" />
+        </application>
+
+        <!-- TODO(b/318897429, b/329097774): Remove once fixed in Proton -->
+        <application executable="UplayWebCore.exe">
+            <option name="force_gl_vendor" value="AMD" />
+            <option name="force_gl_renderer" value="AMD Radeon Graphics" />
+        </application>
+    </device>
+</driconf>

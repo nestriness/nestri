@@ -1,0 +1,35 @@
+pkgname=gst-wayland-display-git
+pkgver=0.0.1
+pkgrel=1
+pkgdesc='A micro Wayland compositor that can be used as a Gstreamer plugin. Based on smithay'
+arch=('x86_64')
+url='https://github.com/games-on-whales/gst-wayland-display'
+license=('MIT')
+depends=('rust' 'meson' 'pkgconf' 'cmake' 'git' 'gcc' 'ninja' 'make' 'rustup' 'pkgconf' 'wayland')
+source=("gst-wayland-display::git+https://github.com/games-on-whales/gst-wayland-display.git")
+sha512sums=('SKIP')
+pkgver() {
+        cd "$srcdir/${pkgname%-git}"
+        printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+        cd "$srcdir/${pkgname%-git}"
+}
+
+build() {
+        cd "$srcdir/${pkgname%-git}"
+        
+        sudo cargo cinstall --prefix=/usr
+}
+
+package() {
+        cd "$srcdir/${pkgname%-git}"
+        
+        mkdir -p "${pkgdir}/usr/lib/gstreamer-1.0/include/"
+        install -m644 "${pkgdir}/usr/lib/gstreamer-1.0/include/" /usr/lib/gstreamer-1.0/include/*
+        rm -rf /usr/lib/gstreamer-1.0/include/
+
+        install -m644 -Dt "${pkgdir}/usr/lib/gstreamer-1.0/" /usr/lib/gstreamer-1.0/*
+        install -m644 -Dt "${pkgdir}/usr/lib/" /usr/lib/libgstwaylanddisplay*
+}

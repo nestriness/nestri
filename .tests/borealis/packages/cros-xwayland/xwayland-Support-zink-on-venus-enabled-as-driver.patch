@@ -1,0 +1,138 @@
+From 9a85429e84a9c3b361160f94f86c9f5dc2cd6cb0 Mon Sep 17 00:00:00 2001
+From: dawnhan <dawnhan@google.com>
+Date: Tue, 9 Apr 2024 11:14:11 -0700
+Subject: [PATCH] xwayland: Support zink-on-venus enabled as driver
+
+strides and format modifier need to be correct when enabling z-o-v as
+gl renderer on sommelier while virtio-gpu enabled as the renderer on the
+gl applications.
+
+Signed-off-by: dawnhan <dawnhan@google.com>
+---
+ hw/xwayland/xwayland-glamor-gbm.c | 75 +++++++++++++++++++++++++++++--
+ 1 file changed, 71 insertions(+), 4 deletions(-)
+
+diff --git a/hw/xwayland/xwayland-glamor-gbm.c b/hw/xwayland/xwayland-glamor-gbm.c
+index cfcd39a35..ffcd1310b 100644
+--- a/hw/xwayland/xwayland-glamor-gbm.c
++++ b/hw/xwayland/xwayland-glamor-gbm.c
+@@ -35,6 +35,8 @@
+ #include <sys/stat.h>
+ #include <xf86drm.h>
+ #include <drm_fourcc.h>
++#include <drm.h>
++#include <virtgpu_drm.h>
+ 
+ #define MESA_EGL_NO_X11_HEADERS
+ #define EGL_NO_X11
+@@ -52,6 +54,28 @@
+ 
+ #include "linux-dmabuf-unstable-v1-client-protocol.h"
+ 
++struct drm_virtgpu_resource_info_cros {
++       __u32 bo_handle;
++       __u32 res_handle;
++       __u32 size;
++
++#define VIRTGPU_RESOURCE_INFO_TYPE_EXTENDED 1
++       union {
++               __u32 type; /* in, VIRTGPU_RESOURCE_INFO_TYPE_* */
++               __u32 blob_mem;
++               __u32 stride;
++               __u32 strides[4]; /* strides[0] is accessible with stride. */
++       };
++       __u32 num_planes;
++       __u32 offsets[4];
++       __u64 format_modifier;
++};
++
++
++#define DRM_IOCTL_VIRTGPU_RESOURCE_INFO_CROS \
++       DRM_IOWR(DRM_COMMAND_BASE + DRM_VIRTGPU_RESOURCE_INFO, \
++                struct drm_virtgpu_resource_info_cros)
++
+ struct xwl_gbm_private {
+     drmDevice *device;
+     char *device_name;
+@@ -62,6 +86,7 @@ struct xwl_gbm_private {
+     Bool drm_authenticated;
+     uint32_t capabilities;
+     int dmabuf_capable;
++    int is_zink;
+ };
+ 
+ struct xwl_pixmap {
+@@ -698,6 +723,11 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
+     int i;
+     Bool implicit = FALSE;
+ 
++    // Correct stride and modifier with virtio-gpu specific resource
++    // information if available. Remove after zink-on-venus enabled as
++    // the only gl driver on borealis.
++    int ret;
++    struct drm_virtgpu_resource_info_cros info_arg;
+     if (width == 0 || height == 0 || num_fds == 0 ||
+         depth < 15 || bpp != BitsPerPixel(depth) ||
+         strides[0] < width * bpp / 8)
+@@ -712,10 +742,44 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
+        data.num_fds = num_fds;
+        data.format = gbm_format_for_depth(depth);
+        data.modifier = modifier;
+-       for (i = 0; i < num_fds; i++) {
+-          data.fds[i] = fds[i];
+-          data.strides[i] = strides[i];
+-          data.offsets[i] = offsets[i];
++       if (xwl_gbm->is_zink) {
++           int drm_fd = gbm_device_get_fd(xwl_gbm->gbm);
++           struct drm_prime_handle prime_handle;
++           struct drm_gem_close gem_close;
++           // Imports prime fd to a gem handle. This will fail if this function was
++           // not passed a prime handle that can be imported by xwayland.
++           memset(&prime_handle, 0, sizeof(prime_handle));
++           prime_handle.fd = fds[0];
++           ret = drmIoctl(drm_fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &prime_handle);
++           if (!ret) {
++               memset(&info_arg, 0, sizeof(info_arg));
++               info_arg.bo_handle = prime_handle.handle;
++               info_arg.type = VIRTGPU_RESOURCE_INFO_TYPE_EXTENDED;
++               ret = drmIoctl(drm_fd, DRM_IOCTL_VIRTGPU_RESOURCE_INFO_CROS, &info_arg);
++               // Always close the handle we imported.
++               memset(&gem_close, 0, sizeof(gem_close));
++               gem_close.handle = prime_handle.handle;
++               drmIoctl(drm_fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
++           }
++       }
++       // If successfully get resource information, gl renderer is zink and bo
++       // is not a blob_mem, then update the strides, offsets and modifier.
++       if (xwl_gbm->is_zink && !ret) {
++           data.modifier = info_arg.format_modifier;
++           for (i = 0; i < info_arg.num_planes; i++) {
++               if(!info_arg.strides[i])
++                   break;
++               data.fds[i] = fds[0];
++               data.strides[i] = info_arg.strides[i];
++               data.offsets[i] = info_arg.offsets[i];
++           }
++           data.num_fds = info_arg.num_planes;
++       } else {
++           for (i = 0; i < num_fds; i++) {
++               data.fds[i] = fds[i];
++               data.strides[i] = strides[i];
++               data.offsets[i] = offsets[i];
++           }
+        }
+        bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD_MODIFIER, &data,
+                           GBM_BO_USE_RENDERING);
+@@ -1156,6 +1220,9 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
+         ErrorF("glGetString() returned NULL, your GL is broken\n");
+         goto error;
+     }
++
++    xwl_gbm->is_zink = NULL != strstr((const char *)renderer, "zink");
++
+     if (strstr((const char *)renderer, "softpipe")) {
+         ErrorF("Refusing to try glamor on softpipe\n");
+         goto error;
+-- 
+2.45.0.rc1.225.g2a3ae87e7f-goog
+

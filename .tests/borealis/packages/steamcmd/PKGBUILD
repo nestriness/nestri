@@ -1,0 +1,31 @@
+# Maintainer: David Riley <davidriley@chromium.org>
+
+pkgname=steamcmd
+pkgver=latest
+pkgrel=3
+pkgdesc="steamcmd tool"
+arch=('i686' 'x86_64')
+license=('custom')
+url=http://developer.valvesoftware.com/wiki/SteamCMD
+source=(https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
+        'steamcmd'
+        'COPYING')
+md5sums=('70a38a1c8688d170c48b7f4990782c7a'
+         '5de1fddd114f10ff5d2a8fbeee044a8f'
+         '8eecf16a3a28d2e48e35fb8c14bff3e2')
+install='steamcmd.install'
+depends_x86_64=('lib32-gcc-libs')
+
+package() {
+  install -D -m755 "${srcdir}/steamcmd" "${pkgdir}/usr/bin/steamcmd"
+
+  install -D -m755 "${srcdir}/steamcmd.sh" "${pkgdir}/usr/share/steamcmd/steamcmd.sh"
+
+  install -D -m755 "${srcdir}/linux32/crashhandler.so" "${pkgdir}/usr/share/steamcmd/linux32/crashhandler.so"
+  install -D -m755 "${srcdir}/linux32/libstdc++.so.6" "${pkgdir}/usr/share/steamcmd/linux32/libstdc++.so.6"
+  install -D -m755 "${srcdir}/linux32/steamcmd" "${pkgdir}/usr/share/steamcmd/linux32/steamcmd"
+  install -D -m755 "${srcdir}/linux32/steamerrorreporter" "${pkgdir}/usr/share/steamcmd/linux32/steamerrorreporter"
+
+  mkdir -p "${pkgdir}/usr/share/licenses/${pkgname}"
+  install -D -m644 "${srcdir}/COPYING" "${pkgdir}/usr/share/licenses/${pkgname}/"
+}

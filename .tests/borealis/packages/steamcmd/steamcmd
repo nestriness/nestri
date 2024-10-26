@@ -1,0 +1,24 @@
+#!/bin/sh
+# Copyright (C) 2015 Alexandre Detiste <alexandre@detiste.be>
+# License: MIT
+
+# create a fake Steam installation to avoid
+# that steamcmd uses "/home/$user/Steam" instead
+if [ ! -e ~/.steam ]
+then
+    mkdir -p ~/.steam/appcache/
+    mkdir -p ~/.steam/config/
+    mkdir -p ~/.steam/logs/
+    mkdir -p ~/.steam/SteamApps/common/
+    ln -s ~/.steam ~/.steam/root
+    ln -s ~/.steam ~/.steam/steam
+fi
+
+if [ ! -e ~/.steam/steamcmd ]
+then
+    mkdir -p ~/.steam/steamcmd/linux32
+    # steamcmd will replace these files with newer ones itself on first run
+    cp /usr/share/steamcmd/steamcmd.sh ~/.steam/steamcmd/steamcmd.sh
+    cp /usr/share/steamcmd/linux32/steamcmd ~/.steam/steamcmd/linux32/steamcmd
+fi
+exec ~/.steam/steamcmd/steamcmd.sh $@

@@ -1,0 +1,11 @@
+#!/bin/sh -e
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+set -e
+
+/lib/systemd/systemd-udevd --daemon
+udevadm trigger --action=add --subsystem-nomatch=block
+udevadm settle

@@ -1,0 +1,218 @@
+#!/bin/bash
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Redirect stderr to syslog.
+# Note the log messages will be attributed to the PID of the `runuser` process,
+# rather than its child `sommelier` process.
+# Errors from the X server (Xwayland) will also show up tagged 'sommelier'.
+# TODO(b/255681194): Sommelier should just log directly to syslog.
+exec 2> >(logger --tag=sommelier --id=$$)
+
+USERNAME=chronos
+CONFIG_DIR="/home/${USERNAME}/.config/sommelier"
+CACHE_DIR="/home/${USERNAME}/.cache/sommelier"
+
+# https://specifications.freedesktop.org/basedir-spec/latest/ar01s03.html
+# By convention, logs should be saved to $XDG_STATE_HOME. However, here
+# we break that convention to explicitly indicate what is acceptable to
+# clean up between sessions.
+LOG_DIR="/tmp"
+
+# The user-specified quirks config file is referenced by its full path
+# because this script runs as root. Note: borealis quirks are not limited
+# to sommelier so the config path is not in sommelier's config dir.
+#
+# To edit the user-specified quirks config, use the command: bdt quirk
+#
+USER_QUIRKS_FILE="/home/${USERNAME}/.config/borealis.textproto"
+SYSTEM_QUIRKS_FILE="/etc/quirks/default.textproto"
+
+export DISPLAY=:0
+export XDG_RUNTIME_DIR=/tmp/xdg
+export PERFETTO_PRODUCER_SOCK_NAME=/run/perfetto/traced-producer.sock
+
+ACCELERATORS=""
+
+# Close the current window
+ACCELERATORS="${ACCELERATORS}<Shift><Control>w,"
+
+# Cycle between windows
+ACCELERATORS="${ACCELERATORS}<Alt>tab,"
+
+# Cycle backwards between windows
+ACCELERATORS="${ACCELERATORS}<Shift><Alt>tab,"
+
+# Minimize window
+ACCELERATORS="${ACCELERATORS}<Alt>minus,"
+
+WINDOWED_ACCELERATORS=""
+
+# Open launcher
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}Super_L,"
+
+# Sign out of Google account
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>q,"
+
+# See keyboard shortcuts
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Alt><Control>slash,"
+
+# New window
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Control>n,"
+
+# New incognito window
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>n,"
+
+# New tab
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Control>t,"
+
+# Reopen last closed tab
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>t,"
+
+# Focus shelf
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Alt>l,"
+
+# Dock window to left or right
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Alt>bracketleft,\
+<Alt>bracketright,"
+
+# Maximize window
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Alt>equal,"
+
+# Open file manager
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Alt>m,"
+
+# Open system tray
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Alt>s,"
+
+# Click icons 1-8 on shelf
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Alt>1,<Alt>2,<Alt>3,<Alt>4,\
+<Alt>5,<Alt>6,<Alt>7,<Alt>8,<Alt>9,"
+
+# See notifications
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Alt>n,"
+
+# Change screen resolution
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>plus,\
+<Shift><Control>minus,"
+
+# Reset screen resolution
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>0,"
+
+# Switch user
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Alt><Control>period,\
+<Alt><Control>comma,"
+
+# Rotate screen
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Shift><Control>XF86Reload,"
+
+# Switch focus between areas
+WINDOWED_ACCELERATORS="${WINDOWED_ACCELERATORS}<Control>XF86Forward,\
+<Control>XF86Back,"
+
+# Allow toggling of enable-x11-move-windows via sommelier config
+# To enable:
+#   (borealis)$ bdt enable-x11-move-windows --component sommelier
+# To disable:
+#   (borealis)$ bdt enable-x11-move-windows --component sommelier --off
+# Sommelier must be restarted for changes to this setting to apply.
+SET_WINDOW_POS_FLAG=""
+if [[ -f "${CONFIG_DIR}/enable-x11-move-windows" ]]; then
+  echo "Running with experimental --enable-x11-move-windows flag" >&2
+  SET_WINDOW_POS_FLAG="--enable-x11-move-windows"
+else
+  echo "Running without --enable-x11-move-windows flag" >&2
+fi
+
+# Allow force-disabling of all quirks via sommelier config
+# To force-disable all quirks:
+#   (borealis)$ bdt no-quirks --component sommelier
+# To allow any configured quirk:
+#   (borealis)$ bdt no-quirks --component sommelier --off
+# Sommelier must be restarted for changes to this setting to apply.
+#
+# The user quirks file goes last so that user-specified quirks can
+# override individual system-specified quirks.
+QUIRKS_CONFIG_FLAG="--quirks-config=${SYSTEM_QUIRKS_FILE},${USER_QUIRKS_FILE}"
+if [[ -f "${CONFIG_DIR}/no-quirks" ]]; then
+  echo "Running with quirks mode DISABLED" >&2
+  QUIRKS_CONFIG_FLAG=""
+fi
+
+# Persistent logs can be enabled with:
+#   (borealis)$ bdt persistent-logs --component sommelier
+# and disabled with:
+#   (borealis)$ bdt persistent-logs --component sommelier --off
+# Sommelier must be restarted for changes to this setting to apply.
+# WARNING: Log clean up is the responsibility of the user.
+if [[ -f "${CONFIG_DIR}/persistent-logs" ]]; then
+  if [[ ! -d "${CACHE_DIR}" ]]; then
+    # When this script runs, /home/${USERNAME}/.cache should already be created
+    # by maitred's setup-cache-dir.
+    mkdir -m 0755 "${CACHE_DIR}"
+    chown "${USERNAME}:${USERNAME}" "${CACHE_DIR}"
+  fi
+  LOG_DIR="${CACHE_DIR}"
+fi
+
+# Exo debugging can be enabled with:
+#   (borealis)$ bdt wayland-debug-exo --component sommelier
+# and disabled with:
+#   (borealis)$ bdt wayland-debug-exo --component sommelier --off
+# Sommelier must be restarted for changes to this setting to apply.
+[[ -f "${CONFIG_DIR}/wayland-debug-exo" ]]
+DEBUG_EXO=$?
+
+# Xwayland debugging can be enabled with:
+#   (borealis)$ bdt wayland-debug-xwayland --component sommelier
+# and disabled with:
+#   (borealis)$ bdt wayland-debug-xwayland --component sommelier --off
+# Sommelier must be restarted for changes to this setting to apply.
+[[ -f "${CONFIG_DIR}/wayland-debug-xwayland" ]]
+DEBUG_XWAYLAND=$?
+
+if [[ "${DEBUG_EXO}" -eq 0 ]] && [[ "${DEBUG_XWAYLAND}" -eq 0 ]]; then
+  # Log Wayland traffic between Exo and Sommelier, and also between Sommelier
+  # and Xwayland. Note the logs will not differentiate between these cases,
+  # which may be confusing to read.
+  export WAYLAND_DEBUG=1
+elif [[ "${DEBUG_EXO}" -eq 0 ]]; then
+  # Have Sommelier (as client) log all messages on its Wayland connection to
+  # Exo.
+  export WAYLAND_DEBUG=client
+elif [[ "${DEBUG_XWAYLAND}" -eq 0 ]]; then
+  # Have Sommelier (as server) log all messages on its Wayland connection to
+  # Xwayland. Note this doesn't show Sommelier's X11 connection to Xwayland,
+  # so it's an incomplete picture.
+  export WAYLAND_DEBUG=server
+fi
+
+# --xwayland-cmd-prefix: Unset WAYLAND_DEBUG for Xwayland, in case one of
+#     the debug options above was set.
+
+exec nice -n -10 runuser -u "${USERNAME}" -g "${USERNAME}" \
+  -G render -G video -G traced-producer -- \
+  /usr/local/bin/sommelier \
+  -X \
+  --glamor \
+  "--xwayland-cmd-prefix=env WAYLAND_DEBUG=" \
+  --fullscreen-mode=plain \
+  --vm-identifier=borealis \
+  --no-exit-with-child \
+  --timing-filename="${LOG_DIR}/timing-trace" \
+  --trace-system \
+  --application-id-x11-property=STEAM_GAME \
+  --accelerators="${ACCELERATORS}" \
+  --windowed-accelerators="${WINDOWED_ACCELERATORS}" \
+  --direct-scale \
+  --enable-xshape \
+  --enable-linux-dmabuf \
+  --stable-scaling \
+  --allow-xwayland-emulate-screen-pos-size \
+  --only-client-can-exit-fullscreen \
+  --stats-summary="${LOG_DIR}/sommelier-stats" \
+  "${QUIRKS_CONFIG_FLAG}" \
+  "${SET_WINDOW_POS_FLAG}" \
+  sh -c "echo DISPLAY=${DISPLAY}"

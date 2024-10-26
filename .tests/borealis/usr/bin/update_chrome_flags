@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Copyright 2021 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# update_chrome_flags
+#
+# This is a simple script whose job is it to persist flag values (from chrome)
+# in a way that other borealis tooling can read them. For every flag set to
+# "true" a file will be made in ~/.borealis_flags/<name> with the flag's name.
+# The absence of that file implies that the flag is set to false.
+#
+# For flags with a parameter beyond the default true/false states
+# eg. 'flag_name=param_value', a directory and file will be created for the
+# flag_name and param_value respectively: ~/.borealis_flags/<flag_name>/<param_value>.
+# This script only support flags with a single parameter and will clear the flag_name
+# directory when updating param_value as param_values are exclusive.
+#
+# This script maintains the set of files relative to a given list of flags. It
+# accepts name=bool pairs as its arguments and creates/removes the sentinel
+# files as needed. It does not touch any sentinel file for a flag whose name
+# does not appear in its arguments.
+#
+# Usage:
+#
+#   update_chrome_flags foo=false bar=true baz=qux
+#
+# The above command will ensure that the (empty) file ~/borealis_flags/bar
+# exists, ~/borealis_flags/foo does not and ensure ~/borealis_flags/baz/qux
+# exists exclusivly in ~/borealis_flags/baz.
+
+set -eu
+
+FLAG_DIR="${HOME}/.borealis_flags"
+
+function ucf_log {
+  logger --tag "update_chrome_flags" "$@"
+}
+
+function ucf_err {
+  logger --tag "update_chrome_flags_error" "$@"
+  >&2 echo "$@"
+}
+
+function main {
+  mkdir -p "${FLAG_DIR}"
+
+  ucf_log "Current flags: $(ls "${FLAG_DIR}" | tr '\n' ' ')"
+  ucf_log "Setting flags: " "$@"
+
+  for arg in "$@"; do
+    if [[ "${arg}" != *=* ]]; then
+      ucf_err "Ignoring ${arg}"
+      continue
+    fi
+    local flag_name="${arg%%=*}"
+    local flag_value="${arg#*=}"
+    if [ "${flag_value}" == "false" ]; then
+      rm -rf "${FLAG_DIR}/${flag_name}"
+    elif [ "${flag_value}" ==  "true" ]; then
+      touch "${FLAG_DIR}/${flag_name}"
+    else
+      mkdir -p "${FLAG_DIR}/${flag_name}"
+      rm -rf "${FLAG_DIR}/${flag_name}"/*
+      touch "${FLAG_DIR}/${flag_name}/${flag_value}"
+    fi
+  done
+}
+
+main "$@"

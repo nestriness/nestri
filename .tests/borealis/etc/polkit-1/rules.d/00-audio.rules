@@ -1,0 +1,11 @@
+// Copyright 2022 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+polkit.addRule(function(action, subject) {
+  if (subject.isInGroup("audio")) {
+      if (action.id.indexOf("org.freedesktop.RealtimeKit1.") == 0) {
+          return polkit.Result.YES;
+      }
+  }
+});

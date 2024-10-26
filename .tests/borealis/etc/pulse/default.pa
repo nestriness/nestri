@@ -1,0 +1,57 @@
+# Copyright 2020 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+### A minimal working default.pa for pulseaudio service
+.fail
+
+### Automatically restore the volume of streams and devices
+load-module module-device-restore
+load-module module-stream-restore
+load-module module-card-restore
+
+### Automatically augment property information from .desktop files
+### stored in /usr/share/application
+load-module module-augment-properties
+
+### Should be after module-*-restore but before module-*-detect
+load-module module-switch-on-port-available
+
+### Disable udev event detection since we don't have udev
+### Automatically load driver modules depending on the hardware available
+# .ifexists module-udev-detect.so
+# load-module module-udev-detect
+# .else
+### Use the static hardware detection module (for systems that lack udev support)
+# load-module module-detect
+# .endif
+
+### Load several protocols
+load-module module-native-protocol-unix
+
+### Automatically restore the default sink/source when changed by the user
+### during runtime
+### NOTE: This should be loaded as early as possible so that subsequent modules
+### that look up the default sink/source get the right value
+load-module module-default-device-restore
+
+### Automatically move streams to the default sink if the sink they are
+### connected to dies, similar for sources
+load-module module-rescue-streams
+
+### Make sure we always have a sink around, even if it is a null sink.
+load-module module-always-sink
+
+### Automatically suspend sinks/sources that become idle for too long
+load-module module-suspend-on-idle
+
+### Enable positioned event sounds
+load-module module-position-event-sounds
+
+### Load alsa devices manually since we won't get udev events.
+### Set tsched=0 to interrupt-based scheduling.
+# For output/playback
+load-module module-alsa-sink device=hw:0,1 tsched=0 channels=6 channel_map=front-left,front-right,front-center,lfe,rear-left,rear-right
+# For input/record
+load-module module-alsa-source device=hw:0,1 tsched=0
+
+.nofail

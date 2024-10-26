@@ -1,0 +1,119 @@
+# Maintainer: David Riley <davidriley@chromium.org>
+
+pkgname=cros-mesa-git
+pkgdesc="mesa library"
+pkgver=22.0.0_devel.147902.c50bdacbda6.d41d8cd98f00b204e9800998ecf8427e
+pkgrel=1
+arch=('x86_64')
+makedepends=('git' 'python-mako' 'xorgproto'
+              'libxml2' 'libx11' 'elfutils' 'libxrandr'
+              'ocl-icd' 'wayland-protocols' 'meson' 'ninja' 'glslang'
+              'llvm' 'clang')
+depends=('libdrm' 'libxxf86vm' 'libxdamage' 'libxshmfence' 'libelf'
+         'libunwind' 'libglvnd' 'wayland' 'lm_sensors' 'vulkan-icd-loader'
+         'zstd' 'expat' 'llvm-libs')
+optdepends=('opengl-man-pages: manpages'
+            'clang: opencl'
+            'compiler-rt: opencl')
+provides=('cros-mesa' 'mesa' 'vulkan-virtio' 'vulkan-mesa-layer' 'vulkan-driver' 'mesa-libgl' 'opengl-driver')
+conflicts=('cros-mesa' 'mesa' 'vulkan-virtio' 'vulkan-mesa-layer' 'mesa-libgl')
+url="https://www.mesa3d.org"
+license=('custom')
+_borealis_branch_tracked=('upstream/main')
+_borealis_current_ref=('commit=9bce6f5cc44d239bcc8ba8d92c4569eae38d99a8')
+source=("mesa::git+https://chromium.googlesource.com/chromiumos/third_party/mesa.git#${_borealis_current_ref}"
+        'LICENSE')
+md5sums=('SKIP'
+         '5c65a0fe315dd347e09b1f2826a1df5a')
+sha512sums=('SKIP'
+            '25da77914dded10c1f432ebcbf29941124138824ceecaf1367b3deedafaecabc082d463abcfa3d15abff59f177491472b505bcb5ba0c4a51bb6b93b4721a23c2')
+options=(debug strip)
+
+pkgver() {
+    cd mesa
+    local _ver
+    read -r _ver <VERSION
+
+    local _patchver
+    local _patchfile
+    for _patchfile in "${source[@]}"; do
+        _patchfile="${_patchfile%%::*}"
+        _patchfile="${_patchfile##*/}"
+        [[ $_patchfile = *.patch ]] || continue
+        _patchver="${_patchver}$(md5sum ${srcdir}/${_patchfile} | cut -c1-32)"
+    done
+    _patchver="$(echo -n $_patchver | md5sum | cut -c1-32)"
+
+    echo ${_ver/-/_}.$(git rev-list --count HEAD).$(git rev-parse --short HEAD).${_patchver}
+}
+
+prepare() {
+    if [  -d _build ]; then
+        rm -rf _build
+    fi
+
+    local _patchfile
+    for _patchfile in "${source[@]}"; do
+        _patchfile="${_patchfile%%::*}"
+        _patchfile="${_patchfile##*/}"
+        [[ $_patchfile = *.patch ]] || continue
+        patch --directory=mesa --forward --strip=1 --input="${srcdir}/${_patchfile}"
+    done
+}
+
+build () {
+    if [[ "${BUILD_NATIVE_DRIVERS}" == "1" ]]; then
+        EXTRA_GALLIUM_DRIVERS="iris,radeonsi,"
+        EXTRA_VULKAN_DRIVERS="amd,intel,"
+    else
+        EXTRA_GALLIUM_DRIVERS=""
+        EXTRA_VULKAN_DRIVERS=""
+    fi
+
+    meson setup mesa _build \
+       -D b_ndebug=true \
+       -D buildtype=release \
+       -D b_lto=true \
+       --wrap-mode=nofallback \
+       -D prefix=/usr \
+       -D sysconfdir=/etc \
+       -D platforms=x11,wayland \
+       -D gallium-drivers="${EXTRA_GALLIUM_DRIVERS}"swrast,virgl,zink \
+       -D vulkan-drivers="${EXTRA_VULKAN_DRIVERS}"virtio \
+       -D dri3=enabled \
+       -D egl=enabled \
+       -D gbm=enabled \
+       -D gles1=enabled \
+       -D gles2=enabled \
+       -D opengl=true \
+       -D glvnd=true \
+       -D glx=dri \
+       -D libunwind=enabled \
+       -D llvm=enabled \
+       -D lmsensors=enabled \
+       -D shared-glapi=enabled \
+       -D valgrind=disabled \
+       -D vulkan-layers=device-select,overlay \
+       -D tools=[] \
+       -D zstd=enabled \
+       -D microsoft-clc=disabled \
+       -D perfetto=true
+
+    meson configure _build
+
+    ninja $NINJAFLAGS -C _build
+}
+
+package() {
+    DESTDIR="${pkgdir}" ninja $NINJAFLAGS -C _build install
+
+    rm "${pkgdir}/usr/bin/mesa-overlay-control.py"
+    if [[ "${BUILD_NATIVE_DRIVERS}" == "0" ]]; then
+        rm "${pkgdir}/usr/bin/pps-producer"
+        rmdir "${pkgdir}/usr/bin"
+    fi
+
+    ln -s /usr/lib/libGLX_mesa.so.0 "${pkgdir}/usr/lib/libGLX_indirect.so.0"
+
+    install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" "${srcdir}/LICENSE"
+}

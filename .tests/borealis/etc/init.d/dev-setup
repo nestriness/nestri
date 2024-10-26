@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Makes common symlinks into /dev that apps like bash might depend on.
+
+set -e
+
+ln -s /proc/kcore /dev/core
+ln -s /proc/self/fd /dev/fd
+ln -s /proc/self/fd/0 /dev/stdin
+ln -s /proc/self/fd/1 /dev/stdout
+ln -s /proc/self/fd/2 /dev/stderr

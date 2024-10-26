@@ -1,0 +1,31 @@
+// Copyright 2023 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+// NOTE: This code is automatically generated and  any changes to this file will be overwritten.
+
+#ifndef VM_TOOLS_SOMMELIER_GEN_MOCK_{{ protocol.name_underscore | upper }}_SHIM_H_
+#define VM_TOOLS_SOMMELIER_GEN_MOCK_{{ protocol.name_underscore | upper }}_SHIM_H_
+
+#include <gmock/gmock.h>
+
+#include "{{ protocol.name_hyphen }}-shim.h"
+
+{%- for interface in protocol.interfaces %}
+class Mock{{ interface.name }} : public {{ interface.name }} {
+  public:
+    MOCK_METHOD(void, set_user_data, (struct {{ interface.name_underscore }}* {{ interface.name_underscore }}, void* user_data), (override));
+    MOCK_METHOD(void*, get_user_data, (struct {{ interface.name_underscore }}* {{ interface.name_underscore }}), (override));
+    {%- if interface.events|length > 0 %}
+    MOCK_METHOD(int, add_listener, (struct {{ interface.name_underscore }}* {{ interface.name_underscore }}, const struct {{ interface.name_underscore }}_listener* listener, void* data), (override));
+    {% endif %}
+
+  {%- for method in interface.methods %}
+    MOCK_METHOD({{ method.ret }}, {{ method.name }}, (struct {{ interface.name_underscore }}* {{ interface.name_underscore }}{% for arg in method.args %}, {{ arg.type }} {{ arg.name }}{% endfor %}), (override));
+  {% endfor -%}
+  {%- for event in interface.events %}
+    MOCK_METHOD(void, send_{{ event.name }}, (struct wl_resource* resource{% for arg in event.args %}, {{ arg.type }} {{ arg.name }}{% endfor %}), (override));
+  {% endfor -%}
+};
+{% endfor -%}
+
+#endif // VM_TOOLS_SOMMELIER_GEN_MOCK_{{ protocol.name_underscore | upper }}_SHIM_H_

@@ -1,0 +1,50 @@
+// Copyright 2023 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+syntax = "proto3";
+
+package quirks;
+
+option java_multiple_files = true;
+
+message Config {
+  // The order of SommelierRule determines the priority -
+  // i.e. last-defined SommelierRule has the highest prioirity.
+  repeated SommelierRule sommelier = 1;
+}
+
+message SommelierRule {
+  //
+  // Conditions
+  //
+  // All conditions must match for the rule to apply (implicit AND).
+  repeated SommelierCondition condition = 1;
+
+  //
+  // Effects
+  //
+  repeated Feature enable = 4;
+  repeated Feature disable = 5;
+}
+
+message SommelierCondition {
+  // More types of condition can be added here over time. A condition
+  // having none of these "oneof"s always evaluates to false, preventing
+  // older versions of Sommelier applying rules containing unrecognized
+  // conditions.
+  oneof condition {
+    // Match by Steam game ID.
+    uint32 steam_game_id = 1;
+    // Match if true, useful for defining default configuration.
+    bool always = 2;
+  }
+}
+
+enum Feature {
+  FEATURE_UNSPECIFIED = 0;
+  FEATURE_X11_MOVE_WINDOWS = 1;
+  FEATURE_BLACK_SCREEN_FIX = 2;
+  FEATURE_CONTAINERIZE_WINDOWS = 3;
+  FEATURE_FORCE_X11_UNMAXIMIZE = 4;
+  FEATURE_RANDR_EMU_FIX = 5;
+}
