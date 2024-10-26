@@ -2,6 +2,7 @@
 
 <div align="center">
 <h1>
+
 <a href="https://nestri.io" >
 <img src="/apps/www/public/seo/banner.png" alt="Nestri - What will you play next?">
 </a>
@@ -12,7 +13,7 @@
 &nbsp;
 &nbsp;
 
-Nestri is an open-source, self-hosted cloud gaming platform that allows you to play games in your web browser with friends. <strong>Built and shaped by our gaming community.</strong>
+Nestri is an open-source, self-hosted Geforce Now alternative with Stadia's social features. <strong>Built and shaped by our gaming community.</strong>
 <br/>
 <br/>
 
@@ -34,7 +35,59 @@ Nestri is an open-source, self-hosted cloud gaming platform that allows you to p
 &nbsp;
 &nbsp;
 
-> More info coming soon!
+> **Note**
+> Nestri is more aligned with Jellyfin/Plex than with Moonlight. Our goal is to develop a comprehensive self-hosted cloud gaming solution for your home server.
+
+## Features
+
+- Save and share your game progress easily
+- Simultaneously run multiple games on your GPU using Virtio-GPU Venus and/or Virgl
+- Play games using either your integrated GPU or dedicated GPU
+- Enjoy titles from your preferred Game Stores - Steam, Epic Games, Amazon Games, GOG.com
+- Experience Android gaming
+- Organize gaming sessions with friends and family through Nestri Parties
+- Stream directly to YouTube and Twitch straight from your setup
+- Family sharing capabilities
+- Support for Controller, Touchscreen, Keyboard, and Mouse devices 
+
+## Possible Use Cases
+
+- Organize game nights or LAN parties with friends online or locally
+- For game developers, showcase your proof-of-concept multiplayer games for testing without installation
+- Create and manage your custom cloud-gaming platform using our robust API
+- Establish a game server for your family to enjoy gaming on the go
+
+## Goals
+
+- Provide a user-friendly setup - fire and forget
+- Deliver a simple and elegant interface for managing and playing your game library
+- Ensure a high-quality gaming experience out-of-the-box
+- Optimize for the best gaming performance right from the start
+
+## Non-Goals
+
+- Become a generic cloud-gaming service
+
+## Built With
+
+- Cloudflare Workers
+- Cloudflare Pages
+- Supabase
+- CrosVM (with Virtio-GPU Venus and Virgl support)
+- Docker
+- Qwik
+- Media-Over-Quic
+- AWS Route53
+
+## Known Issues
+
+- CrosVM is still under development and needs to be merged
+- Currently, the Intel dGPU, particularly the Arch A780, is the only tested and verified GPU
+
+## Donation
+
+If you appreciate our work and wish to support the development of Nestri, consider making a donation [here](https://polar.sh/nestri/donate). Your contributions will help us improve the platform and enhance your gaming experience. Thank you for your support!
+
 
 
 [github-release-link]: https://github.com/nestriness/nestri/releases
