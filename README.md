@@ -36,11 +36,11 @@ Nestri is an open-source, self-hosted Geforce Now alternative with Stadia's soci
 &nbsp;
 
 > **Note**
-> Nestri is more aligned with Jellyfin/Plex than with Moonlight. Our goal is to develop a comprehensive self-hosted cloud gaming solution for your home server.
+> Nestri is more closer (in feature comparison) to Jellyfin/Plex than Moonlight. Our goal is to develop a comprehensive self-hosted cloud gaming solution for your home server.
 
 ## Features
 
-- Save and share your game progress easily
+- Save and share your game progress easily with friends
 - Simultaneously run multiple games on your GPU using Virtio-GPU Venus and/or Virgl
 - Play games using either your integrated GPU or dedicated GPU
 - Enjoy titles from your preferred Game Stores - Steam, Epic Games, Amazon Games, GOG.com
@@ -82,7 +82,7 @@ Nestri is an open-source, self-hosted Geforce Now alternative with Stadia's soci
 ## Known Issues
 
 - CrosVM is still under development and needs to be merged
-- Currently, the Intel dGPU, particularly the Arch A780, is the only tested and verified GPU
+- Currently, the Intel dGPU, particularly the Arc A780, is the only tested and verified GPU
 
 ## Donation
 
