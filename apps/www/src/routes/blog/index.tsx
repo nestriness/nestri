@@ -5,10 +5,10 @@ import { MotionComponent, TitleSection, transition } from "@nestri/ui/react"
 
 const blogs = [
     {
-        title: "Nestri's Architecture so far",
-        createdAt: "2024-09-20T12:15:22.974Z",
-        description: "Nestri has been in development for a while now and we are working on",
-        href: "how-nestri-works"
+        title: "Navigating VMs and GPU Passthrough: Building a Better Foundation for Nestri",
+        createdAt: "2024-10-26T23:28:02.584Z",
+        description: "Join us as we navigate the challenges of building Nestri",
+        href: "gpu-passthru"
     }
 ]
 

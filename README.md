@@ -88,6 +88,11 @@ Nestri is an open-source, self-hosted Geforce Now alternative with Stadia's soci
 
 If you appreciate our work and wish to support the development of Nestri, consider making a donation [here](https://polar.sh/nestri/donate). Your contributions will help us improve the platform and enhance your gaming experience. Thank you for your support!
 
+## Demo
+
+Nestri is still in development, but here is some footage from Behind-The-Scenes
+
+<img src="/apps/www/public/seo/code.avif" alt="Nestri - What will you play next?">
 
 
 [github-release-link]: https://github.com/nestriness/nestri/releases

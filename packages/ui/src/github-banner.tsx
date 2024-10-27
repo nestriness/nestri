@@ -50,7 +50,7 @@ export const GithubBanner = component$(() => {
                             </Link>
                             <div class="min-w-max min-h-max w-full relative overflow-hidden rounded-[8px] flex justify-center items-center group">
                                 <div class="animate-multicolor before:-z-[1] -z-[2] absolute -right-full left-0 bottom-0 h-full w-[1000px] [background:linear-gradient(90deg,rgb(232,23,98)_1.26%,rgb(30,134,248)_18.6%,rgb(91,108,255)_34.56%,rgb(52,199,89)_49.76%,rgb(245,197,5)_64.87%,rgb(236,62,62)_85.7%)_0%_0%/50%_100%_repeat-x]" />
-                                <Link class="select-none m-[3px] relative justify-center items-center min-w-max flex z-[2] px-3 rounded-md h-8 w-full bg-white dark:bg-black group-hover:bg-transparent transition-all duration-200" rel="noopener noreferrer" href="/join" target="_blank">
+                                <Link class="select-none m-[3px] relative justify-center items-center min-w-max flex z-[2] px-3 rounded-md h-8 w-full bg-white dark:bg-black group-hover:bg-transparent transition-all duration-200" rel="noopener noreferrer" href="https://nestri.io/join" target="_blank">
                                     <span class="text-sm dark:text-white text-black group-hover:text-white w-full transition-all duration-200">
                                         <div class="flex justify-around items-center w-full p-1 h-max">
                                             Join Waitlist

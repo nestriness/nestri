@@ -1,0 +1,72 @@
+---
+title: "Navigating VMs and GPU Passthrough: Building a Better Foundation for Nestri"
+blogTitle: "Navigating VMs and GPU Passthrough: Building a Better Foundation for Nestri"
+summary: "Join us as we navigate the challenges of building Nestri"
+slug: "gpu-passthru"
+thumbnail: "/seo/image.png"
+createdAt: "2024-10-26T23:28:02.584Z"
+authors:
+  - name: "Wanjohi Ryan"
+    link: "https://github.com/wanjohiryan"
+---
+
+As we continue to work on [Nestri](https://github.com/nestriness/nestri), our open-source cloud gaming platform, we've found ourselves at an important crossroads. Currently, in our v0.2 release, we are utilizing Docker extensively with numerous customizations. However, this setup has proven to be somewhat limiting, prompting me to explore alternative solutions.
+
+> TL;DR: In my search for a more efficient virtual machine (VM) setup, I ventured into the realm of Virtual Machine Monitors (VMMs) for better GPU passthrough capabilities. The journey was... with its fair share of challenges.
+
+My motivation was - I wanted a VM, but not just a standard one—a VMM, which provides paravirtualized environments with numerous advantages.
+
+### Key Criteria for Selecting a VMM
+1. **Fast Boot Times** - Gaming is all about urgency; no one wants to wait ages to start playing.
+2. **Small Resource Footprint:** - The VM should use minimal host resources outside of the allocated ones. I recognize that this ties closely with the first criterion. ^^
+3. **GPU Passthrough Support (Venus and Virgl):** - GPU passthrough is essential for gaming, particularly as we aim to facilitate multiple sessions on a single host if possible.
+4. **Support for Wayland and X11 Passthrough:** - This feature is crucial for debugging, allowing visibility of applications on the host window manager.
+5. **Security and Isolation:** - While most VMs are designed with security in mind, having this as a bonus feature is essential.
+
+Think of it this way: if you’re running a home server, you want the best possible experience when using Nestri - you want it to be fast, easy to set up, and secure. I wanted to find a solution that didn’t compromise user and developer experiences compared to our existing Docker setup.
+
+The aspect of GPU passthrough was vital; utilizing Venus and Virgl would allow me to "pass in" the GPU without mounting it directly within the VM. This could simplify supporting integrated GPUs and enable multiple gaming sessions on a single GPU—very important to Nestri’s functionality.
+
+> Explainer time ⌚ <br/>
+> **Virgl:** A modern virtual 3D GPU that enables guest operating systems to leverage the host's GPU for 3D rendering through OpenGL. <br/>
+> **Venus:** Similar to Virgl, but it utilizes Vulkan for rendering instead of OpenGL.
+
+## The Quest for the Right VMM
+
+The search for the right VMM brought forth various experiences and challenges. Here’s a breakdown of the contenders:
+
+### Firecracker
+I had worked with Firecracker before - the AWS' "MicroVM" with a marketing budget - so i started there.  Unfortunately, I quickly discovered that it does not support GPU passthrough :(
+
+### Cloud Hypervisor
+Next, I explored Cloud Hypervisor. While it is a convenient option, it also lacks native GPU passthrough capabilities unless patched with modifications from [Spectrum OS](https://spectrum-os.org/software/cloud-hypervisor/). It’s worth noting that this MicroVM comes prebuilt, which is very appealing,_* has the best DX so far *_.
+
+### QEMU
+Then there’s QEMU. While not strictly a MicroVMM, it offers extensive features - this is probably the closest one to CrosVM in terms of features. However, implementing Venus requires significant work in terms of [kernel and QEMU patches](https://github.com/TrippleXC/VenusPatches)—far more effort than I was aiming for.
+
+### CrosVM
+CrosVM emerged as a strong candidate. At first glance, it looked perfect _too perfect_ - excellent documentation, backed by Google, support for Wayland, Xorg, and GPU passthrough? Why is no one is using this?. I later found out the hard way that it was quite challenging to set up and work with.
+
+After weeks of extensive work and research - sometimes even going as far as reading the ChromeOS, Mesa, Virgl or CrosVM codebase - I finally managed to get Virtio-GPU with Venus functioning on the Intel Arc A780 dGPU. In retrospect, I am confident that I could simplify the process and cut down on the time-to-setup significantly if I were to repeat it - but i will reserve the energy for another day.
+
+To get it to work, I had to install and tinker around with multiple versions of Virgl renderer, Mesa, Minijail and Minigbm on the host. Additionally, there were multiple command-line arguments to experiment with, each contributing to the eventual success of the setup. 
+
+Testing if the GPU is operating correctly usually involves running a simple application like `Vkcube` or `glxgears`, which visually indicates successful GPU rendering. That's where Sommelier enters the picture; it’s a tool that allows the guest OS to pass Wayland (and x11 thru XWayland) compositing to the host OS while maintaining VMM isolation. 
+
+To make Sommelier work, one is required to either modify the upstream Linux kernel or use the ChromeOS kernel - specifically built with the Borealis config.
+
+I went ahead and built the Chrome OS kernel with an ArchLinux Docker image and to confirm that the kernel was working as intended, I had to check whether the `/dev/wl0` file on the guest os - the installation was succesful.
+
+But after a lot of trial and error, I still could not get it to work. There were Rutabaga errors everywhere... I have reached out for help from [the Google Group](https://groups.google.com/a/chromium.org/g/crosvm-dev/c/1RQUOI8FlNY) forum for assistance, no response yet.
+
+Well, i gave up 😅
+
+> **Food for thought:**
+> Why do you have to build the MicroVMMs yourself? A prebuilt binary, similar to what Cloud Hypervisor offers, would have a much better DX. But what do i know? 🤷🏾‍♂️
+
+This morning, I came across [muvm](https://github.com/AsahiLinux/muvm/) and , which Asahi Linux employs to run Steam games on Mac. It appears promising, but like most of the other options, it also demands building it. Should i try setting it up in another blog? Tune in to find out.
+
+And there you have it—my exploration of VMMs and GPU passthrough for Nestri. If you have insights or experiences in this domain, please feel free to reach out on the [Nestri Discord channel](https://discord.com/invite/Y6etn3qKZ3). I look forward to hearing from you!
+
+> You can find source code for the whole mini-project [here](https://github.com/nestriness/nestri/pull/123). <br/>
+> If you need help setting it up let me know on Discord :)

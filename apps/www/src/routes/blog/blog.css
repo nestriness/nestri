@@ -23,11 +23,27 @@
 }
 
 .blog ul {
-  @apply list-disc list-inside pl-4;
+  @apply list-inside pl-4;
 }
 
 .blog ol {
-  @apply list-decimal list-inside;
+  @apply list-disc list-decimal list-inside;
+}
+
+.blog li {
+  @apply list-decimal list-inside pl-4;
+}
+
+.blog a {
+  @apply text-primary-500 underline underline-offset-2 cursor-pointer;
+}
+
+.blog code {
+  @apply bg-gray-700 p-1 rounded-sm;
+}
+
+.blog blockquote {
+  @apply bg-gray-800 p-2 rounded-md border-l-4 border-l-primary-500
 }
 
 #toc .active {
