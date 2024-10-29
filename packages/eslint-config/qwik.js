@@ -43,7 +43,7 @@ module.exports = {
     "prefer-spread": "off",
     "no-case-declarations": "off",
     "no-console": "off",
-    "qwik/no-use-visible-task": "off",
+    "no-use-visibletask": "off",
     "@typescript-eslint/consistent-type-imports": "warn",
     "@typescript-eslint/no-unnecessary-condition": "warn",
   },
