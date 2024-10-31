@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { $, component$, QRL, useSignal, useVisibleTask$ } from "@builder.io/qwik"
 import { Mouse } from "./mouse_input_handler"
 import { Keyboard } from "./keyboard_input_handler"
 
@@ -6,7 +6,6 @@ import { Keyboard } from "./keyboard_input_handler"
 export default component$(() => {
     const canvas = useSignal<HTMLCanvasElement>();
     const retryConnecting = useSignal(false)
-    const retryInterval = useSignal<NodeJS.Timeout | null>(null);
 
     useVisibleTask$(({ track }) => {
         track(() => retryConnecting.value);
@@ -50,8 +49,8 @@ export default component$(() => {
 
         if (retryConnecting.value) {
             console.log("[input]: Hang tight we are trying to reconnect to the server :)")
-            retryInterval.value = setInterval(attemptConnection, 5000); // Retry every 5 seconds
-            return () => { retryInterval.value && clearInterval(retryInterval.value) }
+            const retryInterval = setInterval(attemptConnection, 5000); // Retry every 5 seconds
+            return () => { retryInterval && clearInterval(retryInterval) }
         }
     })
 
