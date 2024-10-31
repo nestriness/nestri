@@ -2,42 +2,57 @@ import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
 import { Mouse } from "./mouse_input_handler"
 import { Keyboard } from "./keyboard_input_handler"
 
+
 export default component$(() => {
-    const canvas = useSignal<HTMLCanvasElement>()
-    // const connected = useSignal(false);
-    // const wsRef = useSignal<WebSocket | null>(null);
+    const canvas = useSignal<HTMLCanvasElement>();
+    const retryConnecting = useSignal(false)
+    const retryInterval = useSignal<NodeJS.Timeout | null>(null);
 
-    useVisibleTask$(() => {
-        const ws = new WebSocket("ws://127.0.0.1:8080/ws");
-        // wsRef.value = ws
+    useVisibleTask$(({ track }) => {
+        track(() => retryConnecting.value);
 
-        ws.onopen = (ev) => {
-            console.log("ws opened")
-            //Send auth JWT here
-            // connected.value = true
+        function attemptConnection() {
+            if (!canvas.value) return; // Ensure canvas is available
+            // const ws = connectWebSocket(retryConnecting);
+            const ws = new WebSocket("ws://127.0.0.1:8080/ws");
+
+            ws.onopen = (ev) => {
+                retryConnecting.value = false;
+            };
+
+            ws.onmessage = async (event) => {
+                if (event.data) {
+                    console.log("msg recieved", event.data);
+                    retryConnecting.value = false;
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.error("[input]: We got an error while handling the connection", err);
+                retryConnecting.value = true;
+            };
+
+            ws.onclose = () => {
+                console.warn("[input]: We lost connection to the server");
+                retryConnecting.value = true
+            };
+
+
+            document.addEventListener("pointerlockchange", () => {
+                if (!canvas.value) return;
+                new Mouse({ ws, canvas: canvas.value });
+                new Keyboard({ ws, canvas: canvas.value });
+            })
         }
 
-        ws.onmessage = async (event) => {
-            if (event.data) {
-                console.log("msg recieved", event.data);
-                // connected.value = true
-            }
+        attemptConnection();
+
+
+        if (retryConnecting.value) {
+            console.log("[input]: Hang tight we are trying to reconnect to the server :)")
+            retryInterval.value = setInterval(attemptConnection, 5000); // Retry every 5 seconds
+            return () => { retryInterval.value && clearInterval(retryInterval.value) }
         }
-
-        ws.onerror = (err) => {
-            console.error("Error handling the websocket connection", err)
-        }
-
-        ws.onclose = () => {
-            console.warn("Websocket connection closed")
-        }
-
-        document.addEventListener("pointerlockchange", () => {
-            if (!canvas.value) return;
-            new Mouse({ ws, canvas: canvas.value });
-            new Keyboard({ ws, canvas: canvas.value });
-        })
-
     })
 
     return (
