@@ -101,7 +101,7 @@ export class Track {
 		if ((writer.desiredSize || 0) > 0) {
 			await writer.write(chunk)
 		} else {
-			console.warn("dropping chunk", writer.desiredSize)
+			// console.warn("dropping chunk", writer.desiredSize)
 		}
 
 		writer.releaseLock()

@@ -113,7 +113,7 @@ export class Broadcast {
 			// Run an async task to serve each subscription.
 			this.#serveSubscribe(subscriber).catch((e) => {
 				const err = asError(e)
-				console.warn("failed to serve subscribe", err)
+				// console.warn("failed to serve subscribe", err)
 			})
 		}
 	}
@@ -183,7 +183,7 @@ export class Broadcast {
 			// Serve the segment and log any errors that occur.
 			this.#serveSegment(subscriber, segment).catch((e) => {
 				const err = asError(e)
-				console.warn("failed to serve segment", err)
+				// console.warn("failed to serve segment", err)
 			})
 		}
 	}

@@ -13,7 +13,7 @@ export default component$(() => {
         function attemptConnection() {
             if (!canvas.value) return; // Ensure canvas is available
             // const ws = connectWebSocket(retryConnecting);
-            const ws = new WebSocket("ws://127.0.0.1:8080/ws");
+            const ws = new WebSocket("ws://testing@dathorse-vms.duckdns.org:5901/mouse");
 
             ws.onopen = (ev) => {
                 retryConnecting.value = false;
