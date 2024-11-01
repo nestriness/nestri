@@ -26,6 +26,7 @@ export class WS {
     private initializeWebSocket() {
         this.websocket.onopen = () => {
             this.retryConnecting = false;
+            this.cleanupInput();
             this.run();
             console.log("[input]: WebSocket connection opened");
         };
@@ -57,12 +58,10 @@ export class WS {
             if (!this.pointerLockListener) {
                 this.pointerLockListener = () => {
                     if (!this.canvas) return;
-                    this.initializeInput();
-                    // if (document.pointerLockElement == this.canvas) {
-                    //     this.canvasLocked = true
-                    // } else {
-                    //     this.canvasLocked = false
-                    // }
+                    if (document.pointerLockElement)
+                        this.initializeInput();
+                    else
+                        this.cleanupInput();
                 };
 
                 document.addEventListener("pointerlockchange", this.pointerLockListener);
@@ -93,10 +92,20 @@ export class WS {
     }
 
     private initializeInput() {
-        if (this.canvas) {
+        if (this.canvas && !this.mouse && !this.keyboard) {
             this.mouse = new Mouse({ ws: this.websocket, canvas: this.canvas });
             this.keyboard = new Keyboard({ ws: this.websocket, canvas: this.canvas });
         }
     }
 
+    private cleanupInput() {
+        if (this.mouse) {
+            this.mouse.dispose();
+            this.mouse = undefined;
+        }
+        if (this.keyboard) {
+            this.keyboard.dispose();
+            this.keyboard = undefined;
+        }
+    }
 }
