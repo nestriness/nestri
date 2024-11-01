@@ -1,7 +1,6 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
-import { Mouse, Keyboard } from "@nestri/input"
-
+import { WS } from "./websocket"
 // Upstream MoQ lib does not work well with our Qwik Vite implementation
 import { Player } from "@nestri/moq/playback"
 
@@ -10,53 +9,11 @@ export default component$(() => {
     const canvas = useSignal<HTMLCanvasElement>();
     const url = 'https://relay.fst.so'
 
-    const retryConnecting = useSignal(false)
-
     useVisibleTask$(({ track }) => {
-        track(() => retryConnecting.value);
-
-        function attemptConnection() {
-            if (!canvas.value) return; // Ensure canvas is available
-            // const ws = connectWebSocket(retryConnecting);
-            const ws = new WebSocket("ws://[ip address]:8081/ws");
-
-            ws.onopen = (ev) => {
-                retryConnecting.value = false;
-            };
-
-            ws.onmessage = async (event) => {
-                if (event.data) {
-                    // console.log("msg recieved", event.data);
-                    retryConnecting.value = false;
-                }
-            };
-
-            ws.onerror = (err) => {
-                console.error("[input]: We got an error while handling the connection", err);
-                retryConnecting.value = true;
-            };
-
-            ws.onclose = () => {
-                console.warn("[input]: We lost connection to the server");
-                retryConnecting.value = true
-            };
-
-
-            document.addEventListener("pointerlockchange", () => {
-                if (!canvas.value) return;
-                new Mouse({ ws, canvas: canvas.value });
-                new Keyboard({ ws, canvas: canvas.value });
-            })
-        }
-
-        attemptConnection();
-
-
-        if (retryConnecting.value) {
-            console.log("[input]: Hang tight we are trying to reconnect to the server :)")
-            const retryInterval = setInterval(attemptConnection, 5000); // Retry every 5 seconds
-            return () => { retryInterval && clearInterval(retryInterval) }
-        }
+        track(() => canvas.value);
+        
+        if (!canvas.value) return; // Ensure canvas is available/87.100.239.153
+        new WS({ canvas: canvas.value, url: "ws://localhost:8081/ws" });
     })
 
 
@@ -160,3 +117,56 @@ user agent stylesheet
 //     cx: 50;
 //     cy: 50;
 //     r: 20;
+
+
+// function throttle(func, limit) {
+//     let inThrottle;
+//     return function(...args) {
+//         if (!inThrottle) {
+//             func.apply(this, args);
+//             inThrottle = true;
+//             setTimeout(() => inThrottle = false, limit);
+//         }
+//     }
+// }
+
+// // Use it like this:
+// const throttledMouseMove = throttle((x, y) => {
+//     websocket.send(JSON.stringify({
+//         type: 'mousemove',
+//         x: x,
+//         y: y
+//     }));
+// }, 16); // ~60fps
+
+// use std::time::Instant;
+
+// // Add these to your AppState
+// struct AppState {
+//     pipeline: Arc<Mutex<gst::Pipeline>>,
+//     last_mouse_move: Arc<Mutex<(i32, i32, Instant)>>, // Add this
+// }
+
+// // Then in your MouseMove handler:
+// InputMessage::MouseMove { x, y } => {
+//     let mut last_move = state.last_mouse_move.lock().unwrap();
+//     let now = Instant::now();
+    
+//     // Only process if coordinates are different or enough time has passed
+//     if (last_move.0 != x || last_move.1 != y) && 
+//        (now.duration_since(last_move.2).as_millis() > 16) { // ~60fps
+        
+//         println!("Mouse moved to x: {}, y: {}", x, y);
+        
+//         let structure = gst::Structure::builder("MouseMoveRelative")
+//             .field("pointer_x", x as f64)
+//             .field("pointer_y", y as f64)
+//             .build();
+
+//         let event = gst::event::CustomUpstream::new(structure);
+//         pipeline.send_event(event);
+        
+//         // Update last position and time
+//         *last_move = (x, y, now);
+//     }
+// }

@@ -34,7 +34,7 @@ export class Mouse {
         //calls all the other functions
         if (!document.pointerLockElement) {
             if (this.connected) {
-            this.stop()
+                this.stop()
             }
             return;
         }

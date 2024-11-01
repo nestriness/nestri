@@ -29,7 +29,8 @@ class Worker {
 			// TODO buffer the init segmnet so we don't hold the stream open.
 			this.#onInit(msg.init)
 		} else if (msg.segment) {
-			this.#onSegment(msg.segment).catch(console.warn)
+			//the ()=>{} prevents unwanted console warn and error messages
+			this.#onSegment(msg.segment).catch(()=>{}) //.catch(console.warn)
 		} else {
 			throw new Error(`unknown message: + ${JSON.stringify(msg)}`)
 		}
@@ -109,7 +110,7 @@ self.addEventListener("message", (msg) => {
 		worker.on(msg)
 	} catch (e) {
 		const err = asError(e)
-		console.warn("worker error:", err)
+		// console.warn("worker error:", err)
 	}
 })
 
