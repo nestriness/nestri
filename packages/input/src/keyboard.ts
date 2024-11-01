@@ -5,7 +5,7 @@ interface Props {
     canvas: HTMLCanvasElement;
 }
 //FIXME: removeEventListener does not work, i dunno why
-
+//FIXME: For some reason, multiple eventlisteners are being attached, causing a multitude of keys being evoked
 export class Keyboard {
     protected websocket: WebSocket;
     protected canvas: HTMLCanvasElement;
@@ -46,8 +46,8 @@ export class Keyboard {
 
     }
     private stop() {
-        document.removeEventListener("keydown", this.keydownListener);
-        document.removeEventListener("keyup", this.keyupListener);
+        this.canvas.removeEventListener("keydown", this.keydownListener);
+        this.canvas.removeEventListener("keyup", this.keyupListener);
         this.abortController.abort();
         this.connected = false;
     }
