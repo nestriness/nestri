@@ -10,7 +10,6 @@ path = "src/main.rs"
 [dependencies]
 gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs", version = "0.24.0" }
 gst-plugin-wayland-display = { git = "https://github.com/games-on-whales/gst-wayland-display", version = "0.2.0" }
-wayland-display-core = { git = "https://github.com/games-on-whales/gst-wayland-display", version = "0.2.0" }
 moq-gst = { git = "https://github.com/kixelated/moq-gst", version = "0.1.0" }
 tokio = { version = "1.41.0", features = ["full"] }
 serde = {version = "1.0.214", features = ["derive"] }

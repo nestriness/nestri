@@ -2129,7 +2129,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "wayland-display-core",
 ]
 
 [[package]]
