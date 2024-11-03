@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "packages/server"
+]
+
+[workspace.package]
+version = "0.1.0-alpha.1"
+repository = "https://github.com/nestriness/nestri"
+edition = "2021"
+rust-version = "1.80"

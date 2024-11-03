@@ -13,7 +13,7 @@ export default component$(() => {
         track(() => canvas.value);
         
         if (!canvas.value) return; // Ensure canvas is available/87.100.239.153
-        new WS({ canvas: canvas.value, url: "ws://localhost:8081/ws" });
+        new WS({ canvas: canvas.value, url: "ws://87.100.239.153:8081/ws" });
     })
 
 
