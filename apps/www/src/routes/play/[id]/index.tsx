@@ -2,12 +2,14 @@ import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
 import { WS } from "./websocket"
 // Upstream MoQ lib does not work well with our Qwik Vite implementation
-import { Player } from "@nestri/moq/playback"
+import { Player } from "@nestri/libmoq/playback"
+import { Client } from "@nestri/libmoq/transfork"
 
 export default component$(() => {
     const id = useLocation().params.id;
     const canvas = useSignal<HTMLCanvasElement>();
-    const url = 'https://relay.fst.so'
+    //This is the latest MoQ relay... use this for now
+    const url = 'https://relay.dathorse.com:8443' //'https://relay.fst.so'
 
     useVisibleTask$(({ track }) => {
         track(() => canvas.value);
@@ -20,7 +22,11 @@ export default component$(() => {
     useVisibleTask$(
         async () => {
             if (canvas.value) {
-                await Player.create({ url, fingerprint: undefined, canvas: canvas.value, namespace: id });
+                const connectedCanvas = canvas.value
+                const client = new Client({url})
+                client.connect().then((connection)=>{
+                   new Player({connection, path:[id], canvas:connectedCanvas})
+                })
             }
         }
     )

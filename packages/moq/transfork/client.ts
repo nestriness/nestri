@@ -1,14 +1,10 @@
-import * as Stream from "./stream"
-import * as Setup from "./setup"
-import * as Control from "./control"
-import { Objects } from "./objects"
+import { Stream } from "./stream"
+import * as Message from "./message"
 import { Connection } from "./connection"
+import * as Hex from "../common/hex"
 
 export interface ClientConfig {
 	url: string
-
-	// Parameters used to create the MoQ session
-	role: Setup.Role
 
 	// If set, the server fingerprint will be fetched from this URL.
 	// This is required to use self-signed certificates with Chrome (May 2023)
@@ -24,7 +20,7 @@ export class Client {
 		this.config = config
 
 		this.#fingerprint = this.#fetchFingerprint(config.fingerprint).catch((e) => {
-			console.warn("failed to fetch fingerprint: ", e)
+			// console.warn("failed to fetch fingerprint: ", e)
 			return undefined
 		})
 	}
@@ -39,28 +35,21 @@ export class Client {
 		const quic = new WebTransport(this.config.url, options)
 		await quic.ready
 
-		const stream = await quic.createBidirectionalStream()
+		const client = new Message.SessionClient([Message.Version.FORK_02])
+		// console.log("sending client setup: ", client)
+		const stream = await Stream.open(quic, client)
 
-		const writer = new Stream.Writer(stream.writable)
-		const reader = new Stream.Reader(new Uint8Array(), stream.readable)
+		// console.log("waiting for server setup")
 
-		const setup = new Setup.Stream(reader, writer)
-
-		// Send the setup message.
-		await setup.send.client({ versions: [Setup.Version.DRAFT_04], role: this.config.role })
-
-		// Receive the setup message.
-		// TODO verify the SETUP response.
-		const server = await setup.recv.server()
-
-		if (server.version != Setup.Version.DRAFT_04) {
+		const server = await Message.SessionServer.decode(stream.reader)
+		// console.log("received server setup: ", server)
+		if (server.version != Message.Version.FORK_02) {
 			throw new Error(`unsupported server version: ${server.version}`)
 		}
 
-		const control = new Control.Stream(reader, writer)
-		const objects = new Objects(quic)
+		// console.log(`established connection: version=${server.version}`)
 
-		return new Connection(quic, control, objects)
+		return new Connection(quic, stream)
 	}
 
 	async #fetchFingerprint(url?: string): Promise<WebTransportHash | undefined> {
@@ -68,16 +57,11 @@ export class Client {
 
 		// TODO remove this fingerprint when Chrome WebTransport accepts the system CA
 		const response = await fetch(url)
-		const hexString = await response.text()
-
-		const hexBytes = new Uint8Array(hexString.length / 2)
-		for (let i = 0; i < hexBytes.length; i += 1) {
-			hexBytes[i] = parseInt(hexString.slice(2 * i, 2 * i + 2), 16)
-		}
+		const bytes = Hex.decode(await response.text())
 
 		return {
 			algorithm: "sha-256",
-			value: hexBytes,
+			value: bytes,
 		}
 	}
 }

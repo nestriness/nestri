@@ -1,5 +1,4 @@
-import type { Frame } from "../../media/mp4"
-export type { Frame }
+import { Frame } from "../karp/frame"
 
 export interface Range {
 	start: number

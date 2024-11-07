@@ -1,16 +1,18 @@
-import { Frame, Component } from "./timeline"
-import * as MP4 from "../../media/mp4"
-import * as Message from "./message"
+import { Component } from "./timeline"
+import * as Catalog from "../karp/catalog"
+import { Frame } from "../karp/frame"
 
 export class Renderer {
-	#canvas: OffscreenCanvas
+	#track: Catalog.Video
+	#canvas: HTMLCanvasElement
 	#timeline: Component
 
 	#decoder!: VideoDecoder
 	#queue: TransformStream<Frame, VideoFrame>
 
-	constructor(config: Message.ConfigVideo, timeline: Component) {
-		this.#canvas = config.canvas
+	constructor(track: Catalog.Video, canvas: HTMLCanvasElement, timeline: Component) {
+		this.#track = track
+		this.#canvas = canvas
 		this.#timeline = timeline
 
 		this.#queue = new TransformStream({
@@ -18,7 +20,11 @@ export class Renderer {
 			transform: this.#transform.bind(this),
 		})
 
-		this.#run().catch(console.error)
+		this.#run().catch((err) => console.error("failed to run video renderer: ", err))
+	}
+
+	close() {
+		// TODO
 	}
 
 	async #run() {
@@ -47,36 +53,21 @@ export class Renderer {
 			},
 			error: console.error,
 		})
+
+		this.#decoder.configure({
+			codec: this.#track.codec,
+			codedHeight: this.#track.resolution.height,
+			codedWidth: this.#track.resolution.width,
+			description: this.#track.description,
+			optimizeForLatency: true,
+		})
 	}
 
 	#transform(frame: Frame) {
-		// Configure the decoder with the first frame
-		if (this.#decoder.state !== "configured") {
-			const { sample, track } = frame
-
-			const desc = sample.description
-			const box = desc.avcC ?? desc.hvcC ?? desc.vpcC ?? desc.av1C
-			if (!box) throw new Error(`unsupported codec: ${track.codec}`)
-
-			const buffer = new MP4.Stream(undefined, 0, MP4.Stream.BIG_ENDIAN)
-			box.write(buffer)
-			const description = new Uint8Array(buffer.buffer, 8) // Remove the box header.
-
-			if (!MP4.isVideoTrack(track)) throw new Error("expected video track")
-
-			this.#decoder.configure({
-				codec: track.codec,
-				codedHeight: track.video.height,
-				codedWidth: track.video.width,
-				description,
-				// optimizeForLatency: true
-			})
-		}
-
 		const chunk = new EncodedVideoChunk({
-			type: frame.sample.is_sync ? "key" : "delta",
-			data: frame.sample.data,
-			timestamp: frame.sample.dts / frame.track.timescale,
+			type: frame.type,
+			data: frame.data,
+			timestamp: frame.timestamp,
 		})
 
 		this.#decoder.decode(chunk)

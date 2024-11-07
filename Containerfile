@@ -156,10 +156,6 @@ RUN \
     # Create an empty machine-id file
     && touch /etc/machine-id
 
-RUN \
-    pacman -Su --noconfirm \
-    pulseaudio
-
 ENV \
     XDG_RUNTIME_DIR=/tmp
 

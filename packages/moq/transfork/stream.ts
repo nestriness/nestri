@@ -1,9 +1,89 @@
+import * as Message from "./message"
+
 const MAX_U6 = Math.pow(2, 6) - 1
 const MAX_U14 = Math.pow(2, 14) - 1
 const MAX_U30 = Math.pow(2, 30) - 1
 const MAX_U31 = Math.pow(2, 31) - 1
 const MAX_U53 = Number.MAX_SAFE_INTEGER
 const MAX_U62: bigint = 2n ** 62n - 1n
+
+export class Stream {
+	reader: Reader
+	writer: Writer
+
+	constructor(props: { writable: WritableStream<Uint8Array>; readable: ReadableStream<Uint8Array> }) {
+		this.writer = new Writer(props.writable)
+		this.reader = new Reader(props.readable)
+	}
+
+	static async accept(quic: WebTransport): Promise<[Message.Bi, Stream] | undefined> {
+		const reader = quic.incomingBidirectionalStreams.getReader()
+		const next = await reader.read()
+		reader.releaseLock()
+
+		if (next.done) return
+		const stream = new Stream(next.value)
+		let msg: Message.Bi
+
+		const typ = await stream.reader.u8()
+		if (typ == Message.SessionClient.StreamID) {
+			msg = await Message.SessionClient.decode(stream.reader)
+		} else if (typ == Message.AnnounceInterest.StreamID) {
+			msg = await Message.AnnounceInterest.decode(stream.reader)
+		} else if (typ == Message.Subscribe.StreamID) {
+			msg = await Message.Subscribe.decode(stream.reader)
+		} else if (typ == Message.Datagrams.StreamID) {
+			msg = await Message.Datagrams.decode(stream.reader)
+		} else if (typ == Message.Fetch.StreamID) {
+			msg = await Message.Fetch.decode(stream.reader)
+		} else if (typ == Message.InfoRequest.StreamID) {
+			msg = await Message.InfoRequest.decode(stream.reader)
+		} else {
+			throw new Error("unknown stream type: " + typ)
+		}
+
+		console.debug("accepted stream", msg)
+
+		return [msg, stream]
+	}
+
+	static async open(quic: WebTransport, msg: Message.Bi): Promise<Stream> {
+		const stream = new Stream(await quic.createBidirectionalStream())
+
+		if (msg instanceof Message.SessionClient) {
+			await stream.writer.u8(Message.SessionClient.StreamID)
+		} else if (msg instanceof Message.AnnounceInterest) {
+			await stream.writer.u8(Message.AnnounceInterest.StreamID)
+		} else if (msg instanceof Message.Subscribe) {
+			await stream.writer.u8(Message.Subscribe.StreamID)
+		} else if (msg instanceof Message.Datagrams) {
+			await stream.writer.u8(Message.Datagrams.StreamID)
+		} else if (msg instanceof Message.Fetch) {
+			await stream.writer.u8(Message.Fetch.StreamID)
+		} else if (msg instanceof Message.InfoRequest) {
+			await stream.writer.u8(Message.InfoRequest.StreamID)
+		} else {
+			// Make sure we're not missing any types.
+			const _: never = msg
+			throw new Error("invalid message type")
+		}
+
+		await msg.encode(stream.writer)
+
+		console.debug("opened stream", msg)
+
+		return stream
+	}
+
+	async close(code?: number) {
+		if (code === undefined) {
+			await this.writer.close()
+		} else {
+			await this.writer.reset(code)
+			await this.reader.stop(code)
+		}
+	}
+}
 
 // Reader wraps a stream and provides convience methods for reading pieces from a stream
 // Unfortunately we can't use a BYOB reader because it's not supported with WebTransport+WebWorkers yet.
@@ -12,7 +92,7 @@ export class Reader {
 	#stream: ReadableStream<Uint8Array>
 	#reader: ReadableStreamDefaultReader<Uint8Array>
 
-	constructor(buffer: Uint8Array, stream: ReadableStream<Uint8Array>) {
+	constructor(stream: ReadableStream<Uint8Array>, buffer = new Uint8Array()) {
 		this.#buffer = buffer
 		this.#stream = stream
 		this.#reader = this.#stream.getReader()
@@ -79,6 +159,17 @@ export class Reader {
 		return new TextDecoder().decode(buffer)
 	}
 
+	async path(): Promise<string[]> {
+		const parts = await this.u53()
+		const path = []
+
+		for (let i = 0; i < parts; i++) {
+			path.push(await this.string())
+		}
+
+		return path
+	}
+
 	async u8(): Promise<number> {
 		await this.#fillTo(1)
 		return this.#slice(1)[0]
@@ -130,14 +221,37 @@ export class Reader {
 		return !(await this.#fill())
 	}
 
-	async close() {
+	async stop(code: number) {
 		this.#reader.releaseLock()
-		await this.#stream.cancel()
+		await this.#stream.cancel(code)
+	}
+
+	async closed() {
+		return this.#reader.closed
 	}
 
 	release(): [Uint8Array, ReadableStream<Uint8Array>] {
 		this.#reader.releaseLock()
 		return [this.#buffer, this.#stream]
+	}
+
+	static async accept(quic: WebTransport): Promise<[Message.Group, Reader] | undefined> {
+		const reader = quic.incomingUnidirectionalStreams.getReader()
+		const next = await reader.read()
+		reader.releaseLock()
+
+		if (next.done) return
+		const stream = new Reader(next.value)
+		let msg: Message.Uni
+
+		const typ = await stream.u8()
+		if (typ == Message.Group.StreamID) {
+			msg = await Message.Group.decode(stream)
+		} else {
+			throw new Error("unknown stream type: " + typ)
+		}
+
+		return [msg, stream]
 	}
 }
 
@@ -197,44 +311,70 @@ export class Writer {
 		await this.write(data)
 	}
 
+	async path(path: string[]) {
+		await this.u53(path.length)
+		for (const part of path) {
+			await this.string(part)
+		}
+	}
+
 	async close() {
 		this.#writer.releaseLock()
 		await this.#stream.close()
+	}
+
+	async reset(code: number) {
+		this.#writer.releaseLock()
+		await this.#stream.abort(code)
 	}
 
 	release(): WritableStream<Uint8Array> {
 		this.#writer.releaseLock()
 		return this.#stream
 	}
+
+	static async open(quic: WebTransport, msg: Message.Uni): Promise<Writer> {
+		const stream = new Writer(await quic.createUnidirectionalStream())
+
+		if (msg instanceof Message.Group) {
+			await stream.u8(Message.Group.StreamID)
+		} else {
+			// Make sure we're not missing any types.
+			const _: never = msg
+			throw new Error("invalid message type")
+		}
+
+		return stream
+	}
 }
 
-function setUint8(dst: Uint8Array, v: number): Uint8Array {
+export function setUint8(dst: Uint8Array, v: number): Uint8Array {
 	dst[0] = v
 	return dst.slice(0, 1)
 }
 
-function setUint16(dst: Uint8Array, v: number): Uint8Array {
+export function setUint16(dst: Uint8Array, v: number): Uint8Array {
 	const view = new DataView(dst.buffer, dst.byteOffset, 2)
 	view.setUint16(0, v)
 
 	return new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
 }
 
-function setInt32(dst: Uint8Array, v: number): Uint8Array {
+export function setInt32(dst: Uint8Array, v: number): Uint8Array {
 	const view = new DataView(dst.buffer, dst.byteOffset, 4)
 	view.setInt32(0, v)
 
 	return new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
 }
 
-function setUint32(dst: Uint8Array, v: number): Uint8Array {
+export function setUint32(dst: Uint8Array, v: number): Uint8Array {
 	const view = new DataView(dst.buffer, dst.byteOffset, 4)
 	view.setUint32(0, v)
 
 	return new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
 }
 
-function setVint53(dst: Uint8Array, v: number): Uint8Array {
+export function setVint53(dst: Uint8Array, v: number): Uint8Array {
 	if (v <= MAX_U6) {
 		return setUint8(dst, v)
 	} else if (v <= MAX_U14) {
@@ -248,7 +388,7 @@ function setVint53(dst: Uint8Array, v: number): Uint8Array {
 	}
 }
 
-function setVint62(dst: Uint8Array, v: bigint): Uint8Array {
+export function setVint62(dst: Uint8Array, v: bigint): Uint8Array {
 	if (v < MAX_U6) {
 		return setUint8(dst, Number(v))
 	} else if (v < MAX_U14) {
@@ -262,7 +402,7 @@ function setVint62(dst: Uint8Array, v: bigint): Uint8Array {
 	}
 }
 
-function setUint64(dst: Uint8Array, v: bigint): Uint8Array {
+export function setUint64(dst: Uint8Array, v: bigint): Uint8Array {
 	const view = new DataView(dst.buffer, dst.byteOffset, 8)
 	view.setBigUint64(0, v)
 
