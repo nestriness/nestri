@@ -1,12 +1,12 @@
-import { asError } from "../common/error"
 import * as Message from "./message"
-import { Reader, Stream } from "./stream"
+import { asError } from "../common/error"
+import { Stream, Reader } from "./stream"
 
-import type { Queue } from "../common/async"
-import { Closed } from "./error"
-import type { Track, TrackReader } from "./model"
 import { Publisher } from "./publisher"
-import { type Announced, Subscriber } from "./subscriber"
+import { Announced, Subscriber } from "./subscriber"
+import { Track, TrackReader } from "./model"
+import { Closed } from "./error"
+import { Queue } from "../common/async"
 
 export class Connection {
 	// The established WebTransport session.
@@ -84,42 +84,38 @@ export class Connection {
 
 		if (msg instanceof Message.SessionClient) {
 			throw new Error("duplicate session stream")
-		}
-
-		if (msg instanceof Message.AnnounceInterest) {
+		} else if (msg instanceof Message.AnnounceInterest) {
 			if (!this.#subscriber) {
 				throw new Error("not a subscriber")
 			}
 
 			return await this.#publisher.runAnnounce(msg, stream)
-		}
-		if (msg instanceof Message.Subscribe) {
+		} else if (msg instanceof Message.Subscribe) {
 			if (!this.#publisher) {
 				throw new Error("not a publisher")
 			}
 
 			return await this.#publisher.runSubscribe(msg, stream)
-		}
-		if (msg instanceof Message.Datagrams) {
+		} else if (msg instanceof Message.Datagrams) {
 			if (!this.#publisher) {
 				throw new Error("not a publisher")
 			}
 
 			return await this.#publisher.runDatagrams(msg, stream)
-		}
-		if (msg instanceof Message.Fetch) {
+		} else if (msg instanceof Message.Fetch) {
 			if (!this.#publisher) {
 				throw new Error("not a publisher")
 			}
 
 			return await this.#publisher.runFetch(msg, stream)
-		}
-		if (msg instanceof Message.InfoRequest) {
+		} else if (msg instanceof Message.InfoRequest) {
 			if (!this.#publisher) {
 				throw new Error("not a publisher")
 			}
 
 			return await this.#publisher.runInfo(msg, stream)
+		} else {
+			const _: never = msg
 		}
 	}
 
@@ -136,7 +132,7 @@ export class Connection {
 	}
 
 	async #runUni(msg: Message.Uni, stream: Reader) {
-		console.debug("received uni stream: ", msg)
+		// console.debug("received uni stream: ", msg)
 
 		if (msg instanceof Message.Group) {
 			if (!this.#subscriber) {
@@ -144,6 +140,8 @@ export class Connection {
 			}
 
 			return this.#subscriber.runGroup(msg, stream)
+		} else {
+			const _: never = msg
 		}
 	}
 

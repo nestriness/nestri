@@ -1,10 +1,10 @@
-import { Notify } from "../common/async"
-import type { BroadcastConfig } from "./broadcast"
 import { Segment } from "./segment"
+import { Notify } from "../common/async"
+import { BroadcastConfig } from "./broadcast"
 
-import type { Frame } from "../karp/frame"
 import * as Audio from "./audio"
 import * as Video from "./video"
+import { Frame } from "../karp/frame"
 
 export class Track {
 	name: string
@@ -92,7 +92,7 @@ export class Track {
 		if ((writer.desiredSize || 0) > 0) {
 			await writer.write(frame)
 		} else {
-			// console.warn("dropping chunk", writer.desiredSize)
+			console.warn("dropping chunk", writer.desiredSize)
 		}
 
 		writer.releaseLock()
@@ -138,8 +138,7 @@ export class Track {
 					if (this.#error) {
 						controller.error(this.#error)
 						return
-					}
-					if (this.#closed) {
+					} else if (this.#closed) {
 						controller.close()
 						return
 					}

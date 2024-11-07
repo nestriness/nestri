@@ -1,5 +1,5 @@
 import * as Hex from "../../common/hex"
-import { type Track, decodeTrack } from "./track"
+import { decodeTrack, Track } from "./track"
 
 export interface Video {
 	track: Track
@@ -15,15 +15,12 @@ export interface Dimensions {
 	height: number
 }
 
-export function decodeVideo(o: unknown): o is Video {
-	if (typeof o !== "object" || o === null) return false
+export function decodeVideo(o: any): o is Video {
+	if (!decodeTrack(o.track)) return false
+	if (typeof o.codec !== "string") return false
+	if (typeof o.description !== "string") return false
 
-	const obj = o as Partial<Video>
-	if (!decodeTrack(obj.track)) return false
-	if (typeof obj.codec !== "string") return false
-	if (typeof obj.description !== "string") return false
-
-	obj.description = Hex.decode(obj.description)
+	o.description = Hex.decode(o.description)
 
 	return true
 }

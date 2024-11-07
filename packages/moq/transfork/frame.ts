@@ -1,4 +1,4 @@
-import type { Reader, Writer } from "./stream"
+import { Reader, Writer } from "./stream"
 
 export class FrameReader {
 	#stream: Reader

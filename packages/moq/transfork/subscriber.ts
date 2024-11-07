@@ -1,9 +1,9 @@
 import { Queue, Watch } from "../common/async"
 import { Closed } from "./error"
-import { FrameReader } from "./frame"
 import * as Message from "./message"
-import type { Track, TrackReader } from "./model"
-import { type Reader, Stream } from "./stream"
+import { FrameReader } from "./frame"
+import { Stream, Reader } from "./stream"
+import { Track, TrackReader } from "./model"
 
 export class Subscriber {
 	#quic: WebTransport
@@ -41,14 +41,14 @@ export class Subscriber {
 
 				const existing = toggle.get(announce.suffix)
 				if (existing) {
-					if (announce.status === "active") {
+					if (announce.status == "active") {
 						throw new Error("duplicate announce")
 					}
 
 					existing.close()
 					toggle.delete(announce.suffix)
 				} else {
-					if (announce.status === "closed") {
+					if (announce.status == "closed") {
 						throw new Error("unknown announce")
 					}
 
@@ -59,9 +59,7 @@ export class Subscriber {
 				}
 			}
 		} finally {
-			for (const item of toggle.values()) {
-				item.close()
-			}
+			toggle.forEach((item) => item.close())
 		}
 	}
 
@@ -77,6 +75,7 @@ export class Subscriber {
 
 		try {
 			const ok = await Message.Info.decode(stream.reader)
+			// console.log("subscribed", track, ok)
 
 			/*
 			for (;;) {
