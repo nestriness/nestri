@@ -35,7 +35,7 @@ export class Watch<T> {
 
 	update(v: T | ((v: T) => T)) {
 		if (!this.#next.pending) {
-			throw new Error("already closed")
+			throw new Error("closed")
 		}
 
 		// If we're given a function, call it with the current value
@@ -52,6 +52,10 @@ export class Watch<T> {
 	close() {
 		this.#current[1] = undefined
 		this.#next.resolve(this.#current)
+	}
+
+	closed() {
+		return !this.#next.pending
 	}
 }
 
@@ -88,6 +92,7 @@ export class Queue<T> {
 	}
 
 	async push(v: T) {
+		if (this.#closed) throw new Error("closed")
 		const w = this.#stream.writable.getWriter()
 		await w.write(v)
 		w.releaseLock()

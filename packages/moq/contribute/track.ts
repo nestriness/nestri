@@ -1,11 +1,10 @@
 import { Segment } from "./segment"
 import { Notify } from "../common/async"
-import { Chunk } from "./chunk"
-import { Container } from "./container"
 import { BroadcastConfig } from "./broadcast"
 
 import * as Audio from "./audio"
 import * as Video from "./video"
+import { Frame } from "../karp/frame"
 
 export class Track {
 	name: string
@@ -36,7 +35,6 @@ export class Track {
 	async #runAudio(track: MediaStreamAudioTrack, config: AudioEncoderConfig) {
 		const source = new MediaStreamTrackProcessor({ track })
 		const encoder = new Audio.Encoder(config)
-		const container = new Container()
 
 		// Split the container at keyframe boundaries
 		const segments = new WritableStream({
@@ -45,13 +43,12 @@ export class Track {
 			abort: (e) => this.#close(e),
 		})
 
-		return source.readable.pipeThrough(encoder.frames).pipeThrough(container.encode).pipeTo(segments)
+		return source.readable.pipeThrough(encoder.frames).pipeTo(segments)
 	}
 
 	async #runVideo(track: MediaStreamVideoTrack, config: VideoEncoderConfig) {
 		const source = new MediaStreamTrackProcessor({ track })
 		const encoder = new Video.Encoder(config)
-		const container = new Container()
 
 		// Split the container at keyframe boundaries
 		const segments = new WritableStream({
@@ -60,18 +57,12 @@ export class Track {
 			abort: (e) => this.#close(e),
 		})
 
-		return source.readable.pipeThrough(encoder.frames).pipeThrough(container.encode).pipeTo(segments)
+		return source.readable.pipeThrough(encoder.frames).pipeTo(segments)
 	}
 
-	async #write(chunk: Chunk) {
-		if (chunk.type === "init") {
-			this.#init = chunk.data
-			this.#notify.wake()
-			return
-		}
-
+	async #write(frame: Frame) {
 		let current = this.#segments.at(-1)
-		if (!current || chunk.type === "key") {
+		if (!current || frame.type === "key") {
 			if (current) {
 				await current.input.close()
 			}
@@ -88,7 +79,7 @@ export class Track {
 				const first = this.#segments[0]
 
 				// Expire after 10s
-				if (chunk.timestamp - first.timestamp < 10_000_000) break
+				if (frame.timestamp - first.timestamp < 10_000_000) break
 				this.#segments.shift()
 				this.#offset += 1
 
@@ -99,9 +90,9 @@ export class Track {
 		const writer = current.input.getWriter()
 
 		if ((writer.desiredSize || 0) > 0) {
-			await writer.write(chunk)
+			await writer.write(frame)
 		} else {
-			// console.warn("dropping chunk", writer.desiredSize)
+			console.warn("dropping chunk", writer.desiredSize)
 		}
 
 		writer.releaseLock()

@@ -1,3 +1,8 @@
+import { Deferred } from "../common/async"
+import { Frame } from "../karp/frame"
+import { Group, Track } from "../transfork"
+import { Closed } from "../transfork/error"
+
 const SUPPORTED = [
 	"avc1", // H.264
 	"hev1", // HEVC (aka h.265)
@@ -8,10 +13,55 @@ export interface EncoderSupported {
 	codecs: string[]
 }
 
+export class Packer {
+	#source: MediaStreamTrackProcessor<VideoFrame>
+	#encoder: Encoder
+
+	#data: Track
+	#current?: Group
+
+	constructor(track: MediaStreamVideoTrack, encoder: Encoder, data: Track) {
+		this.#source = new MediaStreamTrackProcessor({ track })
+		this.#encoder = encoder
+		this.#data = data
+	}
+
+	async run() {
+		const output = new WritableStream({
+			write: (chunk) => this.#write(chunk),
+			close: () => this.#close(),
+			abort: (e) => this.#close(e),
+		})
+
+		return this.#source.readable.pipeThrough(this.#encoder.frames).pipeTo(output)
+	}
+
+	#write(frame: Frame) {
+		if (!this.#current || frame.type === "key") {
+			if (this.#current) {
+				this.#current.close()
+			}
+
+			this.#current = this.#data.appendGroup()
+		}
+
+		frame.encode(this.#current)
+	}
+
+	#close(err?: any) {
+		const closed = Closed.from(err)
+		if (this.#current) {
+			this.#current.close(closed)
+		}
+
+		this.#data.close(closed)
+	}
+}
+
 export class Encoder {
 	#encoder!: VideoEncoder
 	#encoderConfig: VideoEncoderConfig
-	#decoderConfig?: VideoDecoderConfig
+	#decoderConfig = new Deferred<VideoDecoderConfig>()
 
 	// true if we should insert a keyframe, undefined when the encoder should decide
 	#keyframeNext: true | undefined = true
@@ -20,7 +70,7 @@ export class Encoder {
 	#keyframeCounter = 0
 
 	// Converts raw rames to encoded frames.
-	frames: TransformStream<VideoFrame, VideoDecoderConfig | EncodedVideoChunk>
+	frames: TransformStream<VideoFrame, EncodedVideoChunk>
 
 	constructor(config: VideoEncoderConfig) {
 		config.bitrateMode ??= "constant"
@@ -53,12 +103,17 @@ export class Encoder {
 		return !!res.supported
 	}
 
+	async decoderConfig(): Promise<VideoDecoderConfig> {
+		return await this.#decoderConfig.promise
+	}
+
 	#start(controller: TransformStreamDefaultController<EncodedVideoChunk>) {
 		this.#encoder = new VideoEncoder({
 			output: (frame, metadata) => {
 				this.#enqueue(controller, frame, metadata)
 			},
 			error: (err) => {
+				this.#decoderConfig.reject(err)
 				throw err
 			},
 		})
@@ -77,16 +132,14 @@ export class Encoder {
 	}
 
 	#enqueue(
-		controller: TransformStreamDefaultController<VideoDecoderConfig | EncodedVideoChunk>,
+		controller: TransformStreamDefaultController<EncodedVideoChunk>,
 		frame: EncodedVideoChunk,
 		metadata?: EncodedVideoChunkMetadata,
 	) {
-		if (!this.#decoderConfig) {
+		if (this.#decoderConfig.pending) {
 			const config = metadata?.decoderConfig
 			if (!config) throw new Error("missing decoder config")
-
-			controller.enqueue(config)
-			this.#decoderConfig = config
+			this.#decoderConfig.resolve(config)
 		}
 
 		if (frame.type === "key") {

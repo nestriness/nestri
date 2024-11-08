@@ -14,7 +14,7 @@
 		"isolatedModules": true,
 		"types": [], // Don't automatically import any @types modules.
 		"lib": ["es2022", "dom"],
-		"typeRoots": ["./types", "../node_modules/@types"]
+		"typeRoots": ["../node_modules/@types"]
 	},
 	"references": [
 		{
@@ -30,10 +30,10 @@
 			"path": "./contribute"
 		},
 		{
-			"path": "./transport"
+			"path": "./transfork"
 		},
 		{
-			"path": "./media"
+			"path": "./karp"
 		}
 	],
 	"paths": {
