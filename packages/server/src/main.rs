@@ -1,3 +1,6 @@
+mod enc_helper;
+mod gpu;
+
 use actix_web::{rt, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_ws::Message;
 use futures_util::{
@@ -75,7 +78,6 @@ async fn handle_events(
                             match serde_json::from_str::<InputMessage>(&text) {
                                 Ok(input_msg) => match input_msg {
                                     InputMessage::MouseMove { x, y } => {
-
                                         let structure =
                                             gst::Structure::builder("MouseMoveRelative")
                                                 .field("pointer_x", x as f64)
@@ -87,7 +89,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::KeyDown { key } => {
-
                                         let structure = gst::Structure::builder("KeyboardKey")
                                             .field("key", key as u32)
                                             .field("pressed", true)
@@ -98,7 +99,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::KeyUp { key } => {
-
                                         let structure: gst::Structure =
                                             gst::Structure::builder("KeyboardKey")
                                                 .field("key", key as u32)
@@ -110,7 +110,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::Wheel { x, y } => {
-
                                         let structure = gst::Structure::builder("MouseAxis")
                                             .field("x", x as f64)
                                             .field("y", y as f64)
@@ -121,7 +120,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::MouseDown { key } => {
-
                                         let structure = gst::Structure::builder("MouseButton")
                                             .field("button", key as u32)
                                             .field("pressed", true)
@@ -132,7 +130,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::MouseUp { key } => {
-
                                         let structure = gst::Structure::builder("MouseButton")
                                             .field("button", key as u32)
                                             .field("pressed", false)
@@ -209,20 +206,62 @@ async fn handle_events(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let _ = gst::init();
-
     let _ = gstmoq::plugin_register_static();
     let _ = gstwaylanddisplaysrc::plugin_register_static();
 
+    println!("Gathering GPU information..");
+    let gpus = gpu::get_gpus();
+    for gpu in &gpus {
+        println!(
+            "> [GPU] Vendor: '{}', Card Path: '{}', Render Path: '{}', Device Name: '{}'",
+            gpu.vendor_string(),
+            gpu.card_path(),
+            gpu.render_path(),
+            gpu.device_name()
+        );
+    }
+    // Get first GPU as default for encoding
+    let gpu = gpus.first().unwrap();
+    println!(
+        "Using first GPU as default for encoding: '{}'",
+        gpu.device_name()
+    );
+
+    println!("Picking encoder..");
+    let codecs = vec![enc_helper::VideoCodec::H264]; // TODO: Add AV1 as primary when supported
+    let encoder = enc_helper::pick_encoder(&gpu, codecs).unwrap();
+    println!(
+        "Selected encoder: '{}', Codec: '{}', API: '{}'",
+        encoder.name,
+        encoder.codec.to_str(),
+        encoder.api.to_str()
+    );
+    let cqp_default = 25;
+    println!("Optimizing encoder parameters with CQP of: {}", cqp_default);
+    let optimized_encoder = enc_helper::encoder_low_latency_cqp_params(encoder, cqp_default);
+    println!(
+        "Optimized encoder parameters: '{}'",
+        optimized_encoder.get_parameters_string()
+    );
+
+    // Construct the pipeline arguments with the encoder
+    // TODO: AV1 codec support, resolution, framerate, etc.
     let pipeline = gst::parse::launch(
-        "
+        format!(
+            "
         waylanddisplaysrc \
-        ! video/x-raw,width=1280,height=720,format=RGBx,framerate=60/1 \
-        ! videoconvertscale\
-        ! qsvh264enc low-latency=true \
+        ! video/x-raw,width=1280,height=720,framerate=60/1,format=RGBx \
+        ! tee name=src \
+        src. ! queue2 max-size-time=2000000 ! videoconvert \
+        ! {} {} \
         ! h264parse \
-        ! isofmp4mux name=mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url=https://relay.fst.so namespace=testing
+        ! isofmp4mux chunk-duration=1 fragment-duration=1 ! sinker. \
+        moqsink url=https://relay.dathorse.com:8443 path=testhorse name=sinker
     ",
+            optimized_encoder.name,
+            optimized_encoder.get_parameters_string()
+        )
+        .as_str(),
     )
     .unwrap()
     .downcast::<gst::Pipeline>()
