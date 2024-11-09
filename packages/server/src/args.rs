@@ -135,7 +135,7 @@ impl Args {
                     .short('q')
                     .long("encoder-cqp")
                     .env("ENCODER_CQP")
-                    .help("Encoder CQP quality level, lower values mean higher quality but with higher bitrate, recommended to keep it between 20-30")
+                    .help("Encoder CQP quality level, lower values mean higher quality at cost of higher bitrate")
                     .default_value("25"),
             )
             .get_matches();
