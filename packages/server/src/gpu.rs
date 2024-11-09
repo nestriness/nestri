@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 use std::str;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum GPUVendor {
     UNKNOWN,
     INTEL,
@@ -12,7 +12,7 @@ pub enum GPUVendor {
     AMD,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GPUInfo {
     vendor: GPUVendor,
     card_path: String,
@@ -184,5 +184,50 @@ fn get_dri_device_path(pci_addr: &str) -> Option<(String, String)> {
         }
     }
 
+    None
+}
+
+/// Helper method to get GPUs from vector by vendor name (case-insensitive).
+/// # Arguments
+/// * `gpus` - A vector containing information about each GPU.
+/// * `vendor` - A string slice that holds the vendor name.
+/// # Returns
+/// * `Vec<GPUInfo>` - A vector containing GPUInfo structs if found.
+pub fn get_gpus_by_vendor(gpus: &Vec<GPUInfo>, vendor: &str) -> Vec<GPUInfo> {
+    let vendor = vendor.to_lowercase();
+    gpus.iter()
+        .filter(|gpu| gpu.vendor_string().to_lowercase().contains(&vendor))
+        .cloned()
+        .collect()
+}
+
+/// Helper method to get GPUs from vector by device name substring (case-insensitive).
+/// # Arguments
+/// * `gpus` - A vector containing information about each GPU.
+/// * `device_name` - A string slice that holds the device name substring.
+/// # Returns
+/// * `Vec<GPUInfo>` - A vector containing GPUInfo structs if found.
+pub fn get_gpus_by_device_name(gpus: &Vec<GPUInfo>, device_name: &str) -> Vec<GPUInfo> {
+    let device_name = device_name.to_lowercase();
+    gpus.iter()
+        .filter(|gpu| gpu.device_name.to_lowercase().contains(&device_name))
+        .cloned()
+        .collect()
+}
+
+/// Helper method to get a GPU from vector of GPUInfo by card path (either /dev/dri/cardX or /dev/dri/renderDX, case-insensitive).
+/// # Arguments
+/// * `gpus` - A vector containing information about each GPU.
+/// * `card_path` - A string slice that holds the card path.
+/// # Returns
+/// * `Option<GPUInfo>` - A reference to a GPUInfo struct if found.
+pub fn get_gpu_by_card_path(gpus: &Vec<GPUInfo>, card_path: &str) -> Option<GPUInfo> {
+    for gpu in gpus {
+        if gpu.card_path().to_lowercase() == card_path.to_lowercase()
+            || gpu.render_path().to_lowercase() == card_path.to_lowercase()
+        {
+            return Some(gpu.clone());
+        }
+    }
     None
 }

@@ -2137,10 +2137,12 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "actix-ws",
+ "clap",
  "futures-util",
  "gst-plugin-wayland-display",
  "gstreamer 0.24.0",
  "moq-gst",
+ "rand",
  "regex",
  "serde",
  "serde_json",
