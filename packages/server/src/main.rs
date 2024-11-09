@@ -222,23 +222,54 @@ async fn main() -> std::io::Result<()> {
     }
     // Get first GPU as default for encoding
     let gpu = gpus.first().unwrap();
-    println!(
-        "Using first GPU as default for encoding: '{}'",
-        gpu.device_name()
-    );
+    println!("Selecting first GPU: '{}'", gpu.device_name());
 
-    println!("Picking encoder..");
-    let codecs = vec![enc_helper::VideoCodec::H264]; // TODO: Add AV1 as primary when supported
-    let encoder = enc_helper::pick_encoder(&gpu, codecs).unwrap();
+    println!("Getting compatible encoders..");
+    let encoders = enc_helper::get_compatible_encoders();
+    for encoder in &encoders {
+        println!(
+            "> [Encoder] Name: '{}', Codec: '{}', API: '{}', Type: '{}'",
+            encoder.name,
+            encoder.codec.to_str(),
+            encoder.encoder_api.to_str(),
+            encoder.encoder_type.to_str()
+        );
+    }
+    // Pick most suitable H.264 encoder (TODO: Codec priority/scoring)
+    let mut encoder = enc_helper::get_best_compatible_encoder(
+        &encoders,
+        enc_helper::VideoCodec::H264,
+        enc_helper::EncoderType::HARDWARE,
+    );
+    if encoder.is_none() {
+        println!("No suitable hardware encoder found for H.264 codec. Trying software encoder..");
+        encoder = enc_helper::get_best_compatible_encoder(
+            &encoders,
+            enc_helper::VideoCodec::H264,
+            enc_helper::EncoderType::SOFTWARE,
+        );
+        if encoder.is_none() {
+            println!("No suitable software encoder found for H.264 codec. Exiting as we cannot encode a stream..");
+            return Ok(());
+        }
+    }
+    let encoder = encoder.unwrap();
     println!(
-        "Selected encoder: '{}', Codec: '{}', API: '{}'",
+        "Selected encoder: '{}', Codec: '{}', API: '{}', Type: '{}'",
         encoder.name,
         encoder.codec.to_str(),
-        encoder.api.to_str()
+        encoder.encoder_api.to_str(),
+        encoder.encoder_type.to_str()
     );
+
     let cqp_default = 25;
     println!("Optimizing encoder parameters with CQP of: {}", cqp_default);
-    let optimized_encoder = enc_helper::encoder_low_latency_cqp_params(encoder, cqp_default);
+    let optimized_encoder = enc_helper::encoder_low_latency_cqp_params(&encoder, cqp_default);
+    if optimized_encoder.is_none() {
+        println!("Failed to optimize encoder parameters. Unsupported encoder? Exiting..");
+        return Ok(());
+    }
+    let optimized_encoder = optimized_encoder.unwrap();
     println!(
         "Optimized encoder parameters: '{}'",
         optimized_encoder.get_parameters_string()

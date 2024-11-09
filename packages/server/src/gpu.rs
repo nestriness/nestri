@@ -4,10 +4,10 @@ use std::path::Path;
 use std::process::Command;
 use std::str;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum GPUVendor {
-    Unknown,
-    Intel,
+    UNKNOWN,
+    INTEL,
     NVIDIA,
     AMD,
 }
@@ -27,10 +27,10 @@ impl GPUInfo {
 
     pub fn vendor_string(&self) -> &str {
         match self.vendor {
-            GPUVendor::Intel => "Intel",
+            GPUVendor::INTEL => "Intel",
             GPUVendor::NVIDIA => "NVIDIA",
             GPUVendor::AMD => "AMD",
-            GPUVendor::Unknown => "Unknown",
+            GPUVendor::UNKNOWN => "Unknown",
         }
     }
 
@@ -49,10 +49,10 @@ impl GPUInfo {
 
 fn get_gpu_vendor(vendor_id: &str) -> GPUVendor {
     match vendor_id {
-        "8086" => GPUVendor::Intel,  // Intel
+        "8086" => GPUVendor::INTEL,  // Intel
         "10de" => GPUVendor::NVIDIA, // NVIDIA
         "1002" => GPUVendor::AMD,    // AMD/ATI
-        _ => GPUVendor::Unknown,
+        _ => GPUVendor::UNKNOWN,
     }
 }
 
