@@ -319,7 +319,7 @@ async fn main() -> std::io::Result<()> {
         ! {} {} \
         ! {} \
         ! isofmp4mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url={} path={}\
+        ! moqsink url={} path={}
         ",
             args.resolution.0,
             args.resolution.1,
