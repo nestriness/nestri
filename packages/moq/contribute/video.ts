@@ -1,6 +1,6 @@
 import { Deferred } from "../common/async"
-import { Frame } from "../karp/frame"
-import { Group, Track } from "../transfork"
+import type { Frame } from "../karp/frame"
+import type { Group, Track } from "../transfork"
 import { Closed } from "../transfork/error"
 
 const SUPPORTED = [
@@ -48,7 +48,7 @@ export class Packer {
 		frame.encode(this.#current)
 	}
 
-	#close(err?: any) {
+	#close(err?: unknown) {
 		const closed = Closed.from(err)
 		if (this.#current) {
 			this.#current.close(closed)
@@ -146,7 +146,8 @@ export class Encoder {
 			this.#keyframeCounter = 0
 		} else {
 			this.#keyframeCounter += 1
-			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= 2 * this.#encoderConfig.framerate!) {
+			const framesPerGop = this.#encoderConfig.framerate ? 2 * this.#encoderConfig.framerate : 60
+			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= framesPerGop) {
 				this.#keyframeNext = true
 			}
 		}

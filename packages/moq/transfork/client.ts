@@ -1,7 +1,7 @@
-import { Stream } from "./stream"
-import * as Message from "./message"
-import { Connection } from "./connection"
 import * as Hex from "../common/hex"
+import { Connection } from "./connection"
+import * as Message from "./message"
+import { Stream } from "./stream"
 
 export interface ClientConfig {
 	url: string
@@ -20,7 +20,7 @@ export class Client {
 		this.config = config
 
 		this.#fingerprint = this.#fetchFingerprint(config.fingerprint).catch((e) => {
-			// console.warn("failed to fetch fingerprint: ", e)
+			console.warn("failed to fetch fingerprint: ", e)
 			return undefined
 		})
 	}
@@ -36,18 +36,14 @@ export class Client {
 		await quic.ready
 
 		const client = new Message.SessionClient([Message.Version.FORK_02])
-		// console.log("sending client setup: ", client)
 		const stream = await Stream.open(quic, client)
 
-		// console.log("waiting for server setup")
-
 		const server = await Message.SessionServer.decode(stream.reader)
-		// console.log("received server setup: ", server)
-		if (server.version != Message.Version.FORK_02) {
+		if (server.version !== Message.Version.FORK_02) {
 			throw new Error(`unsupported server version: ${server.version}`)
 		}
 
-		// console.log(`established connection: version=${server.version}`)
+		console.log(`established connection: version=${server.version}`)
 
 		return new Connection(quic, stream)
 	}

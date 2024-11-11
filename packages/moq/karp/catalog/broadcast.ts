@@ -1,6 +1,6 @@
 import * as Transfork from "../../transfork"
-import { decodeAudio, Audio } from "./audio"
-import { decodeVideo, Video } from "./video"
+import { type Audio, decodeAudio } from "./audio"
+import { type Video, decodeVideo } from "./video"
 
 export interface Broadcast {
 	path: string[]
@@ -10,7 +10,7 @@ export interface Broadcast {
 
 export function encode(catalog: Broadcast): Uint8Array {
 	const encoder = new TextEncoder()
-	// console.debug("encoding catalog", catalog)
+	console.debug("encoding catalog", catalog)
 	const str = JSON.stringify(catalog)
 	return encoder.encode(str)
 }
@@ -20,8 +20,8 @@ export function decode(path: string[], raw: Uint8Array): Broadcast {
 	const str = decoder.decode(raw)
 
 	const catalog = JSON.parse(str)
-	// console.log(catalog)
 	if (!decodeBroadcast(catalog)) {
+		console.error("invalid catalog", catalog)
 		throw new Error("invalid catalog")
 	}
 
@@ -46,14 +46,17 @@ export async function fetch(connection: Transfork.Connection, path: string[]): P
 	}
 }
 
-export function decodeBroadcast(catalog: any): catalog is Broadcast {
+export function decodeBroadcast(o: unknown): o is Broadcast {
+	if (typeof o !== "object" || o === null) return false
+
+	const catalog = o as Partial<Broadcast>
 	if (catalog.audio === undefined) catalog.audio = []
 	if (!Array.isArray(catalog.audio)) return false
-	if (!catalog.audio.every((track: any) => decodeAudio(track))) return false
+	if (!catalog.audio.every((track: unknown) => decodeAudio(track))) return false
 
 	if (catalog.video === undefined) catalog.video = []
 	if (!Array.isArray(catalog.video)) return false
-	if (!catalog.video.every((track: any) => decodeVideo(track))) return false
+	if (!catalog.video.every((track: unknown) => decodeVideo(track))) return false
 
 	return true
 }

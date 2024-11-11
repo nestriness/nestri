@@ -1,4 +1,4 @@
-import { decodeTrack, Track } from "./track"
+import { type Track, decodeTrack } from "./track"
 
 export interface Audio {
 	track: Track
@@ -8,10 +8,13 @@ export interface Audio {
 	bitrate?: number
 }
 
-export function decodeAudio(o: any): o is Audio {
-	if (!decodeTrack(o.track)) return false
-	if (typeof o.codec !== "string") return false
-	if (typeof o.sample_rate !== "number") return false
-	if (typeof o.channel_count !== "number") return false
+export function decodeAudio(o: unknown): o is Audio {
+	if (typeof o !== "object" || o === null) return false
+
+	const obj = o as Partial<Audio>
+	if (!decodeTrack(obj.track)) return false
+	if (typeof obj.codec !== "string") return false
+	if (typeof obj.sample_rate !== "number") return false
+	if (typeof obj.channel_count !== "number") return false
 	return true
 }

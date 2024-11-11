@@ -2,8 +2,8 @@
 
 enum STATE {
 	READ_POS = 0, // The current read position
-	WRITE_POS, // The current write position
-	LENGTH, // Clever way of saving the total number of enums values.
+	WRITE_POS = 1, // The current write position
+	LENGTH = 2, // Clever way of saving the total number of enums values.
 }
 
 interface FrameCopyToOptions {
@@ -62,16 +62,12 @@ export class Ring {
 		const readPos = Atomics.load(this.state, STATE.READ_POS)
 		const writePos = Atomics.load(this.state, STATE.WRITE_POS)
 
-		const startPos = writePos
-		let endPos = writePos + frame.numberOfFrames
+		const available = this.capacity - (writePos - readPos)
+		if (available <= 0) return 0
 
-		if (endPos > readPos + this.capacity) {
-			endPos = readPos + this.capacity
-			if (endPos <= startPos) {
-				// No space to write
-				return 0
-			}
-		}
+		const toWrite = Math.min(frame.numberOfFrames, available)
+		const startPos = writePos
+		const endPos = writePos + toWrite
 
 		const startIndex = startPos % this.capacity
 		const endIndex = endPos % this.capacity
@@ -114,7 +110,7 @@ export class Ring {
 
 		Atomics.store(this.state, STATE.WRITE_POS, endPos)
 
-		return endPos - startPos
+		return toWrite
 	}
 
 	read(dst: Float32Array[]): number {

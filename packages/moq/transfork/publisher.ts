@@ -1,8 +1,8 @@
-import * as Message from "./message"
 import { Watch } from "../common/async"
-import { Stream, Writer } from "./stream"
 import { Closed } from "./error"
-import { GroupReader, TrackReader } from "./model"
+import * as Message from "./message"
+import type { GroupReader, TrackReader } from "./model"
+import { type Stream, Writer } from "./stream"
 
 export class Publisher {
 	#quic: WebTransport
@@ -38,7 +38,7 @@ export class Publisher {
 			if (announce.path.length < msg.prefix.length) continue
 
 			const prefix = announce.path.slice(0, msg.prefix.length)
-			if (prefix != msg.prefix) continue
+			if (prefix !== msg.prefix) continue
 
 			const suffix = announce.path.slice(msg.prefix.length)
 
