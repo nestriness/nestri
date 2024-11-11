@@ -1,4 +1,4 @@
-import { Frame } from "../karp/frame"
+import type { Frame } from "../karp/frame"
 
 export class Segment {
 	id: number
@@ -16,7 +16,9 @@ export class Segment {
 
 		// Set a max size for each segment, dropping the tail if it gets too long.
 		// We tee the reader, so this limit applies to the FASTEST reader.
-		const backpressure = new ByteLengthQueuingStrategy({ highWaterMark: 8_000_000 })
+		const backpressure = new ByteLengthQueuingStrategy({
+			highWaterMark: 8_000_000,
+		})
 
 		const transport = new TransformStream<Frame, Uint8Array>(
 			{

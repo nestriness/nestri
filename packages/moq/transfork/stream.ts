@@ -1,9 +1,9 @@
 import * as Message from "./message"
 
-const MAX_U6 = Math.pow(2, 6) - 1
-const MAX_U14 = Math.pow(2, 14) - 1
-const MAX_U30 = Math.pow(2, 30) - 1
-const MAX_U31 = Math.pow(2, 31) - 1
+const MAX_U6 = 2 ** 6 - 1
+const MAX_U14 = 2 ** 14 - 1
+const MAX_U30 = 2 ** 30 - 1
+const MAX_U31 = 2 ** 31 - 1
 const MAX_U53 = Number.MAX_SAFE_INTEGER
 const MAX_U62: bigint = 2n ** 62n - 1n
 
@@ -11,7 +11,10 @@ export class Stream {
 	reader: Reader
 	writer: Writer
 
-	constructor(props: { writable: WritableStream<Uint8Array>; readable: ReadableStream<Uint8Array> }) {
+	constructor(props: {
+		writable: WritableStream<Uint8Array>
+		readable: ReadableStream<Uint8Array>
+	}) {
 		this.writer = new Writer(props.writable)
 		this.reader = new Reader(props.readable)
 	}
@@ -26,20 +29,20 @@ export class Stream {
 		let msg: Message.Bi
 
 		const typ = await stream.reader.u8()
-		if (typ == Message.SessionClient.StreamID) {
+		if (typ === Message.SessionClient.StreamID) {
 			msg = await Message.SessionClient.decode(stream.reader)
-		} else if (typ == Message.AnnounceInterest.StreamID) {
+		} else if (typ === Message.AnnounceInterest.StreamID) {
 			msg = await Message.AnnounceInterest.decode(stream.reader)
-		} else if (typ == Message.Subscribe.StreamID) {
+		} else if (typ === Message.Subscribe.StreamID) {
 			msg = await Message.Subscribe.decode(stream.reader)
-		} else if (typ == Message.Datagrams.StreamID) {
+		} else if (typ === Message.Datagrams.StreamID) {
 			msg = await Message.Datagrams.decode(stream.reader)
-		} else if (typ == Message.Fetch.StreamID) {
+		} else if (typ === Message.Fetch.StreamID) {
 			msg = await Message.Fetch.decode(stream.reader)
-		} else if (typ == Message.InfoRequest.StreamID) {
+		} else if (typ === Message.InfoRequest.StreamID) {
 			msg = await Message.InfoRequest.decode(stream.reader)
 		} else {
-			throw new Error("unknown stream type: " + typ)
+			throw new Error(`unknown stream type: ${typ}`)
 		}
 
 		console.debug("accepted stream", msg)
@@ -107,7 +110,7 @@ export class Reader {
 
 		const buffer = new Uint8Array(result.value)
 
-		if (this.#buffer.byteLength == 0) {
+		if (this.#buffer.byteLength === 0) {
 			this.#buffer = buffer
 		} else {
 			const temp = new Uint8Array(this.#buffer.byteLength + buffer.byteLength)
@@ -137,14 +140,13 @@ export class Reader {
 	}
 
 	async read(size: number): Promise<Uint8Array> {
-		if (size == 0) return new Uint8Array()
+		if (size === 0) return new Uint8Array()
 
 		await this.#fillTo(size)
 		return this.#slice(size)
 	}
 
 	async readAll(): Promise<Uint8Array> {
-		// eslint-disable-next-line no-empty
 		while (await this.#fill()) {}
 		return this.#slice(this.#buffer.byteLength)
 	}
@@ -190,30 +192,29 @@ export class Reader {
 		await this.#fillTo(1)
 		const size = (this.#buffer[0] & 0xc0) >> 6
 
-		if (size == 0) {
+		if (size === 0) {
 			const first = this.#slice(1)[0]
 			return BigInt(first) & 0x3fn
-		} else if (size == 1) {
+		}
+		if (size === 1) {
 			await this.#fillTo(2)
 			const slice = this.#slice(2)
 			const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength)
 
 			return BigInt(view.getInt16(0)) & 0x3fffn
-		} else if (size == 2) {
+		}
+		if (size === 2) {
 			await this.#fillTo(4)
 			const slice = this.#slice(4)
 			const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength)
 
 			return BigInt(view.getUint32(0)) & 0x3fffffffn
-		} else if (size == 3) {
-			await this.#fillTo(8)
-			const slice = this.#slice(8)
-			const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength)
-
-			return view.getBigUint64(0) & 0x3fffffffffffffffn
-		} else {
-			throw new Error("impossible")
 		}
+		await this.#fillTo(8)
+		const slice = this.#slice(8)
+		const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength)
+
+		return view.getBigUint64(0) & 0x3fffffffffffffffn
 	}
 
 	async done(): Promise<boolean> {
@@ -245,10 +246,10 @@ export class Reader {
 		let msg: Message.Uni
 
 		const typ = await stream.u8()
-		if (typ == Message.Group.StreamID) {
+		if (typ === Message.Group.StreamID) {
 			msg = await Message.Group.decode(stream)
 		} else {
-			throw new Error("unknown stream type: " + typ)
+			throw new Error(`unknown stream type: ${typ}`)
 		}
 
 		return [msg, stream]
@@ -284,7 +285,8 @@ export class Writer {
 	async u53(v: number) {
 		if (v < 0) {
 			throw new Error(`underflow, value is negative: ${v}`)
-		} else if (v > MAX_U53) {
+		}
+		if (v > MAX_U53) {
 			throw new Error(`overflow, value larger than 53-bits: ${v}`)
 		}
 
@@ -294,7 +296,8 @@ export class Writer {
 	async u62(v: bigint) {
 		if (v < 0) {
 			throw new Error(`underflow, value is negative: ${v}`)
-		} else if (v >= MAX_U62) {
+		}
+		if (v >= MAX_U62) {
 			throw new Error(`overflow, value larger than 62-bits: ${v}`)
 		}
 
@@ -377,29 +380,33 @@ export function setUint32(dst: Uint8Array, v: number): Uint8Array {
 export function setVint53(dst: Uint8Array, v: number): Uint8Array {
 	if (v <= MAX_U6) {
 		return setUint8(dst, v)
-	} else if (v <= MAX_U14) {
-		return setUint16(dst, v | 0x4000)
-	} else if (v <= MAX_U30) {
-		return setUint32(dst, v | 0x80000000)
-	} else if (v <= MAX_U53) {
-		return setUint64(dst, BigInt(v) | 0xc000000000000000n)
-	} else {
-		throw new Error(`overflow, value larger than 53-bits: ${v}`)
 	}
+	if (v <= MAX_U14) {
+		return setUint16(dst, v | 0x4000)
+	}
+	if (v <= MAX_U30) {
+		return setUint32(dst, v | 0x80000000)
+	}
+	if (v <= MAX_U53) {
+		return setUint64(dst, BigInt(v) | 0xc000000000000000n)
+	}
+	throw new Error(`overflow, value larger than 53-bits: ${v}`)
 }
 
 export function setVint62(dst: Uint8Array, v: bigint): Uint8Array {
 	if (v < MAX_U6) {
 		return setUint8(dst, Number(v))
-	} else if (v < MAX_U14) {
-		return setUint16(dst, Number(v) | 0x4000)
-	} else if (v <= MAX_U30) {
-		return setUint32(dst, Number(v) | 0x80000000)
-	} else if (v <= MAX_U62) {
-		return setUint64(dst, BigInt(v) | 0xc000000000000000n)
-	} else {
-		throw new Error(`overflow, value larger than 62-bits: ${v}`)
 	}
+	if (v < MAX_U14) {
+		return setUint16(dst, Number(v) | 0x4000)
+	}
+	if (v <= MAX_U30) {
+		return setUint32(dst, Number(v) | 0x80000000)
+	}
+	if (v <= MAX_U62) {
+		return setUint64(dst, BigInt(v) | 0xc000000000000000n)
+	}
+	throw new Error(`overflow, value larger than 62-bits: ${v}`)
 }
 
 export function setUint64(dst: Uint8Array, v: bigint): Uint8Array {

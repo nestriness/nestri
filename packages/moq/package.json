@@ -7,20 +7,14 @@
 	"repository": "github:kixelated/moq-js",
 	"scripts": {
 		"build": "tsc -b && cp ../LICENSE* ./dist && cp ./README.md ./dist && cp ./package.json ./dist",
-		"lint": "eslint .",
-		"fmt": "prettier --write ."
+		"check": "biome check",
+		"fix": "biome check --write"
 	},
 	"devDependencies": {
 		"@types/audioworklet": "^0.0.50",
 		"@types/dom-mediacapture-transform": "^0.1.6",
 		"@types/dom-webcodecs": "^0.1.8",
 		"@typescript/lib-dom": "npm:@types/web@^0.0.115",
-		"@typescript-eslint/eslint-plugin": "^6.4.0",
-		"@typescript-eslint/parser": "^6.4.0",
-		"eslint": "^8.47.0",
-		"eslint-config-prettier": "^9.0.0",
-		"eslint-plugin-prettier": "^5.0.0",
-		"prettier": "^3.0.1",
 		"typescript": "^5.1.6"
 	}
 }

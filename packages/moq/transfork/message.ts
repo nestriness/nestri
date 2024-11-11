@@ -1,4 +1,4 @@
-import { Reader, Writer } from "./stream"
+import type { Reader, Writer } from "./stream"
 
 export enum Version {
 	DRAFT_00 = 0xff000000,
@@ -153,12 +153,12 @@ export class Announce {
 	}
 
 	async encode(w: Writer) {
-		await w.u53(this.status == "active" ? 1 : 0)
+		await w.u53(this.status === "active" ? 1 : 0)
 		await w.path(this.suffix)
 	}
 
 	static async decode(r: Reader): Promise<Announce> {
-		const status = (await r.u53()) == 1 ? "active" : "closed"
+		const status = (await r.u53()) === 1 ? "active" : "closed"
 		const suffix = await r.path()
 		return new Announce(suffix, status)
 	}
@@ -218,8 +218,8 @@ export class SubscribeUpdate {
 		const update = new SubscribeUpdate(priority)
 		update.order = order
 		update.expires = expires
-		update.start = start == 0n ? undefined : start - 1n
-		update.end = end == 0n ? undefined : end - 1n
+		update.start = start === 0n ? undefined : start - 1n
+		update.end = end === 0n ? undefined : end - 1n
 
 		return update
 	}
@@ -252,7 +252,7 @@ export class Subscribe extends SubscribeUpdate {
 	static async decode(r: Reader): Promise<Subscribe> {
 		const id = await r.u62()
 		const path = await r.path()
-		const update = await super.decode(r)
+		const update = await SubscribeUpdate.decode(r)
 
 		const subscribe = new Subscribe(id, path, update.priority)
 		subscribe.order = update.order
@@ -291,7 +291,7 @@ export class Info {
 		const latest = await r.u53()
 
 		const info = new Info(priority)
-		info.latest = latest == 0 ? undefined : latest - 1
+		info.latest = latest === 0 ? undefined : latest - 1
 		info.order = order
 
 		return info
@@ -355,7 +355,7 @@ export class Fetch extends FetchUpdate {
 
 	static async decode(r: Reader): Promise<Fetch> {
 		const path = await r.path()
-		const update = await super.decode(r)
+		const update = await FetchUpdate.decode(r)
 
 		const fetch = new Fetch(path, update.priority)
 		return fetch

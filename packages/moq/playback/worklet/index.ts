@@ -1,6 +1,6 @@
 // TODO add support for @/ to avoid relative imports
 import { Ring } from "../../common/ring"
-import * as Message from "./message"
+import type * as Message from "./message"
 
 class Renderer extends AudioWorkletProcessor {
 	ring?: Ring
@@ -26,17 +26,17 @@ class Renderer extends AudioWorkletProcessor {
 	}
 
 	// Inputs and outputs in groups of 128 samples.
-	process(inputs: Float32Array[][], outputs: Float32Array[][], _parameters: Record<string, Float32Array>): boolean {
+	process(_inputs: Float32Array[][], outputs: Float32Array[][], _parameters: Record<string, Float32Array>): boolean {
 		if (!this.ring) {
 			// Paused
 			return true
 		}
 
-		if (inputs.length != 1 && outputs.length != 1) {
+		if (outputs.length !== 1) {
 			throw new Error("only a single track is supported")
 		}
 
-		if (this.ring.size() == this.ring.capacity) {
+		if (this.ring.size() === this.ring.capacity) {
 			// This is a hack to clear any latency in the ring buffer.
 			// The proper solution is to play back slightly faster?
 			console.warn("resyncing ring buffer")

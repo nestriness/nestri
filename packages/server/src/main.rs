@@ -212,16 +212,19 @@ async fn main() -> std::io::Result<()> {
 
     let _ = gstmoq::plugin_register_static();
     let _ = gstwaylanddisplaysrc::plugin_register_static();
-
+    // waylanddisplaysrc \
+    // ! video/x-raw,width=1280,height=720,format=RGBx,framerate=60/1 \
+    // ! videoconvertscale\
+    // ! qsvh264enc low-latency=true \
     let pipeline = gst::parse::launch(
         "
-        waylanddisplaysrc \
-        ! video/x-raw,width=1280,height=720,format=RGBx,framerate=60/1 \
-        ! videoconvertscale\
-        ! qsvh264enc low-latency=true \
+        multifilesrc location=bbb.mp4 loop=true \
+        ! qtdemux name=demux demux.video_0 \
         ! h264parse \
+        ! queue ! identity sync=true \
         ! isofmp4mux name=mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url=https://relay.fst.so namespace=testing
+        ! moqsink url=https://relay.dathorse.com:8443 path=testing \
+        ! demux.audio_0 ! aacparse ! queue ! mux.
     ",
     )
     .unwrap()

@@ -1,5 +1,5 @@
-import * as Transfork from "../transfork"
 import * as Catalog from "../karp/catalog"
+import * as Transfork from "../transfork"
 import * as Audio from "./audio"
 import * as Video from "./video"
 
@@ -31,14 +31,18 @@ export class Broadcast {
 	}
 
 	async publish(connection: Transfork.Connection) {
-		const broadcast: Catalog.Broadcast = { path: this.#config.path, audio: [], video: [] }
+		const broadcast: Catalog.Broadcast = {
+			path: this.#config.path,
+			audio: [],
+			video: [],
+		}
 
 		for (const media of this.#config.media.getTracks()) {
 			const settings = media.getSettings()
 
 			const info = {
 				name: media.id, // TODO way too verbose
-				priority: media.kind == "video" ? 1 : 2,
+				priority: media.kind === "video" ? 1 : 2,
 			}
 
 			const track = new Transfork.Track(this.#config.path.concat(info.name), info.priority)

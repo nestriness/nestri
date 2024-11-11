@@ -1,10 +1,10 @@
-import { Segment } from "./segment"
 import { Notify } from "../common/async"
-import { BroadcastConfig } from "./broadcast"
+import type { BroadcastConfig } from "./broadcast"
+import { Segment } from "./segment"
 
+import type { Frame } from "../karp/frame"
 import * as Audio from "./audio"
 import * as Video from "./video"
-import { Frame } from "../karp/frame"
 
 export class Track {
 	name: string
@@ -138,7 +138,8 @@ export class Track {
 					if (this.#error) {
 						controller.error(this.#error)
 						return
-					} else if (this.#closed) {
+					}
+					if (this.#closed) {
 						controller.close()
 						return
 					}

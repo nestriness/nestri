@@ -6,11 +6,11 @@ export class Closed extends Error {
 		this.code = code
 	}
 
-	static from(err: any): Closed {
-		return new Closed(this.extract(err))
+	static from(err: unknown): Closed {
+		return new Closed(Closed.extract(err))
 	}
 
-	static extract(err: any): number {
+	static extract(err: unknown): number {
 		if (err instanceof WebTransportError && err.streamErrorCode !== null) {
 			return err.streamErrorCode
 		}

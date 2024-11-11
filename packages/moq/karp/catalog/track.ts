@@ -5,8 +5,11 @@ export interface Track {
 	priority: number
 }
 
-export function decodeTrack(track: any): track is Track {
-	if (typeof track.name !== "string") return false
-	if (typeof track.priority !== "number") return false
+export function decodeTrack(o: unknown): o is Track {
+	if (typeof o !== "object" || o === null) return false
+
+	const obj = o as Partial<Track>
+	if (typeof obj.name !== "string") return false
+	if (typeof obj.priority !== "number") return false
 	return true
 }

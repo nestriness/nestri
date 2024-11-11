@@ -63,7 +63,7 @@ export class TrackReader {
 		let [current, next] = this.#track.latest.value()
 
 		for (;;) {
-			if (current && this.latest != current.id) {
+			if (current && this.latest !== current.id) {
 				this.latest = current.id
 				return current
 			}

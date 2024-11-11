@@ -1,4 +1,4 @@
-import { RingShared } from "../../common/ring"
+import type { RingShared } from "../../common/ring"
 
 export interface From {
 	config?: Config
@@ -7,6 +7,5 @@ export interface From {
 export interface Config {
 	channels: number
 	sampleRate: number
-
 	ring: RingShared
 }
