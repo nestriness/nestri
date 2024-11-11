@@ -330,8 +330,9 @@ async fn main() -> std::io::Result<()> {
         ! queue2 max-size-time=1000000 ! videoconvert \
         ! {} {} \
         ! {} \
-        ! isofmp4mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url={} path={} \
+        ! isofmp4mux chunk-duration=1 fragment-duration=1 name=mux \
+        ! moqsink url={} broadcast={} \
+        pulsesrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
         {debug_sink}
         ",
         args.resolution.0,
