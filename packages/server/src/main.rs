@@ -309,34 +309,53 @@ async fn main() -> std::io::Result<()> {
     // Notify of relay path used
     println!("Starting stream with relay path: '{}'", args.relay_path);
 
-    // Construct the pipeline arguments with the encoder
-    let pipeline = gst::parse::launch(
-        format!(
-            "
+    // Debug-feed string
+    let mut debug_feed = "";
+    if args.debug_feed {
+        debug_feed = "! timeoverlay halignment=right valignment=bottom ! tee name=dfee"
+    }
+
+    // Additional sink for debugging
+    let mut debug_sink = "";
+    if args.debug_feed {
+        debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
+    }
+
+    // Construct the pipeline string
+    let pipeline_str = format!(
+        "
         waylanddisplaysrc \
         ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
+        {debug_feed} \
         ! queue2 max-size-time=1000000 ! videoconvert \
         ! {} {} \
         ! {} \
         ! isofmp4mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url={} path={}
+        ! moqsink url={} path={} \
+        {debug_sink}
         ",
-            args.resolution.0,
-            args.resolution.1,
-            args.framerate,
-            optimized_encoder.name,
-            optimized_encoder.get_parameters_string(),
-            (optimized_encoder.codec == enc_helper::VideoCodec::AV1)
-                .then(|| "av1parse")
-                .unwrap_or("h264parse"),
-            args.relay_url,
-            args.relay_path,
-        )
-        .as_str(),
-    )
-    .unwrap()
-    .downcast::<gst::Pipeline>()
-    .unwrap();
+        args.resolution.0,
+        args.resolution.1,
+        args.framerate,
+        optimized_encoder.name,
+        optimized_encoder.get_parameters_string(),
+        (optimized_encoder.codec == enc_helper::VideoCodec::AV1)
+            .then(|| "av1parse")
+            .unwrap_or("h264parse"),
+        args.relay_url,
+        args.relay_path,
+    );
+
+    // If verbose, print out the pipeline string
+    if args.verbose {
+        println!("Constructed pipeline string: {}", pipeline_str);
+    }
+
+    // Create the pipeline
+    let pipeline = gst::parse::launch(pipeline_str.as_str())
+        .unwrap()
+        .downcast::<gst::Pipeline>()
+        .unwrap();
 
     let _ = pipeline.set_state(gst::State::Playing);
 

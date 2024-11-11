@@ -3,6 +3,8 @@ use clap::{Arg, Command};
 pub struct Args {
     /// Verbose output mode
     pub verbose: bool,
+    /// Debug the feed by showing time and spawning ximagesink on host
+    pub debug_feed: bool,
     /// Relay server URL (e.g. "https://relay.example.com")
     pub relay_url: String,
     /// Relay path/namespace (e.g. "teststream")
@@ -38,6 +40,14 @@ impl Args {
                     .long("verbose")
                     .env("VERBOSE")
                     .help("Enable verbose output")
+                    .default_value("false"),
+            )
+            .arg(
+                Arg::new("debug-feed")
+                    .short('d')
+                    .long("debug-feed")
+                    .env("DEBUG_FEED")
+                    .help("Debug by showing time in stream and spawning window on host")
                     .default_value("false"),
             )
             .arg(
@@ -143,6 +153,8 @@ impl Args {
         Self {
             verbose: matches.get_one::<String>("verbose").unwrap() == "true"
                 || matches.get_one::<String>("verbose").unwrap() == "1",
+            debug_feed: matches.get_one::<String>("debug-feed").unwrap() == "true"
+                || matches.get_one::<String>("debug-feed").unwrap() == "1",
             relay_url: matches.get_one::<String>("relay-url").unwrap().clone(),
             // generate a random relay namespace/path starting with "teststream", e.g. "teststream-1234"
             relay_path: matches
@@ -196,6 +208,7 @@ impl Args {
     pub fn print(&self) {
         println!("Arguments:");
         println!("> Verbose: {}", self.verbose);
+        println!("> Debug Feed: {}", self.debug_feed);
         println!("> Relay URL: {}", self.relay_url);
         println!("> Relay Path: {}", self.relay_path);
         println!("> Resolution: {}x{}", self.resolution.0, self.resolution.1);
