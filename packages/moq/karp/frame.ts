@@ -1,4 +1,4 @@
-import { Group, GroupReader } from "../transfork/model"
+import type { Group, GroupReader } from "../transfork/model"
 import { setVint62 } from "../transfork/stream"
 
 export type FrameType = "key" | "delta"
@@ -15,7 +15,7 @@ export class Frame {
 	}
 
 	static async decode(group: GroupReader): Promise<Frame | undefined> {
-		const kind = group.index == 0 ? "key" : "delta"
+		const kind = group.index === 0 ? "key" : "delta"
 		const payload = await group.readFrame()
 		if (!payload) {
 			return undefined
@@ -26,7 +26,7 @@ export class Frame {
 	}
 
 	encode(group: Group) {
-		if ((group.length == 0) != (this.type == "key")) {
+		if ((group.length === 0) !== (this.type === "key")) {
 			throw new Error(`invalid ${this.type} position`)
 		}
 
@@ -45,15 +45,15 @@ function decode_timestamp(buf: Uint8Array): [number, Uint8Array] {
 
 	const view = new DataView(buf.buffer, buf.byteOffset, size)
 	const remain = new Uint8Array(buf.buffer, buf.byteOffset + size, buf.byteLength - size)
-	let v
+	let v: number
 
-	if (size == 1) {
+	if (size === 1) {
 		v = buf[0] & 0x3f
-	} else if (size == 2) {
+	} else if (size === 2) {
 		v = view.getInt16(0) & 0x3fff
-	} else if (size == 4) {
+	} else if (size === 4) {
 		v = view.getUint32(0) & 0x3fffffff
-	} else if (size == 8) {
+	} else if (size === 8) {
 		// NOTE: Precision loss above 2^52
 		v = Number(view.getBigUint64(0) & 0x3fffffffffffffffn)
 	} else {

@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 
 import { Ring, RingShared } from "../common/ring"
-import { Component } from "./timeline"
-import * as Catalog from "../karp/catalog"
-import { Frame } from "../karp/frame"
+import type * as Catalog from "../karp/catalog"
+import type { Frame } from "../karp/frame"
+import type { Component } from "./timeline"
 
 // This is a non-standard way of importing worklet/workers.
 // Unfortunately, it's the only option because of a Vite bug: https://github.com/vitejs/vite/issues/11823
@@ -14,6 +14,8 @@ export class Renderer {
 	#worklet: Promise<AudioWorkletNode>
 
 	#ring: Ring
+	#ringShared: RingShared
+
 	#timeline: Component
 	#track: Catalog.Audio
 
@@ -30,8 +32,8 @@ export class Renderer {
 		this.#worklet = this.load(track)
 
 		this.#timeline = timeline
-		const ring = new RingShared(2, track.sample_rate / 20) // 50ms
-		this.#ring = new Ring(ring)
+		this.#ringShared = new RingShared(2, track.sample_rate / 10) // 100ms
+		this.#ring = new Ring(this.#ringShared)
 
 		this.#stream = new TransformStream({
 			start: this.#start.bind(this),
@@ -41,7 +43,7 @@ export class Renderer {
 		this.#run().catch((err) => console.error("failed to run audio renderer: ", err))
 	}
 
-	private async load(config: Catalog.Audio): Promise<AudioWorkletNode> {
+	private async load(catalog: Catalog.Audio): Promise<AudioWorkletNode> {
 		// Load the worklet source code.
 		await this.#context.audioWorklet.addModule(workletURL)
 
@@ -59,6 +61,12 @@ export class Renderer {
 		// Connect the worklet to the volume node and then to the speakers
 		worklet.connect(volume)
 		volume.connect(this.#context.destination)
+
+		const config = {
+			sampleRate: catalog.sample_rate,
+			channelCount: catalog.channel_count,
+			ring: this.#ringShared,
+		}
 
 		worklet.port.postMessage({ config })
 
@@ -114,7 +122,11 @@ export class Renderer {
 			const written = this.#ring.write(frame)
 
 			if (written < frame.numberOfFrames) {
-				console.warn(`droppped ${frame.numberOfFrames - written} audio samples`)
+				/*
+				console.warn(
+					`droppped ${frame.numberOfFrames - written} audio samples`,
+				);
+				*/
 			}
 		}
 	}

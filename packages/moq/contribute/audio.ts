@@ -1,6 +1,6 @@
 import { Deferred } from "../common/async"
-import { Frame } from "../karp/frame"
-import { Group, Track } from "../transfork"
+import type { Frame } from "../karp/frame"
+import type { Group, Track } from "../transfork"
 import { Closed } from "../transfork/error"
 
 const SUPPORTED = [
@@ -46,7 +46,7 @@ export class Packer {
 		this.#current.writeFrame(frame.data)
 	}
 
-	#close(err?: any) {
+	#close(err?: unknown) {
 		const closed = Closed.from(err)
 		if (this.#current) {
 			this.#current.close(closed)
