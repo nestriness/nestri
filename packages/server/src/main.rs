@@ -1,3 +1,7 @@
+mod args;
+mod enc_helper;
+mod gpu;
+
 use actix_web::{rt, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_ws::Message;
 use futures_util::{
@@ -75,7 +79,6 @@ async fn handle_events(
                             match serde_json::from_str::<InputMessage>(&text) {
                                 Ok(input_msg) => match input_msg {
                                     InputMessage::MouseMove { x, y } => {
-
                                         let structure =
                                             gst::Structure::builder("MouseMoveRelative")
                                                 .field("pointer_x", x as f64)
@@ -87,7 +90,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::KeyDown { key } => {
-
                                         let structure = gst::Structure::builder("KeyboardKey")
                                             .field("key", key as u32)
                                             .field("pressed", true)
@@ -98,7 +100,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::KeyUp { key } => {
-
                                         let structure: gst::Structure =
                                             gst::Structure::builder("KeyboardKey")
                                                 .field("key", key as u32)
@@ -110,7 +111,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::Wheel { x, y } => {
-
                                         let structure = gst::Structure::builder("MouseAxis")
                                             .field("x", x as f64)
                                             .field("y", y as f64)
@@ -121,7 +121,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::MouseDown { key } => {
-
                                         let structure = gst::Structure::builder("MouseButton")
                                             .field("button", key as u32)
                                             .field("pressed", true)
@@ -132,7 +131,6 @@ async fn handle_events(
                                     }
 
                                     InputMessage::MouseUp { key } => {
-
                                         let structure = gst::Structure::builder("MouseButton")
                                             .field("button", key as u32)
                                             .field("pressed", false)
@@ -208,28 +206,157 @@ async fn handle_events(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let _ = gst::init();
+    let args = args::Args::new();
+    if args.verbose {
+        args.print();
+    }
 
+    let _ = gst::init();
     let _ = gstmoq::plugin_register_static();
     let _ = gstwaylanddisplaysrc::plugin_register_static();
-    // waylanddisplaysrc \
-    // ! video/x-raw,width=1280,height=720,format=RGBx,framerate=60/1 \
-    // ! videoconvertscale\
-    // ! qsvh264enc low-latency=true \
-    let pipeline = gst::parse::launch(
+
+    println!("Gathering GPU information..");
+    let gpus = gpu::get_gpus();
+    if gpus.is_empty() {
+        println!("No GPUs found. Exiting..");
+        return Ok(());
+    }
+    for gpu in &gpus {
+        println!(
+            "> [GPU] Vendor: '{}', Card Path: '{}', Render Path: '{}', Device Name: '{}'",
+            gpu.vendor_string(),
+            gpu.card_path(),
+            gpu.render_path(),
+            gpu.device_name()
+        );
+    }
+
+    // Based on available arguments, pick a GPU
+    let mut gpu = gpus.get(0).cloned();
+    if !args.gpu_card_path.is_empty() {
+        gpu = gpu::get_gpu_by_card_path(&gpus, &args.gpu_card_path);
+    } else {
+        // Run all filters that are not empty
+        let mut filtered_gpus = gpus.clone();
+        if !args.gpu_vendor.is_empty() {
+            filtered_gpus = gpu::get_gpus_by_vendor(&filtered_gpus, &args.gpu_vendor);
+        }
+        if !args.gpu_name.is_empty() {
+            filtered_gpus = gpu::get_gpus_by_device_name(&filtered_gpus, &args.gpu_name);
+        }
+        if args.gpu_index != 0 {
+            // get single GPU by index
+            gpu = filtered_gpus.get(args.gpu_index as usize).cloned();
+        } else {
+            // get first GPU
+            gpu = filtered_gpus.get(0).cloned();
+        }
+    }
+    if gpu.is_none() {
+        println!("No GPU found with the specified parameters: vendor='{}', name='{}', index='{}', card_path='{}'. Exiting..",
+                 args.gpu_vendor, args.gpu_name, args.gpu_index, args.gpu_card_path);
+        return Ok(());
+    }
+    let gpu = gpu.unwrap();
+    println!("Selected GPU: '{}'", gpu.device_name());
+
+    println!("Getting compatible encoders..");
+    let encoders = enc_helper::get_compatible_encoders();
+    if encoders.is_empty() {
+        println!("No compatible encoders found. Exiting..");
+        return Ok(());
+    }
+    for encoder in &encoders {
+        println!(
+            "> [Encoder] Name: '{}', Codec: '{}', API: '{}', Type: '{}'",
+            encoder.name,
+            encoder.codec.to_str(),
+            encoder.encoder_api.to_str(),
+            encoder.encoder_type.to_str()
+        );
+    }
+    // Pick most suitable encoder based on given arguments
+    let mut encoder = encoders.get(0).cloned();
+    if !args.encoder_name.is_empty() {
+        encoder = enc_helper::get_encoder_by_name(&encoders, &args.encoder_name);
+    } else {
+        encoder = enc_helper::get_best_compatible_encoder(
+            &encoders,
+            enc_helper::VideoCodec::from_str(&args.encoder_vcodec),
+            enc_helper::EncoderType::from_str(&args.encoder_type),
+        );
+    }
+    if encoder.is_none() {
+        println!("No encoder found with the specified parameters: name='{}', vcodec='{}', type='{}'. Exiting..",
+                 args.encoder_name, args.encoder_vcodec, args.encoder_type);
+        return Ok(());
+    }
+    let encoder = encoder.unwrap();
+    println!("Selected encoder: '{}'", encoder.name);
+
+    println!(
+        "Optimizing encoder parameters with CQP of: {}..",
+        args.encoder_cqp
+    );
+    let mut optimized_encoder = enc_helper::encoder_cqp_params(&encoder, args.encoder_cqp);
+    println!("Optimizing encoder parameters for low latency..");
+    optimized_encoder = enc_helper::encoder_low_latency_params(&optimized_encoder);
+    println!(
+        "Optimized encoder parameters: '{}'",
+        optimized_encoder.get_parameters_string()
+    );
+
+    // Notify of relay path used
+    println!("Starting stream with relay path: '{}'", args.relay_path);
+
+    // Debug-feed string
+    let mut debug_feed = "";
+    if args.debug_feed {
+        debug_feed = "! timeoverlay halignment=right valignment=bottom ! tee name=dfee"
+    }
+
+    // Additional sink for debugging
+    let mut debug_sink = "";
+    if args.debug_feed {
+        debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
+    }
+
+    // Construct the pipeline string
+    let pipeline_str = format!(
         "
-        multifilesrc location=bbb.mp4 loop=true \
-        ! qtdemux name=demux demux.video_0 \
-        ! h264parse \
-        ! queue ! identity sync=true \
-        ! isofmp4mux name=mux chunk-duration=1 fragment-duration=1 \
-        ! moqsink url=https://relay.dathorse.com:8443 path=testing \
-        ! demux.audio_0 ! aacparse ! queue ! mux.
-    ",
-    )
-    .unwrap()
-    .downcast::<gst::Pipeline>()
-    .unwrap();
+        waylanddisplaysrc \
+        ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
+        {debug_feed} \
+        ! queue2 max-size-time=1000000 ! videoconvert \
+        ! {} {} \
+        ! {} \
+        ! isofmp4mux chunk-duration=1 fragment-duration=1 name=mux \
+        ! moqsink url={} broadcast={} \
+        pulsesrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
+        {debug_sink}
+        ",
+        args.resolution.0,
+        args.resolution.1,
+        args.framerate,
+        optimized_encoder.name,
+        optimized_encoder.get_parameters_string(),
+        (optimized_encoder.codec == enc_helper::VideoCodec::AV1)
+            .then(|| "av1parse")
+            .unwrap_or("h264parse"),
+        args.relay_url,
+        args.relay_path,
+    );
+
+    // If verbose, print out the pipeline string
+    if args.verbose {
+        println!("Constructed pipeline string: {}", pipeline_str);
+    }
+
+    // Create the pipeline
+    let pipeline = gst::parse::launch(pipeline_str.as_str())
+        .unwrap()
+        .downcast::<gst::Pipeline>()
+        .unwrap();
 
     let _ = pipeline.set_state(gst::State::Playing);
 
