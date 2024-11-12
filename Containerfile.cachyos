@@ -1,0 +1,181 @@
+# Container build arguments #
+ARG BASE_IMAGE=docker.io/cachyos/cachyos-v3:latest
+
+### nestri builder portion ###
+FROM ${BASE_IMAGE} AS gst-builder
+WORKDIR /builder/
+
+# Grab build and rust packages #
+RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
+	gstreamer gst-plugins-base gst-plugins-good
+
+# Setup stable rust toolchain #
+RUN rustup default stable
+# Clone nestri source #
+RUN git clone -b feat/pipewire https://github.com/DatCaptainHorse/nestri.git
+
+# Build nestri #
+RUN cd nestri/packages/server/ && \
+    cargo build --release
+
+
+### gst wayland plugin builder portion ###
+FROM ${BASE_IMAGE} AS gstwayland-builder
+WORKDIR /builder/
+
+# Grab build and rust packages #
+RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
+	libxkbcommon wayland gstreamer gst-plugins-base gst-plugins-good libinput
+
+# Setup stable rust toolchain #
+RUN rustup default stable
+# Build required cargo-c package #
+RUN cargo install cargo-c
+# Clone gst plugin source #
+RUN git clone https://github.com/games-on-whales/gst-wayland-display.git
+
+# Build gst plugin #
+RUN mkdir plugin && \
+	cd gst-wayland-display && \
+	cargo cinstall --prefix=/builder/plugin/
+
+
+### Runner portion ###
+FROM ${BASE_IMAGE}
+
+## Overridable Runtime Environment Variables ##
+# Set relay path #
+ENV RELAY_PATH="teststream"
+
+## Graphics ##
+# Grab display packages (mesa, wayland things) #
+RUN pacman -Syu --noconfirm sudo mesa mesa-utils xorg-xwayland cage
+# Vulkan drivers #
+# Intel
+RUN pacman -Syu --noconfirm vulkan-intel
+# AMD/ATI
+RUN pacman -Syu --noconfirm vulkan-radeon
+# NVIDIA
+RUN pacman -Syu --noconfirm nvidia-utils
+
+## Media / Encoding ##
+# Grab GPU encoding packages #
+# Intel (modern VPL + VA-API)
+RUN pacman -Syu --noconfirm vpl-gpu-rt intel-media-driver
+# AMD/ATI (VA-API)
+RUN pacman -Syu --noconfirm libva-mesa-driver
+# NVIDIA (proprietary)
+RUN pacman -Syu --noconfirm nvidia-utils
+# Extras (debugging)
+RUN pacman -Syu --noconfirm libva-utils
+
+# Grab gstreamer packages #
+RUN pacman -Syu --noconfirm gstreamer gst-plugins-base gst-plugins-good \
+	gst-plugin-va gst-plugins-bad gst-plugin-fmp4 gst-plugin-qsv gst-plugin-pipewire
+
+## Audio ##
+# Grab audio packages #
+RUN pacman -Syu --noconfirm pipewire pipewire-pulse pipewire-alsa wireplumber
+
+## User ##
+# Create and setup user #
+ENV USER="nestri" \
+	USER_ID=1234 \
+	USER_PASSWORD="nestri1234" \
+	USER_HOME="/home/nestri"
+RUN mkdir -p ${USER_HOME} && \
+	useradd -d ${USER_HOME} -u ${USER_ID} -s /bin/bash ${USER} && \
+	chown -R ${USER} ${USER_HOME} && \
+	echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+	echo "${USER}:${USER_PASSWORD}" | chpasswd
+# Run directory #
+RUN mkdir -p /run/user/${USER_ID} && \
+	chown ${USER}:${USER} /run/user/${USER_ID}
+# Home config directory #
+RUN mkdir -p ${USER_HOME}/.config && \
+    chown ${USER}:${USER} ${USER_HOME}/.config
+# Groups #
+RUN usermod -aG input root && usermod -aG input ${USER} && \
+    usermod -aG video root && usermod -aG video ${USER} && \
+    usermod -aG render root && usermod -aG render ${USER}
+
+## Copy files from builders ##
+# this is done here at end to not trigger full rebuild on changes to builder
+# gstwayland
+COPY --from=gstwayland-builder /builder/plugin/include/libgstwaylanddisplay /usr/include/
+COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
+COPY --from=gstwayland-builder /builder/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
+COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
+# nestri
+COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
+
+## Startup ##
+# Grab supervisor package #
+RUN pacman -Syu --noconfirm supervisor
+# Setup supervisor #
+RUN <<-EOF
+echo -e "
+[supervisord]
+user=root
+nodaemon=true
+loglevel=info
+logfile=/tmp/supervisord.log
+
+[program:dbus]
+user=root
+command=dbus-daemon --system --nofork --nopidfile
+logfile=/tmp/dbus.log
+autostart=true
+startretries=3
+priority=1
+
+[program:pipewire]
+user=nestri
+command=dbus-launch pipewire
+environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+logfile=/tmp/pipewire.log
+autostart=true
+startretries=3
+priority=10
+
+[program:pipewire-pulse]
+user=nestri
+command=dbus-launch pipewire-pulse
+environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+logfile=/tmp/pipewire-pulse.log
+autostart=true
+startretries=3
+priority=20
+
+[program:wireplumber]
+user=nestri
+command=dbus-launch wireplumber
+environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+logfile=/tmp/wireplumber.log
+autostart=true
+startretries=3
+priority=30
+
+[program:nestri-server]
+user=nestri
+command=nestri-server --relay-path=${RELAY_PATH}
+environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+logfile=/tmp/nestri-server.log
+autostart=true
+startretries=3
+priority=100
+" | tee /etc/supervisord.conf
+EOF
+
+# Wireplumber disable suspend #
+# Remove suspend node
+RUN sed -z -i 's/{[[:space:]]*name = node\/suspend-node\.lua,[[:space:]]*type = script\/lua[[:space:]]*provides = hooks\.node\.suspend[[:space:]]*}[[:space:]]*//g' /usr/share/wireplumber/wireplumber.conf
+# Remove "hooks.node.suspend" want
+RUN sed -i '/wants = \[/{s/hooks\.node\.suspend\s*//; s/,\s*\]/]/}' /usr/share/wireplumber/wireplumber.conf
+
+# Make sure couple directories are present #
+RUN mkdir -p /tmp/.X11-unix && \
+    chown nestri:nestri /tmp/.X11-unix
+
+ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]
