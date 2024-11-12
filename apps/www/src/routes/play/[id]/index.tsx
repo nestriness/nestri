@@ -41,7 +41,7 @@ export default component$(() => {
                     canvas.value.requestPointerLock();
                 }
             }}
-            class="aspect-video w-full rounded-md" />
+            class="aspect-video h-screen rounded-sm" />
     )
 })
 
