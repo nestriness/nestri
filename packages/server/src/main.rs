@@ -213,7 +213,6 @@ async fn main() -> std::io::Result<()> {
 
     let _ = gst::init();
     let _ = gstmoq::plugin_register_static();
-    let _ = gstwaylanddisplaysrc::plugin_register_static();
 
     println!("Gathering GPU information..");
     let gpus = gpu::get_gpus();
@@ -332,7 +331,7 @@ async fn main() -> std::io::Result<()> {
         ! {} \
         ! isofmp4mux chunk-duration=1 fragment-duration=1 name=mux \
         ! moqsink url={} broadcast={} \
-        pulsesrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
+        pipewiresrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
         {debug_sink}
         ",
         args.resolution.0,
