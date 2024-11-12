@@ -48,9 +48,8 @@ RUN mkdir plugin && \
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
 
-## Overridable Runtime Environment Variables ##
-# Set relay path #
-ENV RELAY_PATH="teststream"
+## Overridable Runtime Parameters ##
+ENV NESTRI_PARAMS=""
 
 ## Graphics ##
 # Grab display packages (mesa, wayland things) #
@@ -110,14 +109,14 @@ RUN usermod -aG input root && usermod -aG input ${USER} && \
 
 ## Copy files from builders ##
 # this is done here at end to not trigger full rebuild on changes to builder
+# nestri
+COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
 # gstwayland
 COPY --from=gstwayland-builder /builder/plugin/include/libgstwaylanddisplay /usr/include/
 COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
 COPY --from=gstwayland-builder /builder/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
 COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
 COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
-# nestri
-COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
 
 ## Startup ##
 # Grab supervisor package #
@@ -168,7 +167,7 @@ priority=30
 
 [program:nestri-server]
 user=nestri
-command=nestri-server --relay-path=${RELAY_PATH}
+command=sh -c 'nestri-server \$NESTRI_PARAMS'
 environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/nestri-server.log
 autostart=true

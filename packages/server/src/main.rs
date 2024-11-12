@@ -323,7 +323,7 @@ async fn main() -> std::io::Result<()> {
     // Construct the pipeline string
     let pipeline_str = format!(
         "
-        waylanddisplaysrc \
+        waylanddisplaysrc render-node={} \
         ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
         {debug_feed} \
         ! queue2 max-size-time=1000000 ! videoconvert \
@@ -334,6 +334,7 @@ async fn main() -> std::io::Result<()> {
         pipewiresrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
         {debug_sink}
         ",
+        gpu.render_path(),
         args.resolution.0,
         args.resolution.1,
         args.framerate,
