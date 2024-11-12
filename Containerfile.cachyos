@@ -1,7 +1,9 @@
 # Container build arguments #
 ARG BASE_IMAGE=docker.io/cachyos/cachyos-v3:latest
 
-### nestri builder portion ###
+#******************************************************************************
+#                                                                   gst-builder
+#******************************************************************************
 FROM ${BASE_IMAGE} AS gst-builder
 WORKDIR /builder/
 
@@ -18,8 +20,9 @@ RUN git clone -b feat/stream https://github.com/DatCaptainHorse/nestri.git
 RUN cd nestri/packages/server/ && \
     cargo build --release
 
-
-### gst wayland plugin builder portion ###
+#******************************************************************************
+#                                                            gstwayland-builder
+#******************************************************************************
 FROM ${BASE_IMAGE} AS gstwayland-builder
 WORKDIR /builder/
 
@@ -40,8 +43,10 @@ RUN mkdir plugin && \
 	cargo cinstall --prefix=/builder/plugin/
 
 
-### Runner portion ###
-FROM ${BASE_IMAGE}
+#******************************************************************************
+#                                                                       runtime
+#******************************************************************************
+FROM ${BASE_IMAGE} AS runtime
 
 ## Overridable Runtime Environment Variables ##
 # Set relay path #
@@ -83,17 +88,21 @@ ENV USER="nestri" \
 	USER_ID=1234 \
 	USER_PASSWORD="nestri1234" \
 	USER_HOME="/home/nestri"
+
 RUN mkdir -p ${USER_HOME} && \
 	useradd -d ${USER_HOME} -u ${USER_ID} -s /bin/bash ${USER} && \
 	chown -R ${USER} ${USER_HOME} && \
 	echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
 	echo "${USER}:${USER_PASSWORD}" | chpasswd
+
 # Run directory #
 RUN mkdir -p /run/user/${USER_ID} && \
 	chown ${USER}:${USER} /run/user/${USER_ID}
+
 # Home config directory #
 RUN mkdir -p ${USER_HOME}/.config && \
     chown ${USER}:${USER} ${USER_HOME}/.config
+
 # Groups #
 RUN usermod -aG input root && usermod -aG input ${USER} && \
     usermod -aG video root && usermod -aG video ${USER} && \
