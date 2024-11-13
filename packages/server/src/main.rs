@@ -32,7 +32,168 @@ enum InputMessage {
     KeyUp { key: i32 },
 }
 
-#[tokio::main]
+async fn hello_world() -> impl Responder {
+    "Hello world!"
+}
+
+async fn handle_events(
+    req: HttpRequest,
+    stream: web::Payload,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let (res, mut session, mut stream) = actix_ws::handle(&req, stream)?;
+    // start task but don't wait for it
+    rt::spawn(async move {
+        // receive messages from websocket
+        let state = state.into_inner();
+        let pipeline = state.pipeline.lock().unwrap();
+
+        let mut last_heartbeat = Instant::now();
+        let mut interval = interval(HEARTBEAT_INTERVAL);
+
+        let reason = loop {
+            // create "next client timeout check" future
+            let tick = interval.tick();
+            // required for select()
+            pin!(tick);
+
+            // waits for either `msg_stream` to receive a message from the client or the heartbeat
+            // interval timer to tick, yielding the value of whichever one is ready first
+            match future::select(stream.next(), tick).await {
+                // received message from WebSocket client
+                Either::Left((Some(Ok(msg)), _)) => {
+                    match msg {
+                        Message::Text(text) => {
+                            // session.text(text).await.unwrap();
+                            match serde_json::from_str::<InputMessage>(&text) {
+                                Ok(input_msg) => match input_msg {
+                                    InputMessage::MouseMove { x, y } => {
+                                        let structure =
+                                            gst::Structure::builder("MouseMoveRelative")
+                                                .field("pointer_x", x as f64)
+                                                .field("pointer_y", y as f64)
+                                                .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+
+                                    InputMessage::KeyDown { key } => {
+                                        let structure = gst::Structure::builder("KeyboardKey")
+                                            .field("key", key as u32)
+                                            .field("pressed", true)
+                                            .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+
+                                    InputMessage::KeyUp { key } => {
+                                        let structure: gst::Structure =
+                                            gst::Structure::builder("KeyboardKey")
+                                                .field("key", key as u32)
+                                                .field("pressed", false)
+                                                .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+
+                                    InputMessage::Wheel { x, y } => {
+                                        let structure = gst::Structure::builder("MouseAxis")
+                                            .field("x", x as f64)
+                                            .field("y", y as f64)
+                                            .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+
+                                    InputMessage::MouseDown { key } => {
+                                        let structure = gst::Structure::builder("MouseButton")
+                                            .field("button", key as u32)
+                                            .field("pressed", true)
+                                            .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+
+                                    InputMessage::MouseUp { key } => {
+                                        let structure = gst::Structure::builder("MouseButton")
+                                            .field("button", key as u32)
+                                            .field("pressed", false)
+                                            .build();
+
+                                        let event = gst::event::CustomUpstream::new(structure);
+                                        pipeline.send_event(event);
+                                    }
+                                },
+                                Err(e) => {
+                                    eprintln!("Failed to parse input message: {}", e);
+                                    // Optionally, send an error response or handle the error
+                                }
+                            }
+                        }
+
+                        Message::Binary(bin) => {
+                            session.binary(bin).await.unwrap();
+                        }
+
+                        Message::Close(reason) => {
+                            break reason;
+                        }
+
+                        Message::Ping(bytes) => {
+                            last_heartbeat = Instant::now();
+                            let _ = session.pong(&bytes).await;
+                        }
+
+                        Message::Pong(_) => {
+                            last_heartbeat = Instant::now();
+                        }
+
+                        Message::Continuation(_) => {
+                            println!("no support for continuation frames");
+                        }
+                        // no-op; ignore
+                        Message::Nop => {}
+                    };
+                }
+
+                Either::Left((Some(Err(err)), _)) => {
+                    println!("{}", err);
+                    break None;
+                }
+
+                // client WebSocket stream ended
+                Either::Left((None, _)) => break None,
+
+                // heartbeat interval ticked
+                Either::Right((_inst, _)) => {
+                    // if no heartbeat ping/pong received recently, close the connection
+                    if Instant::now().duration_since(last_heartbeat) > CLIENT_TIMEOUT {
+                        println!(
+                            "client has not sent heartbeat in over {CLIENT_TIMEOUT:?}; disconnecting"
+                        );
+
+                        break None;
+                    }
+
+                    // send heartbeat ping
+                    let _ = session.ping(b"").await;
+                }
+            }
+        };
+        // attempt to close connection gracefully
+        let _ = session.close(reason).await;
+    });
+
+    // respond immediately with response connected to WS session
+    Ok(res)
+}
+
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = args::Args::new();
     if args.verbose {
@@ -148,13 +309,6 @@ async fn main() -> std::io::Result<()> {
         debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
     }
 
-    // Audio sub-pipeline
-    let audio_pipeline = "
-        pipewiresrc \
-        ! queue2 max-size-time=1000000 ! audioconvert \
-        ! faac bitrate=196000 \
-        ! aacparse ! mux.";
-
     // Construct the pipeline string
     let pipeline_str = format!(
         "
@@ -265,10 +419,10 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    
+
     if let Some(mut socket) = socket {
         socket.send(Message::Text("Hello There".into())).unwrap();
-        
+
         let pipeline = pipeline_clone.lock().unwrap();
 
         let reason = loop {
