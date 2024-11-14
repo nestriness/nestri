@@ -320,10 +320,17 @@ async fn main() -> std::io::Result<()> {
         debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
     }
 
+    // Audio sub-pipeline
+    let audio_pipeline = "
+        pipewiresrc \
+        ! queue2 max-size-time=1000000 ! audioconvert \
+        ! faac bitrate=196000 \
+        ! aacparse ! mux.";
+
     // Construct the pipeline string
     let pipeline_str = format!(
         "
-        waylanddisplaysrc \
+        waylanddisplaysrc render-node={} \
         ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
         {debug_feed} \
         ! queue2 max-size-time=1000000 ! videoconvert \
@@ -331,9 +338,10 @@ async fn main() -> std::io::Result<()> {
         ! {} \
         ! isofmp4mux chunk-duration=1 fragment-duration=1 name=mux \
         ! moqsink url={} broadcast={} \
-        pipewiresrc ! audioconvert ! faac bitrate=196000 ! aacparse ! mux. \
+        {} \
         {debug_sink}
         ",
+        gpu.render_path(),
         args.resolution.0,
         args.resolution.1,
         args.framerate,
@@ -344,6 +352,7 @@ async fn main() -> std::io::Result<()> {
             .unwrap_or("h264parse"),
         args.relay_url,
         args.relay_path,
+        args.no_audio.then(|| "").unwrap_or(audio_pipeline),
     );
 
     // If verbose, print out the pipeline string
@@ -403,7 +412,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/ws").route(web::get().to(handle_events)))
             .service(web::resource("/").route(web::get().to(hello_world)))
     })
-    .bind("0.0.0.0:8081")?
-    .run()
-    .await
+        .bind("0.0.0.0:8081")?
+        .run()
+        .await
 }

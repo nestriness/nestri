@@ -29,6 +29,8 @@ pub struct Args {
     pub encoder_name: String,
     /// Encoder CQP quality level (e.g. 25)
     pub encoder_cqp: u32,
+    /// Whether to disable audio output
+    pub no_audio: bool,
 }
 
 impl Args {
@@ -148,6 +150,14 @@ impl Args {
                     .help("Encoder CQP quality level, lower values mean higher quality at cost of higher bitrate")
                     .default_value("25"),
             )
+            .arg(
+                Arg::new("no-audio")
+                    .short('x')
+                    .long("no-audio")
+                    .env("NO_AUDIO")
+                    .help("Disable audio output")
+                    .default_value("false"),
+            )
             .get_matches();
 
         Self {
@@ -202,6 +212,8 @@ impl Args {
                 .unwrap()
                 .parse::<u32>()
                 .unwrap(),
+            no_audio: matches.get_one::<String>("no-audio").unwrap() == "true"
+                || matches.get_one::<String>("no-audio").unwrap() == "1",
         }
     }
 
@@ -220,5 +232,7 @@ impl Args {
         println!("> Encoder Video Codec: {}", self.encoder_vcodec);
         println!("> Encoder Type: {}", self.encoder_type);
         println!("> Encoder Name: {}", self.encoder_name);
+        println!("> Encoder CQP: {}", self.encoder_cqp);
+        println!("> No Audio: {}", self.no_audio);
     }
 }
