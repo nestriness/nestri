@@ -1,35 +1,35 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
-import { WS } from "./websocket"
-// Upstream MoQ lib does not work well with our Qwik Vite implementation
-import { Player } from "@nestri/libmoq/playback"
-import { Client } from "@nestri/libmoq/transfork"
+import PartySocket from "partysocket";
+import {Keyboard, Mouse} from "@nestri/input"
+
 
 export default component$(() => {
     const id = useLocation().params.id;
     const canvas = useSignal<HTMLCanvasElement>();
-    //This is the latest MoQ relay... use this for now
-    const url = 'https://relay.dathorse.com:8443' //'https://relay.fst.so'
 
     useVisibleTask$(({ track }) => {
         track(() => canvas.value);
+
+        const ws = new PartySocket({
+            host: "ws://localhost:1999", // or localhost:1999 in dev
+            room: id,
+        })
         
-        if (!canvas.value) return; // Ensure canvas is available/87.100.239.153
-        new WS({ canvas: canvas.value, url: "ws://87.100.239.153:8081/ws" });
-    })
-
-
-    useVisibleTask$(
-        async () => {
-            if (canvas.value) {
-                const connectedCanvas = canvas.value
-                const client = new Client({url})
-                client.connect().then((connection)=>{
-                   new Player({connection, path:[id], canvas:connectedCanvas})
-                })
-            }
+        if (!canvas.value) return; // Ensure canvas is available
+        
+        document.addEventListener("pointerlockchange",()=>{
+            if (!canvas.value) return; // Ensure canvas is available
+            if (document.pointerLockElement){
+            new Mouse({canvas: canvas.value, ws})
+            new Keyboard({canvas: canvas.value, ws})
         }
-    )
+        })
+        
+        ws.onmessage = (msg) => {
+            console.log(msg.data)
+        }   
+    })
 
     return (
         <canvas

@@ -1,12 +1,13 @@
-import {type Input} from "./types"
-import {mouseButtonToLinuxEventCode} from "./codes"
+import { type Input } from "./types"
+import type PartySocket from "partysocket";
+import { mouseButtonToLinuxEventCode } from "./codes"
 
 interface Props {
-    ws: WebSocket;
+    ws: PartySocket;
     canvas: HTMLCanvasElement;
 }
 export class Mouse {
-    protected websocket: WebSocket;
+    protected websocket: PartySocket;
     protected canvas: HTMLCanvasElement;
     protected connected!: boolean;
 
@@ -16,7 +17,7 @@ export class Mouse {
     private mouseupListener: (e: MouseEvent) => void;
     private mousewheelListener: (e: WheelEvent) => void;
 
-    constructor({ws, canvas}: Props) {
+    constructor({ ws, canvas }: Props) {
         this.websocket = ws;
         this.canvas = canvas;
         this.mousemoveListener = this.createMouseListener("mousemove", (e: any) => ({
@@ -24,17 +25,19 @@ export class Mouse {
             x: e.movementX,
             y: e.movementY
         }));
+
         this.mousedownListener = this.createMouseListener("mousedown", (e: any) => ({
             type: "MouseKeyDown",
             key: this.keyToVirtualKeyCode(e.button)
         }));
+
         this.mouseupListener = this.createMouseListener("mouseup", (e: any) => ({
             type: "MouseKeyUp",
             key: this.keyToVirtualKeyCode(e.button)
         }));
         this.mousewheelListener = this.createMouseListener("wheel", (e: any) => ({
             type: "MouseWheel",
-            x: e.deltaX,
+            x: e.deltaX,    
             y: e.deltaY
         }));
 
@@ -44,6 +47,7 @@ export class Mouse {
     private run() {
         //calls all the other functions
         if (!document.pointerLockElement) {
+            console.log("no pointerlock")
             if (this.connected) {
                 this.stop()
             }
@@ -79,7 +83,7 @@ export class Mouse {
             e.preventDefault();
             e.stopPropagation();
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.websocket.send(JSON.stringify({...data, type} as Input));
+            this.websocket.send(JSON.stringify({ ...data, type } as Input));
         };
     }
 

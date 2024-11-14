@@ -21,3 +21,5 @@ actix-ws = "0.3.0"
 regex = "1.11.1"
 clap = { version = "4.5.20", features = ["env"] }
 rand = "0.8.5"
+url = "2.5.3"
+tungstenite = "0.24.0"
