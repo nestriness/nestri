@@ -196,8 +196,8 @@ async fn handle_events(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = args::Args::new();
-    if args.verbose {
-        args.print();
+    if args.app.verbose {
+        args.debug_print();
     }
 
     let _ = gst::init();
@@ -221,20 +221,20 @@ async fn main() -> std::io::Result<()> {
 
     // Based on available arguments, pick a GPU
     let mut gpu = gpus.get(0).cloned();
-    if !args.gpu_card_path.is_empty() {
-        gpu = gpu::get_gpu_by_card_path(&gpus, &args.gpu_card_path);
+    if !args.device.gpu_card_path.is_empty() {
+        gpu = gpu::get_gpu_by_card_path(&gpus, &args.device.gpu_card_path);
     } else {
         // Run all filters that are not empty
         let mut filtered_gpus = gpus.clone();
-        if !args.gpu_vendor.is_empty() {
-            filtered_gpus = gpu::get_gpus_by_vendor(&filtered_gpus, &args.gpu_vendor);
+        if !args.device.gpu_vendor.is_empty() {
+            filtered_gpus = gpu::get_gpus_by_vendor(&filtered_gpus, &args.device.gpu_vendor);
         }
-        if !args.gpu_name.is_empty() {
-            filtered_gpus = gpu::get_gpus_by_device_name(&filtered_gpus, &args.gpu_name);
+        if !args.device.gpu_name.is_empty() {
+            filtered_gpus = gpu::get_gpus_by_device_name(&filtered_gpus, &args.device.gpu_name);
         }
-        if args.gpu_index != 0 {
+        if args.device.gpu_index != 0 {
             // get single GPU by index
-            gpu = filtered_gpus.get(args.gpu_index as usize).cloned();
+            gpu = filtered_gpus.get(args.device.gpu_index as usize).cloned();
         } else {
             // get first GPU
             gpu = filtered_gpus.get(0).cloned();
@@ -242,7 +242,7 @@ async fn main() -> std::io::Result<()> {
     }
     if gpu.is_none() {
         println!("No GPU found with the specified parameters: vendor='{}', name='{}', index='{}', card_path='{}'. Exiting..",
-                 args.gpu_vendor, args.gpu_name, args.gpu_index, args.gpu_card_path);
+                 args.device.gpu_vendor, args.device.gpu_name, args.device.gpu_index, args.device.gpu_card_path);
         return Ok(());
     }
     let gpu = gpu.unwrap();
@@ -265,18 +265,18 @@ async fn main() -> std::io::Result<()> {
     }
     // Pick most suitable encoder based on given arguments
     let mut encoder = encoders.get(0).cloned();
-    if !args.encoder_name.is_empty() {
-        encoder = enc_helper::get_encoder_by_name(&encoders, &args.encoder_name);
+    if !args.encoding.encoder_name.is_empty() {
+        encoder = enc_helper::get_encoder_by_name(&encoders, &args.encoding.encoder_name);
     } else {
         encoder = enc_helper::get_best_compatible_encoder(
             &encoders,
-            enc_helper::VideoCodec::from_str(&args.encoder_vcodec),
-            enc_helper::EncoderType::from_str(&args.encoder_type),
+            enc_helper::VideoCodec::from_str(&args.encoding.encoder_vcodec),
+            enc_helper::EncoderType::from_str(&args.encoding.encoder_type),
         );
     }
     if encoder.is_none() {
         println!("No encoder found with the specified parameters: name='{}', vcodec='{}', type='{}'. Exiting..",
-                 args.encoder_name, args.encoder_vcodec, args.encoder_type);
+                 args.encoding.encoder_name, args.encoding.encoder_vcodec, args.encoding.encoder_type);
         return Ok(());
     }
     let encoder = encoder.unwrap();
@@ -284,9 +284,9 @@ async fn main() -> std::io::Result<()> {
 
     println!(
         "Optimizing encoder parameters with CQP of: {}..",
-        args.encoder_cqp
+        args.encoding.encoder_cqp
     );
-    let mut optimized_encoder = enc_helper::encoder_cqp_params(&encoder, args.encoder_cqp);
+    let mut optimized_encoder = enc_helper::encoder_cqp_params(&encoder, args.encoding.encoder_cqp);
     println!("Optimizing encoder parameters for low latency..");
     optimized_encoder = enc_helper::encoder_low_latency_params(&optimized_encoder);
     println!(
@@ -294,19 +294,45 @@ async fn main() -> std::io::Result<()> {
         optimized_encoder.get_parameters_string()
     );
 
-    // Notify of relay path used
-    println!("Starting stream with relay path: '{}'", args.relay_path);
+    // Get output option
+    let mut output_pipeline: String = "".to_string();
+    if let output_args::OutputOption::MoQ(args) = &args.output {
+        output_pipeline = format!(
+            "
+            ! isofmp4mux chunk-duration=1 fragment-duration=1 name=pipend \
+            ! moqsink url={} broadcast={}
+            ",
+            args.relay_url, args.relay_path
+        );
+    } else if let output_args::OutputOption::WHIP(args) = &args.output {
+        output_pipeline = format!(
+            "
+            ! whipclientsink name=pipend signaller::whip-endpoint=\"{}\" signaller::auth-token=\"{}\" congestion-control=disabled
+            ",
+            args.endpoint, args.auth_token
+        );
+    }
 
-    // Debug-feed string
+    // Debug-latency
     let mut debug_feed = "";
-    if args.debug_feed {
-        debug_feed = "! timeoverlay halignment=right valignment=bottom ! tee name=dfee"
+    if args.app.debug_latency {
+        debug_feed = "! timeoverlay halignment=right valignment=bottom"
     }
 
     // Additional sink for debugging
     let mut debug_sink = "";
-    if args.debug_feed {
+    if args.app.debug_feed {
         debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
+    }
+
+    // Audio sub-pipeline
+    let mut audio_pipeline = "";
+    if !args.encoding.no_audio {
+        audio_pipeline = "
+        pipewiresrc \
+        ! queue2 max-size-time=1000000 ! audioconvert \
+        ! opusenc bitrate=196000 \
+        ! pipend.";
     }
 
     // Construct the pipeline string
@@ -314,31 +340,23 @@ async fn main() -> std::io::Result<()> {
         "
         waylanddisplaysrc render-node={} \
         ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
-        {debug_feed} \
+        {debug_feed} ! tee name=dfee \
         ! queue2 max-size-time=1000000 ! videoconvert \
         ! {} {} \
-        ! {} \
-        ! isofmp4mux chunk-duration=1 fragment-duration=1 name=mux \
-        ! moqsink url={} broadcast={} \
-        {} \
+        {output_pipeline} \
+        {audio_pipeline} \
         {debug_sink}
         ",
         gpu.render_path(),
-        args.resolution.0,
-        args.resolution.1,
-        args.framerate,
+        args.app.resolution.0,
+        args.app.resolution.1,
+        args.app.framerate,
         optimized_encoder.name,
         optimized_encoder.get_parameters_string(),
-        (optimized_encoder.codec == enc_helper::VideoCodec::AV1)
-            .then(|| "av1parse")
-            .unwrap_or("h264parse"),
-        args.relay_url,
-        args.relay_path,
-        args.no_audio.then(|| "").unwrap_or(audio_pipeline),
     );
 
     // If verbose, print out the pipeline string
-    if args.verbose {
+    if args.app.verbose {
         println!("Constructed pipeline string: {}", pipeline_str);
     }
 
