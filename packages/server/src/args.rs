@@ -88,45 +88,98 @@ impl Args {
                     .conflicts_with_all(["gpu-vendor", "gpu-name", "gpu-index"]),
             )
             .arg(
-                Arg::new("encoder-vcodec")
+                Arg::new("video-codec")
                     .short('c')
-                    .long("encoder-vcodec")
-                    .env("ENCODER_VCODEC")
-                    .help("Preferred encoder video codec (e.g. 'h264')")
+                    .long("video-codec")
+                    .env("VIDEO_CODEC")
+                    .help("Preferred video codec ('h264', 'av1')")
                     .default_value("h264"),
             )
             .arg(
-                Arg::new("encoder-type")
-                    .short('t')
-                    .long("encoder-type")
-                    .env("ENCODER_TYPE")
-                    .help("Preferred encoder type (e.g. 'hardware')")
-                    .default_value("hardware"),
-            )
-            .arg(
-                Arg::new("encoder-name")
+                Arg::new("video-encoder")
                     .short('e')
-                    .long("encoder-name")
-                    .env("ENCODER_NAME")
-                    .help("Force an encoder to use (e.g. 'vah264lpenc')")
-                    .required(false)
-                    .conflicts_with_all(["encoder-type", "encoder-vcodec"]),
+                    .long("video-encoder")
+                    .env("VIDEO_ENCODER")
+                    .help("Override video encoder (e.g. 'vah264enc')")
             )
             .arg(
-                Arg::new("encoder-cqp")
+                Arg::new("video-rate-control")
+                    .short('t')
+                    .long("video-rate-control")
+                    .env("VIDEO_RATE_CONTROL")
+                    .help("Rate control method ('cqp', 'vbr', 'cbr')")
+                    .default_value("vbr"),
+            )
+            .arg(
+                Arg::new("video-cqp")
                     .short('q')
-                    .long("encoder-cqp")
-                    .env("ENCODER_CQP")
-                    .help("Encoder CQP quality level, lower values mean higher quality at cost of higher bitrate")
-                    .default_value("25"),
+                    .long("video-cqp")
+                    .env("VIDEO_CQP")
+                    .help("Constant Quantization Parameter (CQP) quality")
+                    .default_value("26"),
             )
             .arg(
-                Arg::new("no-audio")
+                Arg::new("video-bitrate")
+                    .short('b')
+                    .long("video-bitrate")
+                    .env("VIDEO_BITRATE")
+                    .help("Target bitrate in kbps")
+                    .default_value("6000"),
+            )
+            .arg(
+                Arg::new("video-bitrate-max")
                     .short('x')
-                    .long("no-audio")
-                    .env("NO_AUDIO")
-                    .help("Disable audio output")
-                    .default_value("false"),
+                    .long("video-bitrate-max")
+                    .env("VIDEO_BITRATE_MAX")
+                    .help("Maximum bitrate in kbps")
+                    .default_value("8000"),
+            )
+            .arg(
+                Arg::new("audio-capture-method")
+                    .short('u')
+                    .long("audio-capture-method")
+                    .env("AUDIO_CAPTURE_METHOD")
+                    .help("Audio capture method ('pipewire', 'pulseaudio', 'alsa')")
+                    .default_value("pulseaudio"),
+            )
+            .arg(
+                Arg::new("audio-codec")
+                    .short('z')
+                    .long("audio-codec")
+                    .env("AUDIO_CODEC")
+                    .help("Preferred audio codec ('opus', 'aac')")
+                    .default_value("opus"),
+            )
+            .arg(
+                Arg::new("audio-encoder")
+                    .short('r')
+                    .long("audio-encoder")
+                    .env("AUDIO_ENCODER")
+                    .help("Override audio encoder (e.g. 'opusenc')")
+            )
+            .arg(
+                Arg::new("audio-rate-control")
+                    .short('k')
+                    .long("audio-rate-control")
+                    .env("AUDIO_RATE_CONTROL")
+                    .help("Rate control method ('cqp', 'vbr', 'cbr')")
+                    .default_value("vbr"),
+            )
+            .arg(
+                Arg::new("audio-bitrate")
+                    .short('j')
+                    .long("audio-bitrate")
+                    .env("AUDIO_BITRATE")
+                    .help("Target bitrate in kbps")
+                    .default_value("128"),
+            )
+            .arg(
+                Arg::new("audio-bitrate-max")
+                    .short('n')
+                    .long("audio-bitrate-max")
+                    .env("AUDIO_BITRATE_MAX")
+                    .help("Maximum bitrate in kbps")
+                    .default_value("192"),
             )
             .arg(
                 Arg::new("output")
