@@ -1,13 +1,14 @@
 import {type Input} from "./types"
+import type PartySocket from "partysocket";
 import {keyCodeToLinuxEventCode} from "./codes"
 
 interface Props {
-    ws: WebSocket;
+    ws: PartySocket;
     canvas: HTMLCanvasElement;
 }
 
 export class Keyboard {
-    protected websocket: WebSocket;
+    protected websocket: PartySocket;
     protected canvas: HTMLCanvasElement;
     protected connected!: boolean;
 
