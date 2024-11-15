@@ -34,6 +34,7 @@ export default class Server implements Party.Server {
 
     switch (msg.type) {
       case "input":
+        //TODO: Check whether the server is connected
         // send input information only to the `nestri-server` running the game
         this.room.broadcast(
           JSON.stringify(msg.message),
