@@ -10,11 +10,6 @@ pub struct AppArgs {
     pub resolution: (u32, u32),
     /// Virtual display framerate
     pub framerate: u32,
-
-    /// Nestri relay url
-    pub relay_url: String,
-    /// Nestri room name/identifier
-    pub room: String,
 }
 impl AppArgs {
     pub fn from_matches(matches: &clap::ArgMatches) -> Self {
@@ -38,11 +33,6 @@ impl AppArgs {
                 .unwrap()
                 .parse::<u32>()
                 .unwrap(),
-            relay_url: matches.get_one::<String>("relay-url").unwrap().clone(),
-            // Generate random room name if not provided
-            room: matches.get_one::<String>("room")
-                .unwrap_or(&rand::random::<u32>().to_string())
-                .clone(),
         }
     }
 
@@ -53,7 +43,5 @@ impl AppArgs {
         println!("> debug_latency: {}", self.debug_latency);
         println!("> resolution: {}x{}", self.resolution.0, self.resolution.1);
         println!("> framerate: {}", self.framerate);
-        println!("> relay_url: {}", self.relay_url);
-        println!("> room: {}", self.room);
     }
 }
