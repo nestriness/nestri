@@ -37,7 +37,7 @@ export class Mouse {
         }));
         this.mousewheelListener = this.createMouseListener("wheel", (e: any) => ({
             type: "MouseWheel",
-            x: e.deltaX,    
+            x: e.deltaX,
             y: e.deltaY
         }));
 
@@ -83,7 +83,7 @@ export class Mouse {
             e.preventDefault();
             e.stopPropagation();
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.websocket.send(JSON.stringify({ ...data, type } as Input));
+            this.websocket.send(JSON.stringify({ type: "input", message: { ...data, type } as Input }));
         };
     }
 

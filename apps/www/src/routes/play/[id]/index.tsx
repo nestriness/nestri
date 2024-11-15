@@ -1,7 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
-import PartySocket from "partysocket";
 import {Keyboard, Mouse} from "@nestri/input"
+import PartySocket from "partysocket";
 
 
 export default component$(() => {

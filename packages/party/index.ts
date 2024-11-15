@@ -1,7 +1,16 @@
 import type * as Party from "partykit/server";
 
+type Message = {
+  type: "input" | "text"
+  message: any;
+}
+
 export default class Server implements Party.Server {
-  constructor(readonly room: Party.Room) {}
+  connections: string[]; //saves all the participants' ids
+
+  constructor(readonly room: Party.Room) {
+    this.connections = []
+  }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
@@ -12,8 +21,7 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    // let's send a message to the connection 
-    conn.send("hello from server");
+    this.connections.push(conn.id)
   }
 
   onMessage(message: string, sender: Party.Connection) {
@@ -21,11 +29,26 @@ export default class Server implements Party.Server {
     console.log(`connection ${sender.id} sent message: ${message}`);
     //TODO: If it is of type input... broadcast to server only!
     // as well as broadcast it to all the other connections in the room...
-    this.room.broadcast(
-      message,
-      // ...except for the connection it came from
-      [sender.id]
-    );
+
+    const msg = JSON.parse(message) as Message;
+
+    switch (msg.type) {
+      case "input":
+        // send input information only to the `nestri-server` running the game
+        this.room.broadcast(
+          JSON.stringify(msg.message),
+          this.connections.filter((v) => v !== "nestri-server")
+        )
+        break;
+      default:
+        break;
+    }
+
+    // this.room.broadcast(
+    //   message,
+    //   // ...except for the connection it came from
+    //   [sender.id]
+    // );
   }
 }
 

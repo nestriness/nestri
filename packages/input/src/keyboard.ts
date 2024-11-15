@@ -63,7 +63,7 @@ export class Keyboard {
             e.preventDefault();
             e.stopPropagation();
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.websocket.send(JSON.stringify({...data, type} as Input));
+            this.websocket.send(JSON.stringify({ type: "input", message: { ...data, type } as Input }));
         };
     }
 
