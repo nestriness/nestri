@@ -376,8 +376,6 @@ async fn main() -> std::io::Result<()> {
                             if let Some(event) = handle_input_message(input_msg).await {
                                 event_tx.send(event).await.unwrap();
                             }
-                        } else {
-                            eprintln!("Failed to parse input message");
                         }
                     });
                 }
