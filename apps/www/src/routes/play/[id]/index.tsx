@@ -3,6 +3,64 @@ import { useLocation } from "@builder.io/qwik-city";
 import PartySocket from "partysocket";
 import {Keyboard, Mouse} from "@nestri/input"
 
+class WebRTCStream {
+    private readonly _url: string;
+    private _pc: RTCPeerConnection;
+    private _mediaStream: MediaStream | undefined = undefined;
+
+    constructor(serverURL: string) {
+        this._url = serverURL;
+
+        console.log("Setting up PeerConnection");
+        this._pc = new RTCPeerConnection({
+            iceServers: [
+                {
+                    urls: "stun:stun.l.google.com:19302"
+                }
+            ],
+        });
+
+        // Allow us to receive single audio and video tracks
+        this._pc.addTransceiver("audio", { direction: "recvonly" });
+        this._pc.addTransceiver("video", { direction: "recvonly" });
+
+        this._pc.ontrack = (e) => {
+            console.log("Track received: ", e.track);
+            // Update our mediastream as we receive tracks
+            this._mediaStream = e.streams[e.streams.length - 1];
+        };
+    }
+
+    // Forces opus to stereo in Chromium browsers, because of course
+    private forceOpusStereo(SDP: string): string {
+      // Look for "minptime=10;useinbandfec=1" and replace with "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;"
+      return SDP.replace(/(minptime=10;useinbandfec=1)/, "$1;stereo=1;sprop-stereo=1;");
+    }
+
+    public async connect(streamName: string) {
+        const offer = await this._pc.createOffer();
+        offer.sdp = this.forceOpusStereo(offer.sdp!);
+        await this._pc.setLocalDescription(offer);
+
+        const response = await fetch(`${this._url}/api/whep/${streamName}`, {
+            method: "POST",
+            body: offer.sdp,
+            headers: {
+                'Content-Type': "application/sdp"
+            }
+        });
+
+        const answer = await response.text();
+        await this._pc.setRemoteDescription({
+            sdp: answer,
+            type: "answer",
+        });
+    }
+
+    public getMediaStream() {
+        return this._mediaStream;
+    }
+}
 
 export default component$(() => {
     const id = useLocation().params.id;
@@ -14,21 +72,52 @@ export default component$(() => {
         const ws = new PartySocket({
             host: "ws://localhost:1999", // or localhost:1999 in dev
             room: id,
-        })
-        
+        });
+
         if (!canvas.value) return; // Ensure canvas is available
-        
-        document.addEventListener("pointerlockchange",()=>{
+
+        document.addEventListener("pointerlockchange", () => {
             if (!canvas.value) return; // Ensure canvas is available
-            if (document.pointerLockElement){
-            new Mouse({canvas: canvas.value, ws})
-            new Keyboard({canvas: canvas.value, ws})
-        }
-        })
-        
+            if (document.pointerLockElement) {
+                new Mouse({canvas: canvas.value, ws});
+                new Keyboard({canvas: canvas.value, ws});
+            }
+        });
+
         ws.onmessage = (msg) => {
             console.log(msg.data)
-        }   
+        }
+
+        // Create video element and make it output to canvas (TODO: improve this)
+        let video = document.getElementById("webrtc-video-player");
+        if (!video) {
+            video = document.createElement("video");
+            video.id = "stream-video-player";
+            video.style.visibility = "hidden";
+            const webrtc = new WebRTCStream("https://relay.dathorse.com"); // or http://localhost:8088
+            webrtc.connect(id).then(() => {
+                const mediaStream = webrtc.getMediaStream();
+                console.log("Setting mediastream");
+                if (video && mediaStream) {
+                    (video as HTMLVideoElement).srcObject = mediaStream;
+                    (video as HTMLVideoElement).play().then(() => {
+                        if (canvas.value) {
+                            canvas.value.width = (video as HTMLVideoElement).videoWidth;
+                            canvas.value.height = (video as HTMLVideoElement).videoHeight;
+
+                            const ctx = canvas.value.getContext("2d");
+                            const renderer = () => {
+                                if (ctx) {
+                                    ctx.drawImage((video as HTMLVideoElement), 0, 0);
+                                    requestAnimationFrame(renderer);
+                                }
+                            }
+                            requestAnimationFrame(renderer);
+                        }
+                    });
+                }
+            });
+        }
     })
 
     return (
@@ -41,7 +130,7 @@ export default component$(() => {
                     canvas.value.requestPointerLock();
                 }
             }}
-            class="aspect-video h-screen rounded-sm" />
+            class="aspect-video w-full h-auto rounded-sm" />
     )
 })
 

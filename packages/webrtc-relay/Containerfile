@@ -1,0 +1,20 @@
+FROM docker.io/golang:1.23-alpine AS go-build
+WORKDIR /builder
+COPY . /builder
+RUN go build
+
+FROM docker.io/golang:1.23-alpine
+COPY --from=go-build /builder/webrtcrelay /webrtcrelay/webrtcrelay
+WORKDIR /webrtcrelay
+
+# ENV flags
+ENV VERBOSE=false
+ENV ENDPOINT_PORT=8088
+ENV WEBRTC_UDP_START=10000
+ENV WEBRTC_UDP_END=20000
+ENV STUN_SERVER="stun.l.google.com:19302"
+
+EXPOSE $ENDPOINT_PORT
+EXPOSE $WEBRTC_UDP_START-$WEBRTC_UDP_END/udp
+
+ENTRYPOINT ["/webrtcrelay/webrtcrelay"]
