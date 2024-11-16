@@ -81,7 +81,7 @@ export default component$(() => {
             // @ts-ignore
             if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
                 // @ts-ignore
-                window.nestrimouse = new Mouse({canvas: canvas.value, ws}, true); //< TODO: Make absolute mode toggleable, for now feels better?
+                window.nestrimouse = new Mouse({canvas: canvas.value, ws}, false); //< TODO: Make absolute mode toggleable, for now feels better?
                 // @ts-ignore
                 window.nestrikeyboard = new Keyboard({canvas: canvas.value, ws});
                 // @ts-ignore
