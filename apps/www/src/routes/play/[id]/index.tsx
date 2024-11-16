@@ -70,17 +70,30 @@ export default component$(() => {
         track(() => canvas.value);
 
         const ws = new PartySocket({
-            host: "ws://localhost:1999", // or localhost:1999 in dev
+            host: "https://nestri-party.datcaptainhorse.partykit.dev", // or localhost:1999 in dev
             room: id,
         });
 
         if (!canvas.value) return; // Ensure canvas is available
 
-        document.addEventListener("pointerlockchange", () => {
+        document.addEventListener("pointerlockchange", (e) => {
             if (!canvas.value) return; // Ensure canvas is available
-            if (document.pointerLockElement) {
-                new Mouse({canvas: canvas.value, ws});
-                new Keyboard({canvas: canvas.value, ws});
+            // @ts-ignore
+            if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
+                // @ts-ignore
+                window.nestrimouse = new Mouse({canvas: canvas.value, ws}, true); //< TODO: Make absolute mode toggleable, for now feels better?
+                // @ts-ignore
+                window.nestrikeyboard = new Keyboard({canvas: canvas.value, ws});
+                // @ts-ignore
+            } else if (!document.pointerLockElement && window.nestrimouse && window.nestrikeyboard) {
+                // @ts-ignore
+                window.nestrimouse.dispose();
+                // @ts-ignore
+                window.nestrimouse = undefined;
+                // @ts-ignore
+                window.nestrikeyboard.dispose();
+                // @ts-ignore
+                window.nestrikeyboard = undefined;
             }
         });
 

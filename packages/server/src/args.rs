@@ -62,6 +62,12 @@ impl Args {
                     .default_value("ws://localhost:1999"),
             )
             .arg(
+                Arg::new("room")
+                    .long("room")
+                    .env("NESTRI_ROOM")
+                    .help("Nestri room name/identifier")
+            )
+            .arg(
                 Arg::new("gpu-vendor")
                     .short('g')
                     .long("gpu-vendor")
@@ -140,6 +146,13 @@ impl Args {
                     .env("VIDEO_BITRATE_MAX")
                     .help("Maximum bitrate in kbps")
                     .default_value("8000"),
+            )
+            .arg(
+                Arg::new("video-encoder-type")
+                    .long("video-encoder-type")
+                    .env("VIDEO_ENCODER_TYPE")
+                    .help("Encoder type ('hardware', 'software')")
+                    .default_value("hardware"),
             )
             .arg(
                 Arg::new("audio-capture-method")

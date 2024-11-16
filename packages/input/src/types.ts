@@ -8,6 +8,12 @@ interface MouseMove extends BaseInput {
     y: number;
 }
 
+interface MouseMoveAbs extends BaseInput {
+    type: "MouseMoveAbs";
+    x: number;
+    y: number;
+}
+
 interface MouseWheel extends BaseInput {
     type: "MouseWheel";
     x: number;
@@ -37,6 +43,7 @@ interface KeyUp extends BaseInput {
 
 export type Input =
     | MouseMove
+    | MouseMoveAbs
     | MouseWheel
     | MouseKeyDown
     | MouseKeyUp
