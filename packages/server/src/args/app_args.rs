@@ -38,7 +38,7 @@ impl AppArgs {
                 .unwrap(),
             input_server: matches
                 .get_one::<String>("input-server")
-                .unwrap_or(&"ws://localhost:1999".to_string())
+                .unwrap_or(&"".to_string())
                 .clone(),
         }
     }

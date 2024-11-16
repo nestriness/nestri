@@ -55,6 +55,13 @@ impl Args {
                     .default_value("60"),
             )
             .arg(
+                Arg::new("input-server")
+                    .long("input-server")
+                    .env("INPUT_SERVER")
+                    .help("Input server address")
+                    .default_value("ws://localhost:1999"),
+            )
+            .arg(
                 Arg::new("gpu-vendor")
                     .short('g')
                     .long("gpu-vendor")
