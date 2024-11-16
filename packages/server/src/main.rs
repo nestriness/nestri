@@ -2,6 +2,7 @@ mod args;
 mod enc_helper;
 mod gpu;
 
+use std::collections::HashSet;
 use std::sync::{Arc};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use url::Url;
@@ -349,6 +350,9 @@ async fn main() -> std::io::Result<()> {
     // Create an async channel for sending events to the pipeline
     let (event_tx, mut event_rx) = mpsc::channel(10);
 
+    // A shared state to track currently pressed keys
+    let pressed_keys = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
+
     // Spawn a task to process events for the pipeline
     let pipeline_task = {
         let pipeline = Arc::clone(&pipeline_clone);
@@ -370,10 +374,12 @@ async fn main() -> std::io::Result<()> {
             match msg {
                 Ok(Message::Text(txt)) => {
                     let event_tx = event_tx.clone();
+                    let pressed_keys = Arc::clone(&pressed_keys);
+
                     // Spawn a task to handle the input message
                     tokio::spawn(async move {
                         if let Ok(input_msg) = from_str::<InputMessage>(&txt) {
-                            if let Some(event) = handle_input_message(input_msg).await {
+                            if let Some(event) = handle_input_message(input_msg, &pressed_keys).await {
                                 event_tx.send(event).await.unwrap();
                             }
                         }
@@ -404,7 +410,10 @@ async fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-async fn handle_input_message(input_msg: InputMessage) -> Option<gst::Event> {
+async fn handle_input_message(
+    input_msg: InputMessage,
+    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>
+) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
             let structure = gst::Structure::builder("MouseMoveRelative")
@@ -423,6 +432,20 @@ async fn handle_input_message(input_msg: InputMessage) -> Option<gst::Event> {
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::KeyDown { key } => {
+            let mut keys = pressed_keys.lock().await;
+            // If the key is already pressed, send KeyUp first to release it
+            // this prevents multiple down events locking a key
+            if keys.contains(&key) {
+                let structure = gst::Structure::builder("KeyboardKey")
+                    .field("key", key as u32)
+                    .field("pressed", false)
+                    .build();
+
+                let release_event = gst::event::CustomUpstream::new(structure);
+                return Some(release_event); // Send the release event first
+            }
+            keys.insert(key);
+
             let structure = gst::Structure::builder("KeyboardKey")
                 .field("key", key as u32)
                 .field("pressed", true)
@@ -431,6 +454,10 @@ async fn handle_input_message(input_msg: InputMessage) -> Option<gst::Event> {
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::KeyUp { key } => {
+            let mut keys = pressed_keys.lock().await;
+            // Remove the key from the pressed state when released
+            keys.remove(&key);
+
             let structure = gst::Structure::builder("KeyboardKey")
                 .field("key", key as u32)
                 .field("pressed", false)
