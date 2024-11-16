@@ -313,8 +313,7 @@ async fn main() -> std::io::Result<()> {
 
     //TODO: Get this from the CLI
     let server = "server";
-    let ws_relay = "localhost:1999";
-    let url_string = format!("ws://{}/parties/main/testing?_pk={}", ws_relay, server);
+    let url_string = format!("{}/parties/main/testing?_pk={}", args.app.input_server, server);
 
     let mut socket = None;
     let start_time = Instant::now();

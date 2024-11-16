@@ -10,6 +10,9 @@ pub struct AppArgs {
     pub resolution: (u32, u32),
     /// Virtual display framerate
     pub framerate: u32,
+
+    /// Input server address
+    pub input_server: String,
 }
 impl AppArgs {
     pub fn from_matches(matches: &clap::ArgMatches) -> Self {
@@ -33,6 +36,10 @@ impl AppArgs {
                 .unwrap()
                 .parse::<u32>()
                 .unwrap(),
+            input_server: matches
+                .get_one::<String>("input-server")
+                .unwrap_or(&"ws://localhost:1999".to_string())
+                .clone(),
         }
     }
 
@@ -43,5 +50,6 @@ impl AppArgs {
         println!("> debug_latency: {}", self.debug_latency);
         println!("> resolution: {}x{}", self.resolution.0, self.resolution.1);
         println!("> framerate: {}", self.framerate);
+        println!("> input server: {}", self.input_server);
     }
 }
