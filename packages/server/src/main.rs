@@ -349,11 +349,10 @@ async fn run_websocket(
     url_string: String,
     event_tx: mpsc::Sender<gst::Event>,
 ) -> Result<(), Box<dyn Error>> {
-    let start_time = Instant::now();
-    let retry_duration = Duration::from_secs(30);
-
     loop {
         let mut socket = None;
+        let start_time = Instant::now();
+        let retry_duration = Duration::from_secs(30);
 
         // Attempt to connect to the WebSocket server within the retry duration
         while socket.is_none() && start_time.elapsed() < retry_duration {
@@ -391,8 +390,11 @@ async fn process_websocket(
 ) -> Result<(), Box<dyn Error>> {
     let (ws_sink, mut ws_stream) = socket.split();
 
+    // We need sink clone for the heartbeat task
+    let ws_sink = Arc::new(Mutex::new(ws_sink));
+
     // Spawn heartbeat task
-    let heartbeat_task = spawn_heartbeat_task(ws_sink);
+    let heartbeat_task = spawn_heartbeat_task(Arc::clone(&ws_sink));
 
     // A shared state to track currently pressed keys
     let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
@@ -414,6 +416,12 @@ async fn process_websocket(
                     }
                 });
             }
+            Ok(Message::Ping(data)) => {
+                if let Err(e) = ws_sink.lock().await.send(Message::Pong(data)).await {
+                    eprintln!("Failed to send WebSocket Pong: {}", e);
+                    break;
+                }
+            }
             Ok(Message::Close(reason)) => {
                 println!("WebSocket closed: {:?}", reason);
                 break;
@@ -430,16 +438,16 @@ async fn process_websocket(
 }
 
 fn spawn_heartbeat_task(
-    mut ws_sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
+    ws_sink: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
         let timeout = Duration::from_secs(20);
 
         loop {
-            interval.tick().await; // Await the next tick
+            interval.tick().await;
 
-            if let Err(e) = tokio::time::timeout(timeout, ws_sink.send(Message::Ping(Vec::new()))).await {
+            if let Err(e) = tokio::time::timeout(timeout, ws_sink.lock().await.send(Message::Ping(vec![]))).await {
                 eprintln!("Heartbeat task error: {:?}", e);
                 break;
             }
