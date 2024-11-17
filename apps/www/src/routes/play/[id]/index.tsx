@@ -113,21 +113,39 @@ export default component$(() => {
                 console.log("Setting mediastream");
                 if (video && mediaStream) {
                     (video as HTMLVideoElement).srcObject = mediaStream;
-                    (video as HTMLVideoElement).play().then(() => {
-                        if (canvas.value) {
-                            canvas.value.width = (video as HTMLVideoElement).videoWidth;
-                            canvas.value.height = (video as HTMLVideoElement).videoHeight;
+                    const playbtn = document.createElement("button");
+                    playbtn.style.position = "absolute";
+                    playbtn.style.left = "50%";
+                    playbtn.style.top = "50%";
+                    playbtn.style.transform = "translateX(-50%) translateY(-50%)";
+                    playbtn.style.width = "12rem";
+                    playbtn.style.height = "6rem";
+                    playbtn.style.borderRadius = "1rem";
+                    playbtn.style.backgroundColor = "rgb(175, 50, 50)";
+                    playbtn.style.color = "black";
+                    playbtn.style.fontSize = "1.5em";
+                    playbtn.textContent = "< Start >";
 
-                            const ctx = canvas.value.getContext("2d");
-                            const renderer = () => {
-                                if (ctx) {
-                                    ctx.drawImage((video as HTMLVideoElement), 0, 0);
-                                    requestAnimationFrame(renderer);
+                    playbtn.onclick = () => {
+                        playbtn.remove();
+                        (video as HTMLVideoElement).play().then(() => {
+                            if (canvas.value) {
+                                canvas.value.width = (video as HTMLVideoElement).videoWidth;
+                                canvas.value.height = (video as HTMLVideoElement).videoHeight;
+
+                                const ctx = canvas.value.getContext("2d");
+                                const renderer = () => {
+                                    if (ctx) {
+                                        ctx.drawImage((video as HTMLVideoElement), 0, 0);
+                                        requestAnimationFrame(renderer);
+                                    }
                                 }
+                                requestAnimationFrame(renderer);
                             }
-                            requestAnimationFrame(renderer);
-                        }
-                    });
+                        });
+                    };
+
+                    document.body.append(playbtn);
                 }
             });
         }
