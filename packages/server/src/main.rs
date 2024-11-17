@@ -349,29 +349,39 @@ async fn run_websocket(
     url_string: String,
     event_tx: mpsc::Sender<gst::Event>,
 ) -> Result<(), Box<dyn Error>> {
-    let mut socket = None;
     let start_time = Instant::now();
     let retry_duration = Duration::from_secs(30);
 
-    // Attempt to connect to the WebSocket server
-    while socket.is_none() && start_time.elapsed() < retry_duration {
-        match connect_async(&url_string).await {
-            Ok((ws_stream, _)) => {
-                println!("Connected to WebSocket server.");
-                socket = Some(ws_stream);
-            }
-            Err(e) => {
-                eprintln!("WebSocket connection error: {}", e);
-                tokio::time::sleep(Duration::from_secs(1)).await;
+    loop {
+        let mut socket = None;
+
+        // Attempt to connect to the WebSocket server within the retry duration
+        while socket.is_none() && start_time.elapsed() < retry_duration {
+            match connect_async(&url_string).await {
+                Ok((ws_stream, _)) => {
+                    println!("Connected to WebSocket server.");
+                    socket = Some(ws_stream);
+                }
+                Err(e) => {
+                    eprintln!("WebSocket connection error: {}", e);
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                }
             }
         }
-    }
 
-    if let Some(socket) = socket {
-        process_websocket(socket, event_tx).await
-    } else {
-        eprintln!("Failed to connect to WebSocket server within the timeout.");
-        Ok(())
+        if let Some(socket) = socket {
+            // Process messages from WebSocket
+            if let Err(e) = process_websocket(socket, event_tx.clone()).await {
+                eprintln!("Error during WebSocket processing: {}", e);
+            }
+        } else {
+            eprintln!("Failed to connect to WebSocket server within the timeout.");
+            return Ok(());  // Exit if unable to connect after retries
+        }
+
+        // Wait before attempting to reconnect
+        eprintln!("Reconnecting to WebSocket server...");
+        tokio::time::sleep(Duration::from_secs(2)).await;
     }
 }
 
