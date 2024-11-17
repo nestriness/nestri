@@ -59,7 +59,7 @@ fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
     }
 
     // Based on available arguments, pick a GPU
-    let mut gpu = gpus.get(0).cloned();
+    let gpu;
     if !args.device.gpu_card_path.is_empty() {
         gpu = gpu::get_gpu_by_card_path(&gpus, &args.device.gpu_card_path);
     } else {
@@ -107,7 +107,7 @@ fn handle_encoder_video(args: &args::Args) -> Option<enc_helper::VideoEncoderInf
         );
     }
     // Pick most suitable video encoder based on given arguments
-    let mut video_encoder = video_encoders.get(0).cloned();
+    let video_encoder;
     if !args.encoding.video.encoder.is_empty() {
         video_encoder = enc_helper::get_encoder_by_name(&video_encoders, &args.encoding.video.encoder);
     } else {
@@ -330,7 +330,7 @@ async fn main() -> std::io::Result<()> {
         match Url::parse(&url_string) {
             Ok(url) => {
                 match connect_async(url.as_str()).await {
-                    Ok((ws_stream, _response)) => {
+                    Ok((ws_stream, _)) => {
                         println!("[websocket]: Connected to the server");
                         socket = Some(ws_stream);
                     }
@@ -358,19 +358,41 @@ async fn main() -> std::io::Result<()> {
         let pipeline = Arc::clone(&pipeline_clone);
         tokio::spawn(async move {
             while let Some(event) = event_rx.recv().await {
-                let mut pipeline = pipeline.lock().await;
+                let pipeline = pipeline.lock().await;
                 pipeline.send_event(event);
             }
         })
     };
 
-    if let Some(mut socket) = socket {
-        socket
-            .send(Message::Text("Hello There".into()))
-            .await
-            .expect("Failed to send initial message");
+    if let Some(socket) = socket {
+        let (mut ws_sink, mut ws_stream) = socket.split();
 
-        while let Some(msg) = socket.next().await {
+        // Start the heartbeat task
+        let heartbeat_interval = Duration::from_secs(10); // Send a Ping every 10 seconds
+        let heartbeat_timeout = Duration::from_secs(20); // Consider the connection dead if no Pong within 20 seconds
+
+        println!("Spawning heartbeat task");
+        let heartbeat_task = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(heartbeat_interval);
+            loop {
+                interval.tick().await;
+
+                match tokio::time::timeout(heartbeat_timeout, ws_sink.send(Message::Ping(Vec::new()))).await {
+                    Ok(Ok(_)) => {}
+                    Ok(Err(e)) => {
+                        eprintln!("[heartbeat]: Failed to send Ping: {}", e);
+                        break;
+                    }
+                    Err(_) => {
+                        eprintln!("[heartbeat]: Pong not received within timeout");
+                        break;
+                    }
+                }
+            }
+            println!("[heartbeat]: Exiting heartbeat task");
+        });
+
+        while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(Message::Text(txt)) => {
                     let event_tx = event_tx.clone();
@@ -385,11 +407,13 @@ async fn main() -> std::io::Result<()> {
                         }
                     });
                 }
-                Ok(Message::Ping(bytes)) => {
-                    socket.send(Message::Pong(bytes)).await.unwrap();
+                Ok(Message::Ping(_)) => {
+                    // Since we do our heartbeat logic above, no need to respond?
+                    //ws_sink.send(Message::Pong(bytes)).await.unwrap();
                 }
-                Ok(Message::Pong(bytes)) => {
-                    socket.send(Message::Ping(bytes)).await.unwrap();
+                Ok(Message::Pong(_)) => {
+                    // Spammy if kept on
+                    //println!("[websocket]: Received Pong");
                 }
                 Ok(Message::Close(reason)) => {
                     println!("WebSocket closed: {:?}", reason);
@@ -403,6 +427,9 @@ async fn main() -> std::io::Result<()> {
         }
 
         pipeline_task.await?;
+
+        // Abort on exit to cleanup
+        heartbeat_task.abort();
     } else {
         eprintln!("[websocket]: Could not connect to the server within 30 seconds.");
     }
@@ -412,7 +439,7 @@ async fn main() -> std::io::Result<()> {
 
 async fn handle_input_message(
     input_msg: InputMessage,
-    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>
+    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>,
 ) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
@@ -433,16 +460,9 @@ async fn handle_input_message(
         }
         InputMessage::KeyDown { key } => {
             let mut keys = pressed_keys.lock().await;
-            // If the key is already pressed, send KeyUp first to release it
-            // this prevents multiple down events locking a key
+            // If the key is already pressed, return to prevent key lockup
             if keys.contains(&key) {
-                let structure = gst::Structure::builder("KeyboardKey")
-                    .field("key", key as u32)
-                    .field("pressed", false)
-                    .build();
-
-                let release_event = gst::event::CustomUpstream::new(structure);
-                return Some(release_event); // Send the release event first
+                return None;
             }
             keys.insert(key);
 

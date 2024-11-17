@@ -62,6 +62,10 @@ export class Keyboard {
         return (e: Event) => {
             e.preventDefault();
             e.stopPropagation();
+            // Prevent repeated key events from being sent (important for games)
+            if ((e as any).repeat)
+                return;
+
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
             this.websocket.send(JSON.stringify({...data, type} as Input));
         };
@@ -74,6 +78,8 @@ export class Keyboard {
     }
 
     private keyToVirtualKeyCode(code: string) {
+        // Treat Home key as Escape - TODO: Make user-configurable
+        if (code === "Home") return 1;
         return keyCodeToLinuxEventCode[code] || undefined;
     }
 }
