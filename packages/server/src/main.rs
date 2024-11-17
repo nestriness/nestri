@@ -3,17 +3,21 @@ mod enc_helper;
 mod gpu;
 
 use std::collections::HashSet;
+use std::error::Error;
 use std::sync::{Arc};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use url::Url;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
 
 use gst::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use futures_util::{SinkExt, StreamExt};
+use futures_util::stream::SplitSink;
+use gst::Pipeline;
 use serde_json::from_str;
-use tokio::sync::mpsc;
+use tokio::net::TcpStream;
+use tokio::sync::{mpsc, Mutex};
 use crate::args::{encoding_args, output_args};
+use tokio::time::Duration;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -163,7 +167,7 @@ fn handle_encoder_audio(args: &args::Args, output_option: &output_args::OutputOp
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = args::Args::new();
     if args.app.verbose {
         args.debug_print();
@@ -271,175 +275,171 @@ async fn main() -> std::io::Result<()> {
         println!("Constructed pipeline string: {}", pipeline_str);
     }
 
-    // Create the pipeline
-    let pipeline = gst::parse::launch(pipeline_str.as_str())
-        .unwrap()
-        .downcast::<gst::Pipeline>()
-        .unwrap();
+    //TODO: Get this from the CLI
+    let server = "server";
+    let url_string = format!("{}/parties/main/{}?_pk={}", args.app.input_server, args.app.room, server);
 
-    let _ = pipeline.set_state(gst::State::Playing);
-    let pipeline_clone = Arc::new(tokio::sync::Mutex::new(pipeline.clone()));
+    // Create and launch the pipeline
+    let pipeline = create_pipeline(pipeline_str.as_str())?;
+    let pipeline = Arc::new(Mutex::new(pipeline));
 
-    // let app_state = web::Data::new(AppState {
-    //     pipeline: Arc::new(Mutex::new(pipeline.clone())),
-    // });
+    // Set up a channel for communication with the pipeline
+    let (event_tx, event_rx) = mpsc::channel(50);
 
-    let pipeline_thread = pipeline.clone();
+    // Spawn the pipeline event handling task
+    spawn_pipeline_event_task(Arc::clone(&pipeline), event_rx);
 
+    // Handle WebSocket input
+    run_websocket(url_string, event_tx).await?;
+
+    Ok(())
+}
+
+fn create_pipeline(pipeline_str: &str) -> Result<Pipeline, Box<dyn Error>> {
+    let pipeline = gst::parse::launch(pipeline_str)?
+        .downcast::<Pipeline>()
+        .map_err(|_| "Failed to downcast pipeline")?;
+    pipeline.set_state(gst::State::Playing)?;
+    spawn_pipeline_error_task(pipeline.clone());
+    Ok(pipeline)
+}
+
+fn spawn_pipeline_error_task(pipeline: Pipeline) {
     std::thread::spawn(move || {
-        let bus = pipeline_thread
-            .bus()
-            .expect("Pipeline without bus. Shouldn't happen!");
-
+        let bus = pipeline.bus().expect("Pipeline without bus. Shouldn't happen!");
         for msg in bus.iter_timed(gst::ClockTime::NONE) {
             use gst::MessageView;
-
             match msg.view() {
                 MessageView::Eos(..) => {
-                    println!("EOS");
+                    println!("Pipeline reached EOS.");
                     break;
                 }
                 MessageView::Error(err) => {
-                    let _ = pipeline_thread.set_state(gst::State::Null);
+                    let _ = pipeline.set_state(gst::State::Null);
                     eprintln!(
-                        "Got error from {}: {} ({})",
-                        msg.src()
-                            .map(|s| String::from(s.path_string()))
-                            .unwrap_or_else(|| "None".into()),
+                        "Pipeline error: {} ({})",
                         err.error(),
-                        err.debug().unwrap_or_else(|| "".into()),
+                        err.debug().unwrap_or_else(|| "".into())
                     );
                     break;
                 }
                 _ => (),
             }
         }
-
         let _ = pipeline.set_state(gst::State::Null);
     });
+}
 
-    //TODO: Get this from the CLI
-    let server = "server";
-    let url_string = format!("{}/parties/main/{}?_pk={}", args.app.input_server, args.app.room, server);
+fn spawn_pipeline_event_task(
+    pipeline: Arc<Mutex<Pipeline>>,
+    mut event_rx: mpsc::Receiver<gst::Event>,
+) {
+    tokio::spawn(async move {
+        while let Some(event) = event_rx.recv().await {
+            let pipeline = pipeline.lock().await;
+            if !pipeline.send_event(event) {
+                // No need to spam this message, it's normal for some events to be dropped
+                //eprintln!("Failed to send event to the pipeline.");
+            }
+        }
+    });
+}
 
+async fn run_websocket(
+    url_string: String,
+    event_tx: mpsc::Sender<gst::Event>,
+) -> Result<(), Box<dyn Error>> {
     let mut socket = None;
     let start_time = Instant::now();
     let retry_duration = Duration::from_secs(30);
 
+    // Attempt to connect to the WebSocket server
     while socket.is_none() && start_time.elapsed() < retry_duration {
-        match Url::parse(&url_string) {
-            Ok(url) => {
-                match connect_async(url.as_str()).await {
-                    Ok((ws_stream, _)) => {
-                        println!("[websocket]: Connected to the server");
-                        socket = Some(ws_stream);
-                    }
-                    Err(e) => {
-                        eprintln!("[websocket]: Error connecting: {}", e);
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                }
+        match connect_async(&url_string).await {
+            Ok((ws_stream, _)) => {
+                println!("Connected to WebSocket server.");
+                socket = Some(ws_stream);
             }
             Err(e) => {
-                eprintln!("Invalid URL: {}", e);
-                break; // Exit if the URL is invalid
+                eprintln!("WebSocket connection error: {}", e);
+                tokio::time::sleep(Duration::from_secs(1)).await;
             }
         }
     }
-
-    // Create an async channel for sending events to the pipeline
-    let (event_tx, mut event_rx) = mpsc::channel(10);
-
-    // A shared state to track currently pressed keys
-    let pressed_keys = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
-
-    // Spawn a task to process events for the pipeline
-    let pipeline_task = {
-        let pipeline = Arc::clone(&pipeline_clone);
-        tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                let pipeline = pipeline.lock().await;
-                pipeline.send_event(event);
-            }
-        })
-    };
 
     if let Some(socket) = socket {
-        let (mut ws_sink, mut ws_stream) = socket.split();
+        process_websocket(socket, event_tx).await
+    } else {
+        eprintln!("Failed to connect to WebSocket server within the timeout.");
+        Ok(())
+    }
+}
 
-        // Start the heartbeat task
-        let heartbeat_interval = Duration::from_secs(10); // Send a Ping every 10 seconds
-        let heartbeat_timeout = Duration::from_secs(20); // Consider the connection dead if no Pong within 20 seconds
+async fn process_websocket(
+    socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    event_tx: mpsc::Sender<gst::Event>,
+) -> Result<(), Box<dyn Error>> {
+    let (ws_sink, mut ws_stream) = socket.split();
 
-        println!("Spawning heartbeat task");
-        let heartbeat_task = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(heartbeat_interval);
-            loop {
-                interval.tick().await;
+    // Spawn heartbeat task
+    let heartbeat_task = spawn_heartbeat_task(ws_sink);
 
-                match tokio::time::timeout(heartbeat_timeout, ws_sink.send(Message::Ping(Vec::new()))).await {
-                    Ok(Ok(_)) => {}
-                    Ok(Err(e)) => {
-                        eprintln!("[heartbeat]: Failed to send Ping: {}", e);
-                        break;
-                    }
-                    Err(_) => {
-                        eprintln!("[heartbeat]: Pong not received within timeout");
-                        break;
-                    }
-                }
-            }
-            println!("[heartbeat]: Exiting heartbeat task");
-        });
+    // A shared state to track currently pressed keys
+    let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
 
-        while let Some(msg) = ws_stream.next().await {
-            match msg {
-                Ok(Message::Text(txt)) => {
-                    let event_tx = event_tx.clone();
-                    let pressed_keys = Arc::clone(&pressed_keys);
+    // Handle incoming messages
+    while let Some(msg) = ws_stream.next().await {
+        match msg {
+            Ok(Message::Text(txt)) => {
+                let event_tx = event_tx.clone();
+                let pressed_keys = Arc::clone(&pressed_keys);
 
-                    // Spawn a task to handle the input message
-                    tokio::spawn(async move {
-                        if let Ok(input_msg) = from_str::<InputMessage>(&txt) {
-                            if let Some(event) = handle_input_message(input_msg, &pressed_keys).await {
-                                event_tx.send(event).await.unwrap();
+                tokio::spawn(async move {
+                    if let Ok(input_msg) = from_str::<InputMessage>(&txt) {
+                        if let Some(event) = handle_input_message(input_msg, &pressed_keys).await {
+                            if let Err(e) = event_tx.send(event).await {
+                                eprintln!("Failed to send event: {}", e);
                             }
                         }
-                    });
-                }
-                Ok(Message::Ping(_)) => {
-                    // Since we do our heartbeat logic above, no need to respond?
-                    //ws_sink.send(Message::Pong(bytes)).await.unwrap();
-                }
-                Ok(Message::Pong(_)) => {
-                    // Spammy if kept on
-                    //println!("[websocket]: Received Pong");
-                }
-                Ok(Message::Close(reason)) => {
-                    println!("WebSocket closed: {:?}", reason);
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("Error reading WebSocket message: {}", e);
-                }
-                _ => {}
+                    }
+                });
             }
+            Ok(Message::Close(reason)) => {
+                println!("WebSocket closed: {:?}", reason);
+                break;
+            }
+            Err(e) => {
+                eprintln!("Error reading WebSocket message: {}", e);
+            }
+            _ => {}
         }
-
-        pipeline_task.await?;
-
-        // Abort on exit to cleanup
-        heartbeat_task.abort();
-    } else {
-        eprintln!("[websocket]: Could not connect to the server within 30 seconds.");
     }
 
+    heartbeat_task.abort(); // Ensure the heartbeat task is stopped
     Ok(())
+}
+
+fn spawn_heartbeat_task(
+    mut ws_sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
+        let timeout = Duration::from_secs(20);
+
+        loop {
+            interval.tick().await; // Await the next tick
+
+            if let Err(e) = tokio::time::timeout(timeout, ws_sink.send(Message::Ping(Vec::new()))).await {
+                eprintln!("Heartbeat task error: {:?}", e);
+                break;
+            }
+        }
+    })
 }
 
 async fn handle_input_message(
     input_msg: InputMessage,
-    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>,
+    pressed_keys: &Arc<Mutex<HashSet<i32>>>,
 ) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
