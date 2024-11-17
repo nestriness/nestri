@@ -1,18 +1,11 @@
 pub struct MoQOutputArgs {
     /// Relay server URL (e.g. "https://relay.example.com")
     pub relay_url: String,
-    /// Relay path/namespace/broadcast (e.g. "teststream")
-    pub relay_path: String,
 }
 impl MoQOutputArgs {
     pub fn from_matches(matches: &clap::ArgMatches) -> Self {
         Self {
             relay_url: matches.get_one::<String>("moq-relay").unwrap().clone(),
-            // generate a random relay namespace/path starting with "teststream", e.g. "teststream-1234"
-            relay_path: matches
-                .get_one::<String>("moq-path")
-                .unwrap_or(&format!("teststream-{}", rand::random::<u32>()).clone())
-                .clone(),
         }
     }
 }
@@ -54,7 +47,6 @@ impl OutputOption {
             OutputOption::MoQ(args) => {
                 println!("> MoQ:");
                 println!("-> relay_url: {}", args.relay_url);
-                println!("-> relay_path: {}", args.relay_path);
             }
             OutputOption::WHIP(args) => {
                 println!("> WHIP:");
