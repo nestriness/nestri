@@ -28,5 +28,5 @@ func main() {
 
 	// Wait for exit signal
 	<-stopCh
-	log.Println("Shutting down gracefully by signal..")
+	log.Println("Shutting down gracefully by signal...")
 }
