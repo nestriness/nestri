@@ -279,70 +279,105 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server = "server";
     let url_string = format!("{}/parties/main/{}?_pk={}", args.app.input_server, args.app.room, server);
 
-    // Create and launch the pipeline
-    let pipeline = create_pipeline(pipeline_str.as_str())?;
-    let pipeline = Arc::new(Mutex::new(pipeline));
-
     // Set up a channel for communication with the pipeline
     let (event_tx, event_rx) = mpsc::channel(50);
+    let event_rx = Arc::new(Mutex::new(event_rx));
 
-    // Spawn the pipeline event handling task
-    spawn_pipeline_event_task(Arc::clone(&pipeline), event_rx);
+    // Run both pipeline and websocket tasks concurrently
+    let result = tokio::try_join!(
+        run_pipeline(pipeline_str, event_rx),
+        run_websocket(url_string, event_tx),
+    );
 
-    // Handle WebSocket input
-    run_websocket(url_string, event_tx).await?;
+    match result {
+        Ok(_) => println!("Both tasks completed successfully."),
+        Err(e) => eprintln!("One of the tasks failed: {}", e),
+    }
 
     Ok(())
 }
 
-fn create_pipeline(pipeline_str: &str) -> Result<Pipeline, Box<dyn Error>> {
-    let pipeline = gst::parse::launch(pipeline_str)?
-        .downcast::<Pipeline>()
-        .map_err(|_| "Failed to downcast pipeline")?;
-    pipeline.set_state(gst::State::Playing)?;
-    spawn_pipeline_error_task(pipeline.clone());
-    Ok(pipeline)
-}
+async fn run_pipeline(
+    pipeline_str: String,
+    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
+) -> Result<(), Box<dyn Error>> {
+    loop {
+        // Create the pipeline
+        let pipeline = gst::parse::launch(&pipeline_str)?
+            .downcast::<Pipeline>()
+            .map_err(|_| "Failed to downcast pipeline")?;
+        pipeline.set_state(gst::State::Playing)?;
 
-fn spawn_pipeline_error_task(pipeline: Pipeline) {
-    std::thread::spawn(move || {
-        let bus = pipeline.bus().expect("Pipeline without bus. Shouldn't happen!");
-        for msg in bus.iter_timed(gst::ClockTime::NONE) {
-            use gst::MessageView;
-            match msg.view() {
-                MessageView::Eos(..) => {
-                    println!("Pipeline reached EOS.");
-                    break;
+        let pipeline = Arc::new(Mutex::new(pipeline));
+
+        // Spawn the event handling task
+        let (error_tx, mut error_rx) = mpsc::channel(1);
+        let pipeline_clone = pipeline.clone();
+        tokio::spawn(async move {
+            if let Err(e) = handle_pipeline_errors(pipeline_clone, error_tx).await {
+                eprintln!("Error handling pipeline errors: {}", e);
+            }
+        });
+
+        // Spawn the pipeline event task
+        let pipeline_event_task = spawn_pipeline_event_task(pipeline.clone(), event_rx.clone());
+
+        // Wait for an error or the event task to complete
+        tokio::select! {
+            res = pipeline_event_task => {
+                if let Err(e) = res {
+                    eprintln!("Pipeline event task failed: {}", e);
                 }
-                MessageView::Error(err) => {
-                    let _ = pipeline.set_state(gst::State::Null);
-                    eprintln!(
-                        "Pipeline error: {} ({})",
-                        err.error(),
-                        err.debug().unwrap_or_else(|| "".into())
-                    );
-                    break;
-                }
-                _ => (),
+                break Err("Pipeline event task ended unexpectedly".into());
+            }
+            Some(_) = error_rx.recv() => {
+                eprintln!("Pipeline error occurred. Restarting...");
+                continue; // Restart the pipeline loop
             }
         }
-        let _ = pipeline.set_state(gst::State::Null);
-    });
+    }
 }
 
-fn spawn_pipeline_event_task(
+async fn handle_pipeline_errors(
     pipeline: Arc<Mutex<Pipeline>>,
-    mut event_rx: mpsc::Receiver<gst::Event>,
-) {
-    tokio::spawn(async move {
-        while let Some(event) = event_rx.recv().await {
-            let pipeline = pipeline.lock().await;
-            if !pipeline.send_event(event) {
-                // No need to spam this message, it's normal for some events to be dropped
-                //eprintln!("Failed to send event to the pipeline.");
+    error_tx: mpsc::Sender<()>,
+) -> Result<(), Box<dyn Error>> {
+    let bus = pipeline.lock().await.bus().expect("Pipeline without bus. Shouldn't happen!");
+    for msg in bus.iter_timed(gst::ClockTime::NONE) {
+        use gst::MessageView;
+        match msg.view() {
+            MessageView::Eos(..) => {
+                println!("Pipeline reached EOS.");
+                break;
             }
+            MessageView::Error(err) => {
+                let _ = pipeline.lock().await.set_state(gst::State::Null);
+                eprintln!(
+                    "Pipeline error: {} ({})",
+                    err.error(),
+                    err.debug().unwrap_or_else(|| "".into())
+                );
+                let _ = error_tx.send(()).await;
+                break;
+            }
+            _ => (),
         }
-    });
+    }
+    Ok(())
+}
+
+async fn spawn_pipeline_event_task(
+    pipeline: Arc<Mutex<Pipeline>>,
+    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
+) -> Result<(), Box<dyn Error>> {
+    while let Some(event) = event_rx.lock().await.recv().await {
+        let pipeline = pipeline.lock().await;
+        if !pipeline.send_event(event) {
+            // No need to spam this message, it's normal for some events to be dropped
+            //eprintln!("Failed to send event to the pipeline.");
+        }
+    }
+    Ok(())
 }
 
 async fn run_websocket(
