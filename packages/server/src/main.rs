@@ -276,8 +276,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     //TODO: Get this from the CLI
-    //let server = "server";
-    let url_string = format!("{}/api/room/{}", args.app.input_server, args.app.room);
+    let server = "server";
+    let url_string = format!("{}/api/room/{}?name={}", args.app.input_server, args.app.room, server);
 
     // Set up a channel for communication with the pipeline
     let (event_tx, event_rx) = mpsc::channel(50);
