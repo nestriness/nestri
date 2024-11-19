@@ -22,9 +22,9 @@ func InitHTTPEndpoint() {
 
 	// Endpoints themselves
 	httpMux.Handle("/", http.NotFoundHandler())
+	httpMux.HandleFunc("/api/room/{roomName}", corsAnyHandler(websocketHandler))
 	httpMux.HandleFunc("/api/whip/{streamName}", corsAnyHandler(whipHandler))
 	httpMux.HandleFunc("/api/whep/{streamName}", corsAnyHandler(whepHandler))
-	httpMux.HandleFunc("/room/{room}", corsAnyHandler(websocketHandler))
 
 	// Get our serving port
 	port := GetRelayFlags().EndpointPort
