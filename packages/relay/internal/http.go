@@ -1,16 +1,17 @@
-package webrtcrelay
+package relay
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/pion/webrtc/v4"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/pion/webrtc/v4"
 )
 
 var httpMux *http.ServeMux
