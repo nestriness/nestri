@@ -1,10 +1,43 @@
 package relay
 
 import (
+	"log"
+
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
-	"log"
 )
+
+type Stream struct {
+	PeerConnection *webrtc.PeerConnection
+	AudioTrack     webrtc.TrackLocal
+	VideoTrack     webrtc.TrackLocal
+}
+
+type Viewer struct {
+	UUID           string
+	PeerConnection *webrtc.PeerConnection
+}
+
+func (vw *Viewer) AddTrack(trackLocal *webrtc.TrackLocal) error {
+	rtpSender, err := vw.PeerConnection.AddTrack(*trackLocal)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		rtcpBuffer := make([]byte, 1400)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuffer); rtcpErr != nil {
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+var StreamMap map[string]*Stream            //< stream name -> stream
+var ViewerMap map[string]map[string]*Viewer //< stream name -> viewers by their UUID
 
 var globalWebRTCAPI *webrtc.API
 var globalWebRTCConfig = webrtc.Configuration{
@@ -14,8 +47,12 @@ var globalWebRTCConfig = webrtc.Configuration{
 }
 
 func InitWebRTCAPI() error {
+	// Make our maps
+	StreamMap = make(map[string]*Stream)
+	ViewerMap = make(map[string]map[string]*Viewer)
+
 	var err error
-	flags := GetFlags()
+	flags := GetRelayFlags()
 
 	// Media engine
 	mediaEngine := &webrtc.MediaEngine{}
@@ -24,23 +61,6 @@ func InitWebRTCAPI() error {
 	err = mediaEngine.RegisterDefaultCodecs()
 	if err != nil {
 		return err
-	}
-
-	// Add H.265 for special cases
-	videoRTCPFeedback := []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
-	for _, codec := range []webrtc.RTPCodecParameters{
-		{
-			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH265, ClockRate: 90000, RTCPFeedback: videoRTCPFeedback},
-			PayloadType:        48,
-		},
-		{
-			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeRTX, ClockRate: 90000, SDPFmtpLine: "apt=48"},
-			PayloadType:        49,
-		},
-	} {
-		if err := mediaEngine.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
-			return err
-		}
 	}
 
 	// Interceptor registry

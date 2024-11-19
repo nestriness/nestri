@@ -9,21 +9,19 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-var globalFlags *Flags
+var globalFlags *RelayFlags
 
-type Flags struct {
+type RelayFlags struct {
 	Verbose        bool
-	Debug          bool
 	EndpointPort   int
 	WebRTCUDPStart int
 	WebRTCUDPEnd   int
 	STUNServer     string
 }
 
-func (flags *Flags) DebugLog() {
+func (flags *RelayFlags) DebugLog() {
 	log.Println("Relay Flags:")
 	log.Println("> Verbose: ", flags.Verbose)
-	log.Println("> Debug: ", flags.Debug)
 	log.Println("> Endpoint Port: ", flags.EndpointPort)
 	log.Println("> WebRTC UDP Range Start: ", flags.WebRTCUDPStart)
 	log.Println("> WebRTC UDP Range End: ", flags.WebRTCUDPEnd)
@@ -56,12 +54,11 @@ func getEnvAsString(name string, defaultVal string) string {
 	return valueStr
 }
 
-func InitFlags() {
+func InitRelayFlags() {
 	// Create Flags struct
-	globalFlags = &Flags{}
+	globalFlags = &RelayFlags{}
 	// Get flags
 	flag.BoolVar(&globalFlags.Verbose, "verbose", getEnvAsBool("VERBOSE", false), "Verbose mode")
-	flag.BoolVar(&globalFlags.Debug, "debug", getEnvAsBool("DEBUG", false), "Debug mode")
 	flag.IntVar(&globalFlags.EndpointPort, "endpointPort", getEnvAsInt("ENDPOINT_PORT", 8088), "HTTP endpoint port")
 	flag.IntVar(&globalFlags.WebRTCUDPStart, "webrtcUDPStart", getEnvAsInt("WEBRTC_UDP_START", 10000), "WebRTC UDP port range start")
 	flag.IntVar(&globalFlags.WebRTCUDPEnd, "webrtcUDPEnd", getEnvAsInt("WEBRTC_UDP_END", 20000), "WebRTC UDP port range end")
@@ -77,6 +74,6 @@ func InitFlags() {
 	}
 }
 
-func GetFlags() *Flags {
+func GetRelayFlags() *RelayFlags {
 	return globalFlags
 }
