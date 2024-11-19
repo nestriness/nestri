@@ -1,7 +1,7 @@
 package relay
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -18,6 +18,12 @@ type Room struct {
 	name         string
 }
 
+// Message represents a message sent by a participant
+type Message struct {
+	Type string `json:"type"`
+	Data string `json:"data"`
+}
+
 // Participant represents a participant in a chat room
 type Participant struct {
 	ws   *websocket.Conn
@@ -29,6 +35,9 @@ type Participant struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 var rooms = make(map[string]*Room)
@@ -107,7 +116,23 @@ func (p *Participant) readPump() {
 		}
 
 		log.Printf("> Participant %s sent message to room %s >>>> %s\n", p.name, p.room.name, string(message))
-		p.room.broadcast <- fmt.Sprintf("%s: %s", p.name, string(message))
+
+		var msg Message
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			log.Println(err)
+			p.room.broadcast <- string(message)
+			continue
+		}
+
+		switch msg.Type {
+		case "input":
+			p.room.sendMessageToParticipant("server", string(message))
+		case "docker":
+			p.room.sendMessageToParticipant("master", string(message))
+		default:
+			p.room.broadcast <- string(message)
+		}
 	}
 }
 
@@ -128,4 +153,17 @@ func (r *Room) removeParticipant(p *Participant) {
 	r.mutex.Unlock()
 	close(p.send)
 	log.Printf("> Participant %s left room %s\n", p.name, r.name)
+}
+
+func (r *Room) sendMessageToParticipant(name string, message string) {
+	r.mutex.RLock()
+	for participant := range r.participants {
+		if participant.name == name {
+			participant.send <- message
+			log.Printf("Sent message to participant %s in room %s: %s\n", name, r.name, message)
+			return
+		}
+	}
+	r.mutex.RUnlock()
+	log.Printf("Participant %s not found in room %s\n", name, r.name)
 }
