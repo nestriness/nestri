@@ -52,9 +52,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		if GetRelayFlags().Verbose {
 			log.Println("Closed PeerConnection for stream: ", roomName)
 		}
-		if _, ok := RoomMap[roomName]; ok {
-			delete(RoomMap, roomName)
-		}
+		delete(RoomMap, roomName)
 	}
 
 	// Create a new stream

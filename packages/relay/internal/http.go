@@ -1,7 +1,6 @@
 package relay
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,25 +38,25 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 	http.Error(w, err, code)
 }
 
-// httpError sends a web response with an error message
-func httpError(w http.ResponseWriter, statusCode int, message string) {
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
-}
+// // httpError sends a web response with an error message
+// func httpError(w http.ResponseWriter, statusCode int, message string) {
+// 	w.WriteHeader(statusCode)
+// 	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+// }
 
-// respondWithJSON writes JSON to the response body
-func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(payload)
-}
+// // respondWithJSON writes JSON to the response body
+// func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(statusCode)
+// 	_ = json.NewEncoder(w).Encode(payload)
+// }
 
-// respondWithText writes text to the response body
-func respondWithText(w http.ResponseWriter, statusCode int, payload string) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(statusCode)
-	_, _ = w.Write([]byte(payload))
-}
+// // respondWithText writes text to the response body
+// func respondWithText(w http.ResponseWriter, statusCode int, payload string) {
+// 	w.Header().Set("Content-Type", "text/plain")
+// 	w.WriteHeader(statusCode)
+// 	_, _ = w.Write([]byte(payload))
+// }
 
 // corsAnyHandler allows any origin to access the endpoint
 func corsAnyHandler(next func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
