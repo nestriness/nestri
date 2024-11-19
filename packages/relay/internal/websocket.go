@@ -46,7 +46,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		participantName = uuid.New().String()
 	}
 
-	log.Printf("New participant %s joining room %s\n", participantName, roomName)
+	log.Printf("> New participant %s joining room %s\n", participantName, roomName)
 
 	mutex.Lock()
 	room, ok := rooms[roomName]
@@ -57,7 +57,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 			name:         roomName,
 		}
 		rooms[roomName] = room
-		log.Printf("Created new room %s\n", roomName)
+		log.Printf("> Created new room %s\n", roomName)
 	}
 	mutex.Unlock()
 
@@ -78,7 +78,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	room.participants[participant] = true
 	room.mutex.Unlock()
 
-	log.Printf("Participant %s joined room %s\n", participantName, roomName)
+	log.Printf("> Participant %s joined room %s\n", participantName, roomName)
 
 	go participant.writePump()
 	go participant.readPump()
@@ -106,14 +106,14 @@ func (p *Participant) readPump() {
 			return
 		}
 
-		log.Printf("Participant %s sent message to room %s: %s\n", p.name, p.room.name, string(message))
+		log.Printf("> Participant %s sent message to room %s >>>> %s\n", p.name, p.room.name, string(message))
 		p.room.broadcast <- fmt.Sprintf("%s: %s", p.name, string(message))
 	}
 }
 
 func (r *Room) broadcastPump() {
 	for message := range r.broadcast {
-		log.Printf("Broadcasting message to room %s: %s\n", r.name, message)
+		log.Printf("> Broadcasting message to room %s: %s\n", r.name, message)
 		r.mutex.RLock()
 		for participant := range r.participants {
 			participant.send <- message
@@ -127,5 +127,5 @@ func (r *Room) removeParticipant(p *Participant) {
 	delete(r.participants, p)
 	r.mutex.Unlock()
 	close(p.send)
-	log.Printf("Participant %s left room %s\n", p.name, r.name)
+	log.Printf("> Participant %s left room %s\n", p.name, r.name)
 }
