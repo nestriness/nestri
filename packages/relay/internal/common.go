@@ -7,18 +7,18 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-type Stream struct {
+type Room struct {
 	PeerConnection *webrtc.PeerConnection
 	AudioTrack     webrtc.TrackLocal
 	VideoTrack     webrtc.TrackLocal
 }
 
-type Viewer struct {
+type Participant struct {
 	UUID           string
 	PeerConnection *webrtc.PeerConnection
 }
 
-func (vw *Viewer) AddTrack(trackLocal *webrtc.TrackLocal) error {
+func (vw *Participant) AddTrack(trackLocal *webrtc.TrackLocal) error {
 	rtpSender, err := vw.PeerConnection.AddTrack(*trackLocal)
 	if err != nil {
 		return err
@@ -36,8 +36,8 @@ func (vw *Viewer) AddTrack(trackLocal *webrtc.TrackLocal) error {
 	return nil
 }
 
-var StreamMap map[string]*Stream            //< stream name -> stream
-var ViewerMap map[string]map[string]*Viewer //< stream name -> viewers by their UUID
+var RoomMap map[string]*Room                          //< room name -> room
+var ParticipantMap map[string]map[string]*Participant //< room name -> participants by their UUID
 
 var globalWebRTCAPI *webrtc.API
 var globalWebRTCConfig = webrtc.Configuration{
@@ -48,8 +48,8 @@ var globalWebRTCConfig = webrtc.Configuration{
 
 func InitWebRTCAPI() error {
 	// Make our maps
-	StreamMap = make(map[string]*Stream)
-	ViewerMap = make(map[string]map[string]*Viewer)
+	RoomMap = make(map[string]*Room)
+	ParticipantMap = make(map[string]map[string]*Participant)
 
 	var err error
 	flags := GetRelayFlags()
