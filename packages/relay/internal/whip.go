@@ -60,13 +60,10 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Creating new stream: ", roomName)
 	}
 
-	mutex.Lock()
 	room, ok := Rooms[roomName]
 	if !ok {
 		room = &Room{
-			name:         roomName,
-			participants: make(map[*Participant]bool),
-			broadcast:    make(chan string),
+			name: roomName,
 		}
 		Rooms[roomName] = room
 		log.Printf("> Created new room %s\n", roomName)
@@ -79,7 +76,6 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		logHTTPError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	mutex.Unlock()
 
 	// Modify SDP offer to remove opus "sprop-maxcapturerate=24000" (fixes opus bad quality issue, present in GStreamer)
 	sdpOffer = strings.Replace(sdpOffer, ";sprop-maxcapturerate=24000", "", -1)
@@ -92,18 +88,14 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println("Failed to create local video track for stream: ", roomName, " - reason: ", err)
 				return
 			}
-			room.mutex.Lock()
 			room.VideoTrack = localTrack
-			room.mutex.Unlock()
 		} else if remoteTrack.Kind() == webrtc.RTPCodecTypeAudio {
 			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "audio", fmt.Sprint("nestri-", roomName))
 			if err != nil {
 				log.Println("Failed to create local audio track for stream: ", roomName, " - reason: ", err)
 				return
 			}
-			room.mutex.Lock()
 			room.AudioTrack = localTrack
-			room.mutex.Unlock()
 		}
 
 		// TODO: With custom (non-WHEP) viewer connections, notify them of new stream to set their tracks
@@ -168,7 +160,5 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save to our stream map
-	room.mutex.Lock()
 	Rooms[roomName] = room
-	room.mutex.Unlock()
 }

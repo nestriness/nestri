@@ -20,7 +20,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Make sure stream exists
+	// Make sure room exists
 	room, ok := Rooms[roomName]
 	if !ok {
 		logHTTPError(w, "no stream with given name online", http.StatusNotFound)
@@ -41,29 +41,32 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate UUID for viewer
-	viewerName := uuid.New().String()
+	participantName := r.URL.Query().Get("name")
+	if participantName == "" {
+		participantName = uuid.New().String()
+	}
 
 	// Callback for closing PeerConnection
 	onPCClose := func() {
 		if GetRelayFlags().Verbose {
-			log.Println("Closed PeerConnection for viewer: ", viewerName, " - beloging to stream: ", roomName)
+			log.Println("Closed PeerConnection for viewer: ", participantName, " - belonging to stream: ", roomName)
 		}
 		if _, ok := Participants[roomName]; ok {
-			if _, vOk := Participants[viewerName]; vOk {
-				delete(Participants[roomName], viewerName)
+			if _, vOk := Participants[participantName]; vOk {
+				delete(Participants[roomName], participantName)
 			}
 		}
 	}
 
-	// Create new viewer
+	// Create new participant
 	if GetRelayFlags().Verbose {
 		log.Println("New viewer for stream: ", roomName)
 	}
-	viewer := &Participant{
-		name: viewerName,
+	participant := &Participant{
+		name: participantName,
 	}
-	viewer.PeerConnection, err = CreatePeerConnection(onPCClose)
+
+	participant.PeerConnection, err = CreatePeerConnection(onPCClose)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -71,7 +74,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Add stream tracks for viewer
 	if room.AudioTrack != nil {
-		if err = viewer.AddTrack(&room.AudioTrack); err != nil {
+		if err = participant.AddTrack(&room.AudioTrack); err != nil {
 			logHTTPError(w, "failed to add audio track to viewer", http.StatusInternalServerError)
 			return
 		}
@@ -79,7 +82,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("nil audio track for stream: ", roomName)
 	}
 	if room.VideoTrack != nil {
-		if err = viewer.AddTrack(&room.VideoTrack); err != nil {
+		if err = participant.AddTrack(&room.VideoTrack); err != nil {
 			logHTTPError(w, "failed to add video track to viewer", http.StatusInternalServerError)
 			return
 		}
@@ -88,7 +91,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set new remote description
-	err = viewer.PeerConnection.SetRemoteDescription(webrtc.SessionDescription{
+	err = participant.PeerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdpOffer,
 	})
@@ -98,16 +101,16 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Wait for ICE Gathering to complete
-	gatherComplete := webrtc.GatheringCompletePromise(viewer.PeerConnection)
+	gatherComplete := webrtc.GatheringCompletePromise(participant.PeerConnection)
 
 	// Create Answer and set local description
-	answer, err := viewer.PeerConnection.CreateAnswer(nil)
+	answer, err := participant.PeerConnection.CreateAnswer(nil)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = viewer.PeerConnection.SetLocalDescription(answer)
+	err = participant.PeerConnection.SetLocalDescription(answer)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -120,7 +123,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	w.Header().Set("Location", fmt.Sprint("/api/whep/", roomName))
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(viewer.PeerConnection.LocalDescription().SDP))
+	_, err = w.Write([]byte(participant.PeerConnection.LocalDescription().SDP))
 	if err != nil {
 		log.Println(err)
 		return
