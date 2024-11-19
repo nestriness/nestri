@@ -32,7 +32,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	sdpOffer := string(body)
 	if sdpOffer == "" {
 		// If stream exists, just return OK (force stream close?)
-		if _, ok := RoomMap[roomName]; ok {
+		if _, ok := Rooms[roomName]; ok {
 			w.WriteHeader(http.StatusOK)
 			return
 		} else {
@@ -42,7 +42,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify there's no existing stream with same name
-	if _, ok := RoomMap[roomName]; ok {
+	if _, ok := Rooms[roomName]; ok {
 		logHTTPError(w, "stream name already in use", http.StatusBadRequest)
 		return
 	}
@@ -52,24 +52,39 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		if GetRelayFlags().Verbose {
 			log.Println("Closed PeerConnection for stream: ", roomName)
 		}
-		delete(RoomMap, roomName)
+		delete(Rooms, roomName)
 	}
 
 	// Create a new stream
 	if GetRelayFlags().Verbose {
 		log.Println("Creating new stream: ", roomName)
 	}
-	stream := &Room{}
-	stream.PeerConnection, err = CreatePeerConnection(onPCClose)
+
+	mutex.Lock()
+	room, ok := Rooms[roomName]
+	if !ok {
+		room = &Room{
+			name:         roomName,
+			participants: make(map[*Participant]bool),
+			broadcast:    make(chan string),
+		}
+		Rooms[roomName] = room
+		log.Printf("> Created new room %s\n", roomName)
+	} else {
+		logHTTPError(w, "Room with that name already exists", http.StatusBadRequest)
+		return
+	}
+	room.PeerConnection, err = CreatePeerConnection(onPCClose)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	mutex.Unlock()
 
 	// Modify SDP offer to remove opus "sprop-maxcapturerate=24000" (fixes opus bad quality issue, present in GStreamer)
 	sdpOffer = strings.Replace(sdpOffer, ";sprop-maxcapturerate=24000", "", -1)
 
-	stream.PeerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+	room.PeerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
 		if remoteTrack.Kind() == webrtc.RTPCodecTypeVideo {
 			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "video", fmt.Sprint("nestri-", roomName))
@@ -77,14 +92,18 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println("Failed to create local video track for stream: ", roomName, " - reason: ", err)
 				return
 			}
-			stream.VideoTrack = localTrack
+			room.mutex.Lock()
+			room.VideoTrack = localTrack
+			room.mutex.Unlock()
 		} else if remoteTrack.Kind() == webrtc.RTPCodecTypeAudio {
 			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "audio", fmt.Sprint("nestri-", roomName))
 			if err != nil {
 				log.Println("Failed to create local audio track for stream: ", roomName, " - reason: ", err)
 				return
 			}
-			stream.AudioTrack = localTrack
+			room.mutex.Lock()
+			room.AudioTrack = localTrack
+			room.mutex.Unlock()
 		}
 
 		// TODO: With custom (non-WHEP) viewer connections, notify them of new stream to set their tracks
@@ -110,7 +129,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Set new remote description
-	err = stream.PeerConnection.SetRemoteDescription(webrtc.SessionDescription{
+	err = room.PeerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdpOffer,
 	})
@@ -120,16 +139,16 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Wait for ICE Gathering to complete
-	gatherComplete := webrtc.GatheringCompletePromise(stream.PeerConnection)
+	gatherComplete := webrtc.GatheringCompletePromise(room.PeerConnection)
 
 	// Create Answer and set local description
-	answer, err := stream.PeerConnection.CreateAnswer(nil)
+	answer, err := room.PeerConnection.CreateAnswer(nil)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = stream.PeerConnection.SetLocalDescription(answer)
+	err = room.PeerConnection.SetLocalDescription(answer)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -142,12 +161,14 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	w.Header().Set("Location", fmt.Sprint("/api/whip/", roomName))
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(stream.PeerConnection.LocalDescription().SDP))
+	_, err = w.Write([]byte(room.PeerConnection.LocalDescription().SDP))
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	// Save to our stream map
-	RoomMap[roomName] = stream
+	room.mutex.Lock()
+	Rooms[roomName] = room
+	room.mutex.Unlock()
 }

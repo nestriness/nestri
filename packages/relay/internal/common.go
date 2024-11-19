@@ -2,6 +2,7 @@ package relay
 
 import (
 	"log"
+	"sync"
 
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
@@ -11,10 +12,16 @@ type Room struct {
 	PeerConnection *webrtc.PeerConnection
 	AudioTrack     webrtc.TrackLocal
 	VideoTrack     webrtc.TrackLocal
+	participants   map[*Participant]bool
+	broadcast      chan string
+	mutex          sync.RWMutex
+	name           string
 }
 
 type Participant struct {
-	UUID           string
+	name           string
+	room           *Room
+	send           chan string
 	PeerConnection *webrtc.PeerConnection
 }
 
@@ -36,8 +43,9 @@ func (vw *Participant) AddTrack(trackLocal *webrtc.TrackLocal) error {
 	return nil
 }
 
-var RoomMap map[string]*Room                          //< room name -> room
-var ParticipantMap map[string]map[string]*Participant //< room name -> participants by their UUID
+var Rooms = make(map[string]*Room)                          //< room name -> room
+var Participants = make(map[string]map[string]*Participant) //< room name -> participants by their names
+var mutex sync.RWMutex
 
 var globalWebRTCAPI *webrtc.API
 var globalWebRTCConfig = webrtc.Configuration{
@@ -48,8 +56,6 @@ var globalWebRTCConfig = webrtc.Configuration{
 
 func InitWebRTCAPI() error {
 	// Make our maps
-	RoomMap = make(map[string]*Room)
-	ParticipantMap = make(map[string]map[string]*Participant)
 
 	var err error
 	flags := GetRelayFlags()

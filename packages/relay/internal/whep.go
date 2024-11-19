@@ -13,7 +13,7 @@ import (
 // WHEP - WebRTC HTTP Egress Protocol
 // This is the handler for the /api/whep/{roomName} endpoint
 func whepHandler(w http.ResponseWriter, r *http.Request) {
-	// Get stream name
+	// Get room name
 	roomName := r.PathValue("roomName")
 	if len(roomName) <= 0 {
 		logHTTPError(w, "no stream name given", http.StatusBadRequest)
@@ -21,7 +21,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure stream exists
-	stream, ok := RoomMap[roomName]
+	room, ok := Rooms[roomName]
 	if !ok {
 		logHTTPError(w, "no stream with given name online", http.StatusNotFound)
 		return
@@ -42,16 +42,16 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate UUID for viewer
-	viewerUUID := uuid.New().String()
+	viewerName := uuid.New().String()
 
 	// Callback for closing PeerConnection
 	onPCClose := func() {
 		if GetRelayFlags().Verbose {
-			log.Println("Closed PeerConnection for viewer: ", viewerUUID, " - beloging to stream: ", roomName)
+			log.Println("Closed PeerConnection for viewer: ", viewerName, " - beloging to stream: ", roomName)
 		}
-		if _, ok := ParticipantMap[roomName]; ok {
-			if _, vOk := ParticipantMap[viewerUUID]; vOk {
-				delete(ParticipantMap[roomName], viewerUUID)
+		if _, ok := Participants[roomName]; ok {
+			if _, vOk := Participants[viewerName]; vOk {
+				delete(Participants[roomName], viewerName)
 			}
 		}
 	}
@@ -61,7 +61,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("New viewer for stream: ", roomName)
 	}
 	viewer := &Participant{
-		UUID: viewerUUID,
+		name: viewerName,
 	}
 	viewer.PeerConnection, err = CreatePeerConnection(onPCClose)
 	if err != nil {
@@ -70,16 +70,16 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add stream tracks for viewer
-	if stream.AudioTrack != nil {
-		if err = viewer.AddTrack(&stream.AudioTrack); err != nil {
+	if room.AudioTrack != nil {
+		if err = viewer.AddTrack(&room.AudioTrack); err != nil {
 			logHTTPError(w, "failed to add audio track to viewer", http.StatusInternalServerError)
 			return
 		}
 	} else if GetRelayFlags().Verbose {
 		log.Println("nil audio track for stream: ", roomName)
 	}
-	if stream.VideoTrack != nil {
-		if err = viewer.AddTrack(&stream.VideoTrack); err != nil {
+	if room.VideoTrack != nil {
+		if err = viewer.AddTrack(&room.VideoTrack); err != nil {
 			logHTTPError(w, "failed to add video track to viewer", http.StatusInternalServerError)
 			return
 		}
