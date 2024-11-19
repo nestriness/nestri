@@ -1,9 +1,10 @@
-package webrtcrelay
+package relay
 
 import (
+	"log"
+
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
-	"log"
 )
 
 type Stream struct {
@@ -13,7 +14,7 @@ type Stream struct {
 }
 
 type Viewer struct {
-	UUID string
+	UUID           string
 	PeerConnection *webrtc.PeerConnection
 }
 
@@ -35,7 +36,7 @@ func (vw *Viewer) AddTrack(trackLocal *webrtc.TrackLocal) error {
 	return nil
 }
 
-var StreamMap map[string]*Stream //< stream name -> stream
+var StreamMap map[string]*Stream            //< stream name -> stream
 var ViewerMap map[string]map[string]*Viewer //< stream name -> viewers by their UUID
 
 var globalWebRTCAPI *webrtc.API

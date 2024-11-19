@@ -1,16 +1,17 @@
-package webrtcrelay
+package relay
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/pion/webrtc/v4"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/pion/webrtc/v4"
 )
 
 var httpMux *http.ServeMux
@@ -21,6 +22,7 @@ func InitHTTPEndpoint() {
 
 	// Endpoints themselves
 	httpMux.Handle("/", http.NotFoundHandler())
+	httpMux.HandleFunc("/api/room/{roomName}", corsAnyHandler(websocketHandler))
 	httpMux.HandleFunc("/api/whip/{streamName}", corsAnyHandler(whipHandler))
 	httpMux.HandleFunc("/api/whep/{streamName}", corsAnyHandler(whepHandler))
 

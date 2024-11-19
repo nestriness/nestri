@@ -1,11 +1,12 @@
-package webrtcrelay
+package relay
 
 import (
 	"flag"
-	"github.com/pion/webrtc/v4"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/pion/webrtc/v4"
 )
 
 var globalFlags *RelayFlags

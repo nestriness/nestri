@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	relay "relay/internal"
 	"syscall"
-	"webrtcrelay/internal"
 )
 
 func main() {
@@ -14,17 +14,17 @@ func main() {
 	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
 
 	// Get flags and log them
-	webrtcrelay.InitRelayFlags()
-	webrtcrelay.GetRelayFlags().DebugLog()
+	relay.InitRelayFlags()
+	relay.GetRelayFlags().DebugLog()
 
 	// Init WebRTC API
-	err = webrtcrelay.InitWebRTCAPI()
+	err = relay.InitWebRTCAPI()
 	if err != nil {
 		log.Fatal("Failed to initialize WebRTC API: ", err)
 	}
 
 	// Start our HTTP endpoints
-	webrtcrelay.InitHTTPEndpoint()
+	relay.InitHTTPEndpoint()
 
 	// Wait for exit signal
 	<-stopCh
