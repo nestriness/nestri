@@ -1,114 +1,112 @@
 package relay
 
 import (
-	"github.com/gorilla/websocket"
 	"log"
+	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
-// SafeWebSocket is a websocket with a mutex
-type SafeWebSocket struct {
-	*websocket.Conn
-	sync.Mutex
-	binaryCallbacks map[string]OnMessageCallback // MessageBase type -> callback
+// Room represents a chat room
+type Room struct {
+	participants map[*Participant]bool
+	broadcast    chan string
+	mutex        sync.RWMutex
 }
 
-// NewSafeWebSocket creates a new SafeWebSocket from *websocket.Conn
-func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
-	ws := &SafeWebSocket{
-		Conn:            conn,
-		binaryCallbacks: make(map[string]OnMessageCallback),
+// Participant represents a participant in a chat room
+type Participant struct {
+	ws   *websocket.Conn
+	send chan string
+	room *Room
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+var rooms = make(map[string]*Room)
+var mutex sync.RWMutex
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	roomName := r.PathValue("room")
+	if len(roomName) <= 0 {
+		logHTTPError(w, "no stream name given", http.StatusBadRequest)
+		return
 	}
 
-	// Launch a goroutine to handle binary messages
-	go func() {
-		for {
-			// Read binary message
-			kind, data, err := ws.Conn.ReadMessage()
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
-				// If unexpected close error, break
-				if GetFlags().Verbose {
-					log.Printf("Unexpected WebSocket close error, reason: %s\n", err)
-				}
-				break
-			} else if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
-				// If closing, just break
-				if GetFlags().Verbose {
-					log.Printf("WebSocket closing\n")
-				}
-				break
-			} else if err != nil {
-				log.Printf("Failed to read WebSocket message, reason: %s\n", err)
-				break
-			}
-
-			switch kind {
-			case websocket.TextMessage:
-				// Ignore, we use binary messages
-				continue
-			case websocket.BinaryMessage:
-				// Decode message
-				var msg MessageBase
-				if err = DecodeMessage(data, &msg); err != nil {
-					log.Printf("Failed to decode binary WebSocket message, reason: %s\n", err)
-					continue
-				}
-
-				// Handle message type callback
-				if callback, ok := ws.binaryCallbacks[msg.PayloadType]; ok {
-					callback(data)
-				} // TODO: Log unknown message type?
-			default:
-				log.Printf("Unknown WebSocket message type: %d\n", kind)
-			}
+	mutex.Lock()
+	room, ok := rooms[roomName]
+	if !ok {
+		room = &Room{
+			participants: make(map[*Participant]bool),
+			broadcast:    make(chan string),
 		}
-	}()
-
-	return ws
-}
-
-// SendJSON writes JSON to a websocket with a mutex
-func (ws *SafeWebSocket) SendJSON(v interface{}) error {
-	ws.Lock()
-	defer ws.Unlock()
-	return ws.Conn.WriteJSON(v)
-}
-
-// SendBinary writes binary to a websocket with a mutex
-func (ws *SafeWebSocket) SendBinary(data []byte) error {
-	ws.Lock()
-	defer ws.Unlock()
-	return ws.Conn.WriteMessage(websocket.BinaryMessage, data)
-}
-
-// RegisterMessageCallback sets the callback for binary message of given type
-func (ws *SafeWebSocket) RegisterMessageCallback(msgType string, callback OnMessageCallback) {
-	ws.Lock()
-	defer ws.Unlock()
-	if ws.binaryCallbacks == nil {
-		ws.binaryCallbacks = make(map[string]OnMessageCallback)
+		rooms[roomName] = room
 	}
-	ws.binaryCallbacks[msgType] = callback
+	mutex.Unlock()
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	participant := &Participant{
+		ws:   ws,
+		send: make(chan string),
+		room: room,
+	}
+
+	room.mutex.Lock()
+	room.participants[participant] = true
+	room.mutex.Unlock()
+
+	go participant.writePump()
+	go participant.readPump()
+	go room.broadcastPump()
+
 }
 
-// UnregisterMessageCallback removes the callback for binary message of given type
-func (ws *SafeWebSocket) UnregisterMessageCallback(msgType string) {
-	ws.Lock()
-	defer ws.Unlock()
-	if ws.binaryCallbacks != nil {
-		delete(ws.binaryCallbacks, msgType)
+func (p *Participant) writePump() {
+	for message := range p.send {
+		err := p.ws.WriteMessage(websocket.TextMessage, []byte(message))
+		if err != nil {
+			log.Println(err)
+			p.room.removeParticipant(p)
+			return
+		}
 	}
 }
 
-// RegisterOnClose sets the callback for websocket closing
-func (ws *SafeWebSocket) RegisterOnClose(callback func()) {
-	ws.SetCloseHandler(func(code int, text string) error {
-		// Clear our callbacks
-		ws.Lock()
-		ws.binaryCallbacks = nil
-		ws.Unlock()
-		// Call the callback
-		callback()
-		return nil
-	})
+func (p *Participant) readPump() {
+	for {
+		_, message, err := p.ws.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			p.room.removeParticipant(p)
+			return
+		}
+
+		p.room.broadcast <- string(message)
+	}
+}
+
+func (r *Room) broadcastPump() {
+	for message := range r.broadcast {
+		r.mutex.RLock()
+		for participant := range r.participants {
+			participant.send <- message
+		}
+		r.mutex.RUnlock()
+	}
+}
+
+func (r *Room) removeParticipant(p *Participant) {
+	r.mutex.Lock()
+	delete(r.participants, p)
+	r.mutex.Unlock()
+	close(p.send)
 }
