@@ -16,14 +16,14 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	// Get room name
 	roomName := r.PathValue("roomName")
 	if len(roomName) <= 0 {
-		logHTTPError(w, "no stream name given", http.StatusBadRequest)
+		logHTTPError(w, "no room name given", http.StatusBadRequest)
 		return
 	}
 
 	// Make sure room exists
 	room, ok := Rooms[roomName]
 	if !ok {
-		logHTTPError(w, "no stream with given name online", http.StatusNotFound)
+		logHTTPError(w, "no room with given name online", http.StatusNotFound)
 		return
 	}
 
@@ -48,23 +48,17 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Callback for closing PeerConnection
 	onPCClose := func() {
-		if GetRelayFlags().Verbose {
-			log.Println("Closed PeerConnection for viewer: ", participantName, " - belonging to stream: ", roomName)
+		if GetFlags().Verbose {
+			log.Println("Closed PeerConnection for participant: ", participantName, " - belonging to room: ", roomName)
 		}
-		if _, ok := Participants[roomName]; ok {
-			if _, vOk := Participants[participantName]; vOk {
-				delete(Participants[roomName], participantName)
-			}
-		}
+		room.removeParticipantByName(participantName)
 	}
 
 	// Create new participant
-	if GetRelayFlags().Verbose {
-		log.Println("New viewer for stream: ", roomName)
+	if GetFlags().Verbose {
+		log.Println("New participant for room: ", roomName)
 	}
-	participant := &Participant{
-		name: participantName,
-	}
+	participant := NewParticipant(participantName)
 
 	participant.PeerConnection, err = CreatePeerConnection(onPCClose)
 	if err != nil {
@@ -72,22 +66,49 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add stream tracks for viewer
+	participant.PeerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
+		if GetFlags().Verbose {
+			log.Printf("New DataChannel '%s'-'%d'\n", d.Label(), d.ID())
+		}
+
+		// Register channel opening handling
+		d.OnOpen(func() {
+			if GetFlags().Verbose {
+				log.Printf("Data channel '%s'-'%d' open\n", d.Label(), d.ID())
+			}
+			room.addParticipant(participant)
+		})
+
+		// Register text message handling
+		d.OnMessage(func(msg webrtc.DataChannelMessage) {
+			room.broadcastMessage(msg, participant.ID) // Exclude the sender
+		})
+
+		// Register channel closing handling
+		d.OnClose(func() {
+			if GetFlags().Verbose {
+				log.Printf("Data channel '%s'-'%d' closed\n", d.Label(), d.ID())
+			}
+			room.removeParticipantByID(participant.ID)
+		})
+	})
+
+	// Add room tracks for participant
 	if room.AudioTrack != nil {
-		if err = participant.AddTrack(&room.AudioTrack); err != nil {
-			logHTTPError(w, "failed to add audio track to viewer", http.StatusInternalServerError)
+		if err = participant.addTrack(&room.AudioTrack); err != nil {
+			logHTTPError(w, "failed to add audio track to participant", http.StatusInternalServerError)
 			return
 		}
-	} else if GetRelayFlags().Verbose {
-		log.Println("nil audio track for stream: ", roomName)
+	} else if GetFlags().Verbose {
+		log.Println("nil audio track for room: ", roomName)
 	}
 	if room.VideoTrack != nil {
-		if err = participant.AddTrack(&room.VideoTrack); err != nil {
-			logHTTPError(w, "failed to add video track to viewer", http.StatusInternalServerError)
+		if err = participant.addTrack(&room.VideoTrack); err != nil {
+			logHTTPError(w, "failed to add video track to participant", http.StatusInternalServerError)
 			return
 		}
-	} else if GetRelayFlags().Verbose {
-		log.Println("nil video track for stream: ", roomName)
+	} else if GetFlags().Verbose {
+		log.Println("nil video track for room: ", roomName)
 	}
 
 	// Set new remote description
@@ -128,6 +149,4 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-
-	room.newParticipantChannel <- participant
 }

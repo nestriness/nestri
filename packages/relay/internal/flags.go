@@ -9,9 +9,9 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-var globalFlags *RelayFlags
+var globalFlags *Flags
 
-type RelayFlags struct {
+type Flags struct {
 	Verbose        bool
 	EndpointPort   int
 	WebRTCUDPStart int
@@ -19,7 +19,7 @@ type RelayFlags struct {
 	STUNServer     string
 }
 
-func (flags *RelayFlags) DebugLog() {
+func (flags *Flags) DebugLog() {
 	log.Println("Relay Flags:")
 	log.Println("> Verbose: ", flags.Verbose)
 	log.Println("> Endpoint Port: ", flags.EndpointPort)
@@ -54,9 +54,9 @@ func getEnvAsString(name string, defaultVal string) string {
 	return valueStr
 }
 
-func InitRelayFlags() {
+func InitFlags() {
 	// Create Flags struct
-	globalFlags = &RelayFlags{}
+	globalFlags = &Flags{}
 	// Get flags
 	flag.BoolVar(&globalFlags.Verbose, "verbose", getEnvAsBool("VERBOSE", false), "Verbose mode")
 	flag.IntVar(&globalFlags.EndpointPort, "endpointPort", getEnvAsInt("ENDPOINT_PORT", 8088), "HTTP endpoint port")
@@ -74,6 +74,6 @@ func InitRelayFlags() {
 	}
 }
 
-func GetRelayFlags() *RelayFlags {
+func GetFlags() *Flags {
 	return globalFlags
 }
