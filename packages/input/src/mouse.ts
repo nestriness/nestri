@@ -1,13 +1,14 @@
 import { type Input } from "./types"
 import type PartySocket from "partysocket";
 import { mouseButtonToLinuxEventCode } from "./codes"
+import { WebRTCStream } from "./webrtc-stream";
 
 interface Props {
-    ws: PartySocket;
+    webrtc: WebRTCStream;
     canvas: HTMLCanvasElement;
 }
 export class Mouse {
-    protected websocket: PartySocket;
+    protected wrtc: WebRTCStream;
     protected canvas: HTMLCanvasElement;
     protected connected!: boolean;
 
@@ -20,8 +21,8 @@ export class Mouse {
     private mouseupListener: (e: MouseEvent) => void;
     private mousewheelListener: (e: WheelEvent) => void;
 
-    constructor({ ws, canvas }: Props, absoluteTrick?: boolean) {
-        this.websocket = ws;
+    constructor({ webrtc, canvas }: Props, absoluteTrick?: boolean) {
+        this.wrtc = webrtc;
         this.canvas = canvas;
         if (!absoluteTrick) {
             this.mousemoveListener = this.createMouseListener("mousemove", (e: any) => ({
@@ -97,7 +98,7 @@ export class Mouse {
             e.preventDefault();
             e.stopPropagation();
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.websocket.send(JSON.stringify({ ...data, type } as Input));
+            this.wrtc.sendData(JSON.stringify({ ...data, type } as Input));
         };
     }
 

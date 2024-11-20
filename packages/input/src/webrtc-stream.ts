@@ -66,12 +66,7 @@ export class WebRTCStream {
         if (!this._dataChannel) return;
 
         this._dataChannel.onclose = () => console.log('sendChannel has closed')
-        this._dataChannel.onopen = () => {
-            console.log('sendChannel has opened')
-            setInterval(() => {
-                this._dataChannel?.send("Hello there")
-            }, 500);
-        }
+        this._dataChannel.onopen = () => console.log('sendChannel has opened')
         this._dataChannel.onmessage = e => console.log(`Message from DataChannel '${this._dataChannel?.label}' payload '${e.data}'`)
     }
 

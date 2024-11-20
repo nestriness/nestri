@@ -1,14 +1,15 @@
 import {type Input} from "./types"
 import type PartySocket from "partysocket";
 import {keyCodeToLinuxEventCode} from "./codes"
+import { WebRTCStream } from "./webrtc-stream";
 
 interface Props {
-    ws: PartySocket;
+    webrtc: WebRTCStream;
     canvas: HTMLCanvasElement;
 }
 
 export class Keyboard {
-    protected websocket: PartySocket;
+    protected wrtc: WebRTCStream;
     protected canvas: HTMLCanvasElement;
     protected connected!: boolean;
 
@@ -16,8 +17,8 @@ export class Keyboard {
     private keydownListener: (e: KeyboardEvent) => void;
     private keyupListener: (e: KeyboardEvent) => void;
 
-    constructor({ws, canvas}: Props) {
-        this.websocket = ws;
+    constructor({webrtc, canvas}: Props) {
+        this.wrtc = webrtc;
         this.canvas = canvas;
         this.keydownListener = this.createKeyboardListener("keydown", (e: any) => ({
             type: "KeyDown",
@@ -67,7 +68,7 @@ export class Keyboard {
                 return;
 
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.websocket.send(JSON.stringify({...data, type} as Input));
+            this.wrtc.sendData(JSON.stringify({...data, type} as Input));
         };
     }
 
