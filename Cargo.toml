@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
+members = [ 
     "packages/server"
 ]
 
@@ -9,3 +9,6 @@ version = "0.1.0-alpha.1"
 repository = "https://github.com/nestriness/nestri"
 edition = "2021"
 rust-version = "1.80"
+
+[workspace.dependencies]
+gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs", version = "0.24.0" }

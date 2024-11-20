@@ -231,19 +231,19 @@ async fn main() -> std::io::Result<()> {
         ! queue2 max-size-time=1000000 ! audioconvert \
         ! {} bitrate={}000 \
         ! pipend.",
-                                 if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PulseAudio {
-                                     "pulsesrc"
-                                 } else if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PipeWire {
-                                     "pipewiresrc"
-                                 } else {
-                                     "alsasrc"
-                                 },
-                                 audio_encoder,
-                                 match &args.encoding.audio.rate_control {
-                                     encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate,
-                                     encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate,
-                                     _ => 128,
-                                 }
+        if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PulseAudio {
+            "pulsesrc"
+        } else if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PipeWire {
+            "pipewiresrc"
+        } else {
+            "alsasrc"
+        },
+        audio_encoder,
+        match &args.encoding.audio.rate_control {
+            encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate,
+            encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate,
+            _ => 128,
+        }
     ).to_string();
 
     // Construct the pipeline string

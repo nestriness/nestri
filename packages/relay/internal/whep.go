@@ -128,4 +128,7 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+
+	room.participants[participant] = true
+	go room.listenToParticipants()
 }

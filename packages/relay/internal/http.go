@@ -28,6 +28,12 @@ func InitHTTPEndpoint() {
 			Addr:    ":" + strconv.Itoa(port),
 		}).ListenAndServe())
 	}()
+
+	// go func() {
+	// 	for roomName := range Rooms {
+	// 		go Rooms[roomName].listenToParticipants()
+	// 	}
+	// }()
 }
 
 // logHTTPError logs (if verbose) and sends an error code to requester

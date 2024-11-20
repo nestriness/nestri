@@ -63,7 +63,8 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	room, ok := Rooms[roomName]
 	if !ok {
 		room = &Room{
-			name: roomName,
+			name:         roomName,
+			participants: make(map[*Participant]bool),
 		}
 		Rooms[roomName] = room
 		log.Printf("> Created new room %s\n", roomName)
