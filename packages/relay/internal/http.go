@@ -18,7 +18,7 @@ func InitHTTPEndpoint() {
 	httpMux.HandleFunc("/api/whep/{roomName}", corsAnyHandler(whepHandler))
 
 	// Get our serving port
-	port := GetRelayFlags().EndpointPort
+	port := GetFlags().EndpointPort
 
 	// Log and start the endpoint server
 	log.Println("Starting HTTP endpoint server on :", strconv.Itoa(port))
@@ -38,7 +38,7 @@ func InitHTTPEndpoint() {
 
 // logHTTPError logs (if verbose) and sends an error code to requester
 func logHTTPError(w http.ResponseWriter, err string, code int) {
-	if GetRelayFlags().Verbose {
+	if GetFlags().Verbose {
 		log.Println(err)
 	}
 	http.Error(w, err, code)
