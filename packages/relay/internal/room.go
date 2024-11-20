@@ -54,9 +54,11 @@ func (r *Room) removeParticipantByName(pName string) {
 // Broadcasts a message to Room's Participant's - excluding one given ID of
 func (r *Room) broadcastMessage(msg webrtc.DataChannelMessage, excludeID uuid.UUID) {
 	for d, participant := range r.Participants {
-		if d != excludeID { // Don't send back to the sender
-			if err := participant.DataChannel.SendText(string(msg.Data)); err != nil {
-				log.Printf("Error broadcasting to %s: %v\n", participant.Name, err)
+		if participant.DataChannel != nil {
+			if d != excludeID { // Don't send back to the sender
+				if err := participant.DataChannel.SendText(string(msg.Data)); err != nil {
+					log.Printf("Error broadcasting to %s: %v\n", participant.Name, err)
+				}
 			}
 		}
 	}

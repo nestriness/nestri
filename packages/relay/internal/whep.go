@@ -91,6 +91,8 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			room.removeParticipantByID(participant.ID)
 		})
+
+		participant.DataChannel = d
 	})
 
 	// Add room tracks for participant
