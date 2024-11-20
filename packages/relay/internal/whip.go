@@ -63,8 +63,10 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	room, ok := Rooms[roomName]
 	if !ok {
 		room = &Room{
-			name:         roomName,
-			participants: make(map[*Participant]bool),
+			name:                  roomName,
+			participants:          make(map[string]*Participant),
+			activeDataChannels:    make(map[*webrtc.DataChannel]string),
+			newParticipantChannel: make(chan *Participant), // <--- Initialize the participant channel
 		}
 		Rooms[roomName] = room
 		log.Printf("> Created new room %s\n", roomName)
@@ -162,4 +164,5 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save to our stream map
 	Rooms[roomName] = room
+	go room.listenToParticipants()
 }

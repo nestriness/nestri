@@ -1,26 +1,14 @@
 package relay
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/pion/interceptor"
-	"github.com/pion/randutil"
 	"github.com/pion/webrtc/v4"
 )
 
-type Room struct {
-	PeerConnection *webrtc.PeerConnection
-	AudioTrack     webrtc.TrackLocal
-	VideoTrack     webrtc.TrackLocal
-	name           string
-	participants   map[*Participant]bool
-}
-
 type Participant struct {
 	name           string
-	DataChannel    *webrtc.DataChannel
 	PeerConnection *webrtc.PeerConnection
 }
 
@@ -121,47 +109,4 @@ func CreatePeerConnection(onClose func()) (*webrtc.PeerConnection, error) {
 	})
 
 	return pc, nil
-}
-
-func (r *Room) listenToParticipants() {
-	println("Listening to participants")
-
-	for participant := range r.participants {
-		println("Listening to participant %s for data channels", participant.name)
-
-		participant.PeerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
-			fmt.Printf("New DataChannel %s %d\n", d.Label(), d.ID())
-
-			// Register channel opening handling
-			d.OnOpen(func() {
-				fmt.Printf("Data channel '%s'-'%d' open. Random messages will now be sent to any connected DataChannels every 5 seconds\n", d.Label(), d.ID())
-
-				ticker := time.NewTicker(5 * time.Second)
-				defer ticker.Stop()
-				for range ticker.C {
-					message, sendErr := randutil.GenerateCryptoRandomString(15, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-					if sendErr != nil {
-						panic(sendErr)
-					}
-
-					// Send the message as text
-					fmt.Printf("Sending '%s'\n", message)
-					if sendErr = d.SendText(message); sendErr != nil {
-						panic(sendErr)
-					}
-				}
-			})
-
-			// Register text message handling
-			d.OnMessage(func(msg webrtc.DataChannelMessage) {
-				fmt.Printf("Message from DataChannel '%s': '%s'\n", d.Label(), string(msg.Data))
-			})
-		})
-
-		// for range time.Tick(time.Second * 1) {
-		// 	fmt.Println("Still working")
-		// }
-	}
-
-	select {}
 }

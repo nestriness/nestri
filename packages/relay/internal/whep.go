@@ -129,6 +129,5 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	room.participants[participant] = true
-	go room.listenToParticipants()
+	room.newParticipantChannel <- participant
 }
