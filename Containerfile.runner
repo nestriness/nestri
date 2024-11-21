@@ -48,9 +48,13 @@ RUN mkdir plugin && \
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
 
+## Nestri Env Variables ##
+ENV NESTRI_PARAMS=""
+ENV RESOLUTION="1280x720"
+
 ## Graphics ##
 # Grab display packages (mesa, wayland things) #
-RUN pacman -Syu --noconfirm sudo mesa mesa-utils xorg-xwayland cage
+RUN pacman -Syu --noconfirm sudo mesa mesa-utils xorg-xwayland labwc wlr-randr
 # Vulkan drivers #
 # Intel
 RUN pacman -Syu --noconfirm vulkan-intel
@@ -64,7 +68,7 @@ RUN pacman -Syu --noconfirm nvidia-utils
 # Intel (modern VPL + VA-API)
 RUN pacman -Syu --noconfirm vpl-gpu-rt intel-media-driver
 # AMD/ATI (VA-API)
-RUN pacman -Syu --noconfirm libva-mesa-driver
+#RUN pacman -Syu --noconfirm libva-mesa-driver
 # NVIDIA (proprietary)
 RUN pacman -Syu --noconfirm nvidia-utils
 # Extras (debugging)
@@ -115,6 +119,9 @@ COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
 COPY --from=gstwayland-builder /builder/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
 COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
 COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
+
+## Copy scripts ##
+COPY packages/scripts/ /etc/nestri/
 
 ## Startup ##
 # Grab supervisor package #
@@ -178,13 +185,33 @@ priority=30
 
 [program:nestri-server]
 user=nestri
-command=nestri-server
+command=sh -c 'nestri-server \$NESTRI_PARAMS'
 environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/nestri-server.log
 autoerestart=true
 autostart=true
 startretries=3
-priority=100
+priority=50
+
+[program:labwc]
+user=nestri
+command=sh -c 'sleep 4 && rm -rf /tmp/.X11-unix && mkdir -p /tmp/.X11-unix && chown nestri:nestri /tmp/.X11-unix && labwc'
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\",WAYLAND_DISPLAY=\"wayland-1\",WLR_BACKENDS=\"wayland\",WLR_RENDERER=\"vulkan\"
+logfile=/tmp/labwc.log
+autoerestart=true
+autostart=true
+startretries=5
+priority=60
+
+[program:wlrrandr]
+user=nestri
+command=sh -c 'sleep 6 && wlr-randr --output WL-1 --custom-mode \$RESOLUTION && read -n 1'
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\",WAYLAND_DISPLAY=\"wayland-0\"
+logfile=/tmp/wlrrandr.log
+autoerestart=true
+autostart=true
+startretries=10
+priority=70
 " | tee /etc/supervisord.conf
 EOF
 
@@ -193,9 +220,5 @@ EOF
 RUN sed -z -i 's/{[[:space:]]*name = node\/suspend-node\.lua,[[:space:]]*type = script\/lua[[:space:]]*provides = hooks\.node\.suspend[[:space:]]*}[[:space:]]*//g' /usr/share/wireplumber/wireplumber.conf
 # Remove "hooks.node.suspend" want
 RUN sed -i '/wants = \[/{s/hooks\.node\.suspend\s*//; s/,\s*\]/]/}' /usr/share/wireplumber/wireplumber.conf
-
-# Make sure couple directories are present #
-RUN mkdir -p /tmp/.X11-unix && \
-    chown nestri:nestri /tmp/.X11-unix
 
 ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]
