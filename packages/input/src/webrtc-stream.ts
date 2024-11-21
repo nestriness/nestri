@@ -51,11 +51,8 @@ export class WebRTCStream {
             }
         });
 
-        const answer = await response.text();
-        await this._pc.setRemoteDescription({
-            sdp: answer,
-            type: "answer",
-        });
+        const answer = await response.json() as RTCSessionDescriptionInit;
+        await this._pc.setRemoteDescription(answer);
     }
 
     public getMediaStream() {

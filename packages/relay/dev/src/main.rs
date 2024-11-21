@@ -12,15 +12,7 @@ use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
-use webrtc::peer_connection::sdp::sdp_type::RTCSdpType;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct SessionDescription {
-    #[serde(rename = "type")]
-    type_: String,
-    sdp: String,
-}
 
 fn map_to_io_error<E: std::fmt::Display>(e: E) -> io::Error {
     io::Error::new(io::ErrorKind::Other, format!("{}", e))
@@ -163,7 +155,7 @@ async fn main() -> std::io::Result<()> {
     };
 
     println!("Press ctrl-c to stop");
-    
+
     tokio::select! {
         _ = done_rx.recv() => {
             println!("received done signal!");

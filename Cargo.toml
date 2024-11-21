@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "packages/relay/dev", 
+members = [ 
     "packages/server"
 ]
 

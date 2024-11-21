@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -142,11 +143,29 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 	// Wait for ICE Gathering to complete
 	<-gatherComplete
 
+	localDesc := participant.PeerConnection.LocalDescription()
+
+	// Create a struct to hold the description in a JSON-friendly format
+	descJSON := struct {
+		Type string `json:"type"`
+		Sdp  string `json:"sdp"`
+	}{
+		Type: localDesc.Type.String(),
+		Sdp:  localDesc.SDP,
+	}
+
+	jsonDesc, err := json.Marshal(descJSON)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Return SDP answer
-	w.Header().Set("Content-Type", "application/sdp")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Location", fmt.Sprint("/api/whep/", roomName))
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(participant.PeerConnection.LocalDescription().SDP))
+	_, err = w.Write(jsonDesc)
 	if err != nil {
 		log.Println(err)
 		return
