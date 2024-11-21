@@ -136,6 +136,9 @@ async fn main() -> std::io::Result<()> {
         args.debug_print();
     }
 
+    rustls::crypto::ring::default_provider().install_default()
+        .expect("Failed to install ring crypto provider");
+
     let _ = gst::init();
     let _ = gstmoq::plugin_register_static();
 
