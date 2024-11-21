@@ -1,5 +1,4 @@
 import {type Input} from "./types"
-import type PartySocket from "partysocket";
 import {keyCodeToLinuxEventCode} from "./codes"
 import { WebRTCStream } from "./webrtc-stream";
 
