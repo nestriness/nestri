@@ -50,15 +50,13 @@ pub struct Room {
     data_channel: Arc<webrtc::data_channel::RTCDataChannel>,
     done_tx: mpsc::Sender<()>,
     done_rx: mpsc::Receiver<()>,
-    base_url: String,
-    stream_name: String,
+    relay_url: String,
     pipeline: Arc<Mutex<gst::Pipeline>>,
 }
 
 impl Room {
     pub async fn new(
-        stream_name: &str,
-        base_url: &str,
+        relay_url: String,
         pipeline: Arc<Mutex<gst::Pipeline>>,
     ) -> io::Result<Self> {
         // Create a MediaEngine object to configure the supported codec
@@ -123,8 +121,7 @@ impl Room {
             data_channel,
             done_tx,
             done_rx,
-            base_url: base_url.to_string(),
-            stream_name: stream_name.to_string(),
+            relay_url,
         })
     }
 
@@ -213,7 +210,7 @@ impl Room {
         let _ = gather_complete.recv().await;
 
         if let Some(local_description) = self.peer_connection.local_description().await {
-            let url = format!("{}/api/whep/{}", self.base_url, self.stream_name);
+            let url = format!("{}",self.relay_url);
             let response = reqwest::Client::new()
                 .post(&url)
                 .header("Content-Type", "application/sdp")

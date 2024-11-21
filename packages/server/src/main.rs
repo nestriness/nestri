@@ -282,10 +282,16 @@ async fn main() -> std::io::Result<()> {
     });
 
     // Get a room
-    //TODO: Get this from the CLI
-    let room = "test";
-    let base_url = "http://localhost:8088";
-    let mut room_handler = room::Room::new(room, base_url, pipeline_clone).await?;
+    let mut relay_url = "".to_string();
+    if let output_args::OutputOption::WHIP(whipargs) = &args.output {
+        relay_url = format!(
+            "
+            {}/api/whep/{}
+            ",
+            whipargs.endpoint, args.app.room
+        );
+    }
+    let mut room_handler = room::Room::new(relay_url, pipeline_clone).await?;
     room_handler.run().await?;
 
     Ok(())
