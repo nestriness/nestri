@@ -1,5 +1,8 @@
 #! /bin/bash -e
 
+# sudo apt install build-essential -y
+
+
 docker build -t test-server -f Containerfile .
 
 docker run --rm --init -d --device /dev/dri --network=host test-server 

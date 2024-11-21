@@ -3,7 +3,7 @@ FROM archlinux:latest
 RUN pacman -Syu --noconfirm
 
 RUN pacman -Su --noconfirm \
-    gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
+   gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
 
 RUN pacman -Syu --noconfirm \
     mesa mesa-utils xorg-xwayland vulkan-intel vpl-gpu-rt intel-media-driver gst-plugin-va gst-plugins-bad gst-plugin-fmp4 gst-plugin-qsv gst-plugin-pipewire
