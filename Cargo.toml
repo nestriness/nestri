@@ -1,7 +1,8 @@
 [workspace]
 resolver = "2"
 members = [ 
-    "packages/server"
+    "packages/server",
+    "packages/relay/dev"
 ]
 
 [workspace.package]
