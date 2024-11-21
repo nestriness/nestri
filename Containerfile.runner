@@ -14,7 +14,7 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # Clone nestri source #
-RUN git clone -b feat/rooms https://github.com/nestriness/nestri.git
+RUN git clone -b feat/stream-copy https://github.com/DatCaptainHorse/nestri.git
 
 # Build nestri #
 RUN cd nestri/packages/server/ && \
@@ -47,9 +47,6 @@ RUN mkdir plugin && \
 #                                                                       runtime
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
-
-## Overridable Runtime Parameters ##
-ENV NESTRI_PARAMS=""
 
 ## Graphics ##
 # Grab display packages (mesa, wayland things) #
@@ -84,19 +81,20 @@ RUN pacman -Syu --noconfirm pipewire pipewire-pulse pipewire-alsa wireplumber
 ## User ##
 # Create and setup user #
 ENV USER="nestri" \
-	USER_ID=1234 \
+	UID=99 \
+	GID=100 \
 	USER_PASSWORD="nestri1234" \
 	USER_HOME="/home/nestri"
 
 RUN mkdir -p ${USER_HOME} && \
-	useradd -d ${USER_HOME} -u ${USER_ID} -s /bin/bash ${USER} && \
+	useradd -d ${USER_HOME} -u ${UID} -s /bin/bash ${USER} && \
 	chown -R ${USER} ${USER_HOME} && \
 	echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
 	echo "${USER}:${USER_PASSWORD}" | chpasswd
 
 # Run directory #
-RUN mkdir -p /run/user/${USER_ID} && \
-	chown ${USER}:${USER} /run/user/${USER_ID}
+RUN mkdir -p /run/user/${UID} && \
+	chown ${USER}:${USER} /run/user/${UID}
 
 # Home config directory #
 RUN mkdir -p ${USER_HOME}/.config && \
@@ -134,15 +132,26 @@ logfile=/tmp/supervisord.log
 user=root
 command=dbus-daemon --system --nofork --nopidfile
 logfile=/tmp/dbus.log
+autoerestart=true
 autostart=true
 startretries=3
 priority=1
 
+[program:seatd]
+user=root
+command=seatd
+logfile=/tmp/seatd.log
+autoerestart=true
+autostart=true
+startretries=3
+priority=2
+
 [program:pipewire]
 user=nestri
 command=dbus-launch pipewire
-environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/pipewire.log
+autoerestart=true
 autostart=true
 startretries=3
 priority=10
@@ -150,8 +159,9 @@ priority=10
 [program:pipewire-pulse]
 user=nestri
 command=dbus-launch pipewire-pulse
-environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/pipewire-pulse.log
+autoerestart=true
 autostart=true
 startretries=3
 priority=20
@@ -159,17 +169,19 @@ priority=20
 [program:wireplumber]
 user=nestri
 command=dbus-launch wireplumber
-environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/wireplumber.log
+autoerestart=true
 autostart=true
 startretries=3
 priority=30
 
 [program:nestri-server]
 user=nestri
-command=sh -c 'nestri-server \$NESTRI_PARAMS'
-environment=XDG_RUNTIME_DIR=\"/run/user/${USER_ID}\",HOME=\"${USER_HOME}\"
+command=nestri-server
+environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
 logfile=/tmp/nestri-server.log
+autoerestart=true
 autostart=true
 startretries=3
 priority=100

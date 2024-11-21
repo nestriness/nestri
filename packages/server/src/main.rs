@@ -2,9 +2,12 @@ mod args;
 mod enc_helper;
 mod gpu;
 
+use std::error::Error;
 use std::sync::Arc;
+use gst::Pipeline;
 use gst::prelude::*;
-use crate::args::{encoding_args, output_args};
+use tokio::sync::{mpsc, Mutex};
+use crate::args::{encoding_args};
 mod room;
 
 // Handles gathering GPU information and selecting the most suitable GPU
@@ -115,13 +118,9 @@ fn handle_encoder_video_settings(args: &args::Args, video_encoder: &enc_helper::
 
 // Handles picking audio encoder
 // TODO: Expand enc_helper with audio types, for now just AAC or opus
-fn handle_encoder_audio(args: &args::Args, output_option: &output_args::OutputOption) -> String {
+fn handle_encoder_audio(args: &args::Args) -> String {
     let audio_encoder = if args.encoding.audio.encoder.is_empty() {
-        if let output_args::OutputOption::MoQ(_) = output_option {
-            "faac".to_string()
-        } else {
-            "opusenc".to_string()
-        }
+        "opusenc".to_string()
     } else {
         args.encoding.audio.encoder.clone()
     };
@@ -161,27 +160,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     video_encoder = handle_encoder_video_settings(&args, &video_encoder);
 
     // Handle audio encoder selection
-    let audio_encoder = handle_encoder_audio(&args, &args.output);
+    let audio_encoder = handle_encoder_audio(&args);
 
 
     // Get output option
-    let mut output_pipeline: String = "".to_string();
-    if let output_args::OutputOption::MoQ(moqargs) = &args.output {
-        output_pipeline = format!(
-            "
-            ! isofmp4mux chunk-duration=1 fragment-duration=1 name=pipend \
-            ! moqsink url={} broadcast={}
-            ",
-            moqargs.relay_url, args.app.room
-        );
-    } else if let output_args::OutputOption::WHIP(whipargs) = &args.output {
-        output_pipeline = format!(
-            "
-            ! whipclientsink name=pipend signaller::whip-endpoint=\"{}/api/whip/{}\" signaller::auth-token=\"{}\" congestion-control=disabled
-            ",
-            whipargs.endpoint, args.app.room, whipargs.auth_token
-        );
-    }
+    let output_pipeline = format!(
+        "
+        ! whipclientsink name=pipend signaller::whip-endpoint=\"{}/api/whip/{}\" congestion-control=disabled
+        ",
+        args.app.relay_url, args.app.room
+    );
 
     // Debug-latency
     let mut debug_feed = "";
@@ -241,31 +229,77 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("Constructed pipeline string: {}", pipeline_str);
     }
 
-    //TODO: Get this from the CLI
-    let server = "server";
-    let url_string = format!("{}/api/room/{}?name={}", args.app.input_server, args.app.room, server);
-
     // Set up a channel for communication with the pipeline
     let (event_tx, event_rx) = mpsc::channel(50);
     let event_rx = Arc::new(Mutex::new(event_rx));
 
+    // Get a room
+    let room_url = format!(
+        "
+        {}/api/whep/{}
+        ",
+        args.app.relay_url, args.app.room
+    );
+
+    let (pipe_shared_state_tx, pipe_shared_state_rx) = tokio::sync::watch::channel(false);
+
     // Run both pipeline and websocket tasks concurrently
     let result = tokio::try_join!(
-        run_pipeline(pipeline_str, event_rx),
-        run_websocket(url_string, event_tx),
+        run_pipeline(pipeline_str, event_rx, pipe_shared_state_tx),
+        run_room(room_url, event_tx, pipe_shared_state_rx),
     );
 
     match result {
         Ok(_) => println!("Both tasks completed successfully."),
-        Err(e) => eprintln!("One of the tasks failed: {}", e),
+        Err(e) => {
+            eprintln!("One of the tasks failed: {} - exiting", e);
+            // Exit immediately
+            std::process::exit(1);
+        }
     }
 
     Ok(())
 }
 
+async fn run_room(
+    relay_url: String,
+    event_tx: mpsc::Sender<gst::Event>,
+    mut pipe_state: tokio::sync::watch::Receiver<bool>,
+) -> Result<(), Box<dyn Error>> {
+    // Run loop, with recovery on error
+    loop {
+        // Wait until the pipeline is running
+        while !*pipe_state.borrow() {
+            pipe_state.changed().await?;
+        }
+
+        let relay_url = relay_url.clone();
+        let event_tx = event_tx.clone();
+        let mut room = room::Room::new(relay_url, event_tx).await?;
+
+        tokio::select! {
+            res = room.run() => {
+                if let Err(e) = res {
+                    eprintln!("Room task failed: {} - restarting connection", e);
+                    // Wait a bit before retrying
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    continue;
+                }
+                break Err("Room task ended unexpectedly".into());
+            }
+            _ = pipe_state.changed() => {
+                // Restart room if pipeline restarts
+                eprintln!("Pipeline state changed, restarting room.");
+                continue;
+            }
+        }
+    }
+}
+
 async fn run_pipeline(
     pipeline_str: String,
     event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
+    pipe_state: tokio::sync::watch::Sender<bool>,
 ) -> Result<(), Box<dyn Error>> {
     loop {
         // Create the pipeline
@@ -273,6 +307,10 @@ async fn run_pipeline(
             .downcast::<Pipeline>()
             .map_err(|_| "Failed to downcast pipeline")?;
         pipeline.set_state(gst::State::Playing)?;
+
+        // Signal the pipeline is rolling after a delay
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        pipe_state.send(true)?;
 
         let pipeline = Arc::new(Mutex::new(pipeline));
 
@@ -298,7 +336,9 @@ async fn run_pipeline(
             }
             Some(_) = error_rx.recv() => {
                 eprintln!("Pipeline error occurred. Restarting...");
-                continue; // Restart the pipeline loop
+                // Wait a bit before retrying
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                continue;
             }
         }
     }
@@ -343,21 +383,5 @@ async fn spawn_pipeline_event_task(
             //eprintln!("Failed to send event to the pipeline.");
         }
     }
-    Ok(())
-}
-
-    // Get a room
-    let mut relay_url = "".to_string();
-    if let output_args::OutputOption::WHIP(whipargs) = &args.output {
-        relay_url = format!(
-            "
-            {}/api/whep/{}
-            ",
-            whipargs.endpoint, args.app.room
-        );
-    }
-    let mut room_handler = room::Room::new(relay_url, pipeline_clone).await?;
-    room_handler.run().await?;
-
     Ok(())
 }

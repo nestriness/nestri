@@ -1,6 +1,6 @@
 FROM docker.io/golang:1.23-alpine AS go-build
 WORKDIR /builder
-COPY packages/webrtc-relay/ /builder/
+COPY packages/relay/ /builder/
 RUN go build
 
 FROM docker.io/golang:1.23-alpine

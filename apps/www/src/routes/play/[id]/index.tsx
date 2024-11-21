@@ -92,9 +92,8 @@ export default component$(() => {
                     canvas.value.requestPointerLock();
                 }
             }}
-            //TODO: Fix the canvas issues
             //TODO: go full screen, then lock on "landscape" screen-orientation on mobile
-            class="aspect-video h-screen w-auto" />
+            class="aspect-video h-full w-full object-contain" />
     )
 })
 

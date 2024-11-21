@@ -1,13 +1,11 @@
 use clap::{Arg, Command};
 
 pub mod app_args;
-pub mod output_args;
 pub mod device_args;
 pub mod encoding_args;
 
 pub struct Args {
     pub app: app_args::AppArgs,
-    pub output: output_args::OutputOption,
     pub device: device_args::DeviceArgs,
     pub encoding: encoding_args::EncodingArgs,
 }
@@ -40,6 +38,13 @@ impl Args {
                     .default_value("false"),
             )
             .arg(
+                Arg::new("relay-url")
+                    .short('u')
+                    .long("relay-url")
+                    .env("RELAY_URL")
+                    .help("Nestri relay URL")
+            )
+            .arg(
                 Arg::new("resolution")
                     .short('r')
                     .long("resolution")
@@ -54,13 +59,6 @@ impl Args {
                     .env("FRAMERATE")
                     .help("Display/stream framerate")
                     .default_value("60"),
-            )
-            .arg(
-                Arg::new("input-server")
-                    .long("input-server")
-                    .env("INPUT_SERVER")
-                    .help("Input server address")
-                    .default_value("ws://localhost:1999"),
             )
             .arg(
                 Arg::new("room")
@@ -202,51 +200,10 @@ impl Args {
                     .help("Maximum bitrate in kbps")
                     .default_value("192"),
             )
-            .arg(
-                Arg::new("output")
-                    .short('o')
-                    .long("output")
-                    .env("OUTPUT")
-                    .help("Output type (e.g. 'moq', 'whip')")
-                    .default_value("whip"),
-            )
-            .arg(
-                Arg::new("moq-relay")
-                    .short('m')
-                    .long("moq-relay")
-                    .env("MOQ_RELAY")
-                    .help("MoQ relay URL")
-                    .default_value("https://relay.dathorse.com:8443"),
-            )
-            .arg(
-                Arg::new("moq-path")
-                    .short('p')
-                    .long("moq-path")
-                    .env("MOQ_PATH")
-                    .help("MoQ relay path/namespace/broadcast")
-                    .default_value("teststream"),
-            )
-            .arg(
-                Arg::new("whip-endpoint")
-                    .short('w')
-                    .long("whip-endpoint")
-                    .env("WHIP_ENDPOINT")
-                    .help("WebRTC WHIP endpoint")
-                    .default_value("https://relay.dathorse.com/whip"),
-            )
-            .arg(
-                Arg::new("whip-auth-token")
-                    .short('y')
-                    .long("whip-auth-token")
-                    .env("WHIP_AUTH_TOKEN")
-                    .help("WebRTC WHIP auth token")
-                    .default_value(""),
-            )
             .get_matches();
 
         Self {
             app: app_args::AppArgs::from_matches(&matches),
-            output: output_args::OutputOption::from_matches(&matches),
             device: device_args::DeviceArgs::from_matches(&matches),
             encoding: encoding_args::EncodingArgs::from_matches(&matches),
         }
@@ -254,7 +211,6 @@ impl Args {
 
     pub fn debug_print(&self) {
         self.app.debug_print();
-        self.output.debug_print();
         self.device.debug_print();
         self.encoding.debug_print();
     }
