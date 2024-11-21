@@ -1,43 +1,12 @@
 package relay
 
 import (
-	"log"
-
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
+	"log"
 )
 
-type Stream struct {
-	PeerConnection *webrtc.PeerConnection
-	AudioTrack     webrtc.TrackLocal
-	VideoTrack     webrtc.TrackLocal
-}
-
-type Viewer struct {
-	UUID           string
-	PeerConnection *webrtc.PeerConnection
-}
-
-func (vw *Viewer) AddTrack(trackLocal *webrtc.TrackLocal) error {
-	rtpSender, err := vw.PeerConnection.AddTrack(*trackLocal)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		rtcpBuffer := make([]byte, 1400)
-		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuffer); rtcpErr != nil {
-				return
-			}
-		}
-	}()
-
-	return nil
-}
-
-var StreamMap map[string]*Stream            //< stream name -> stream
-var ViewerMap map[string]map[string]*Viewer //< stream name -> viewers by their UUID
+var Rooms = make(map[string]*Room) //< Room name -> Room
 
 var globalWebRTCAPI *webrtc.API
 var globalWebRTCConfig = webrtc.Configuration{
@@ -47,12 +16,8 @@ var globalWebRTCConfig = webrtc.Configuration{
 }
 
 func InitWebRTCAPI() error {
-	// Make our maps
-	StreamMap = make(map[string]*Stream)
-	ViewerMap = make(map[string]map[string]*Viewer)
-
 	var err error
-	flags := GetRelayFlags()
+	flags := GetFlags()
 
 	// Media engine
 	mediaEngine := &webrtc.MediaEngine{}

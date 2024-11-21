@@ -41,5 +41,5 @@
     "./*.config.ts",
     "./*.config.js",
     "content-collections.ts"
-  ]
+, "../../packages/input/src/webrtc-stream.ts"  ]
 }
