@@ -2,43 +2,10 @@ mod args;
 mod enc_helper;
 mod gpu;
 
-use std::collections::HashSet;
-use std::sync::{Arc};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use url::Url;
-
+use std::sync::Arc;
 use gst::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
-use futures_util::{SinkExt, StreamExt};
-use serde_json::from_str;
-use tokio::sync::mpsc;
 use crate::args::{encoding_args, output_args};
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "type")]
-enum InputMessage {
-    #[serde(rename = "mousemove")]
-    MouseMove { x: i32, y: i32 },
-
-    #[serde(rename = "mousemoveabs")]
-    MouseMoveAbs { x: i32, y: i32 },
-
-    #[serde(rename = "wheel")]
-    Wheel { x: f64, y: f64 },
-
-    #[serde(rename = "mousedown")]
-    MouseDown { key: i32 },
-    // Add other variants as needed
-    #[serde(rename = "mouseup")]
-    MouseUp { key: i32 },
-
-    #[serde(rename = "keydown")]
-    KeyDown { key: i32 },
-
-    #[serde(rename = "keyup")]
-    KeyUp { key: i32 },
-}
+mod room;
 
 // Handles gathering GPU information and selecting the most suitable GPU
 fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
@@ -169,6 +136,9 @@ async fn main() -> std::io::Result<()> {
         args.debug_print();
     }
 
+    rustls::crypto::ring::default_provider().install_default()
+        .expect("Failed to install ring crypto provider");
+
     let _ = gst::init();
     let _ = gstmoq::plugin_register_static();
 
@@ -231,19 +201,19 @@ async fn main() -> std::io::Result<()> {
         ! queue2 max-size-time=1000000 ! audioconvert \
         ! {} bitrate={}000 \
         ! pipend.",
-                                 if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PulseAudio {
-                                     "pulsesrc"
-                                 } else if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PipeWire {
-                                     "pipewiresrc"
-                                 } else {
-                                     "alsasrc"
-                                 },
-                                 audio_encoder,
-                                 match &args.encoding.audio.rate_control {
-                                     encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate,
-                                     encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate,
-                                     _ => 128,
-                                 }
+        if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PulseAudio {
+            "pulsesrc"
+        } else if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PipeWire {
+            "pipewiresrc"
+        } else {
+            "alsasrc"
+        },
+        audio_encoder,
+        match &args.encoding.audio.rate_control {
+            encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate,
+            encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate,
+            _ => 128,
+        }
     ).to_string();
 
     // Construct the pipeline string
@@ -280,10 +250,6 @@ async fn main() -> std::io::Result<()> {
     let _ = pipeline.set_state(gst::State::Playing);
     let pipeline_clone = Arc::new(tokio::sync::Mutex::new(pipeline.clone()));
 
-    // let app_state = web::Data::new(AppState {
-    //     pipeline: Arc::new(Mutex::new(pipeline.clone())),
-    // });
-
     let pipeline_thread = pipeline.clone();
 
     std::thread::spawn(move || {
@@ -318,196 +284,18 @@ async fn main() -> std::io::Result<()> {
         let _ = pipeline.set_state(gst::State::Null);
     });
 
-    //TODO: Get this from the CLI
-    let server = "server";
-    let url_string = format!("{}/parties/main/{}?_pk={}", args.app.input_server, args.app.room, server);
-
-    let mut socket = None;
-    let start_time = Instant::now();
-    let retry_duration = Duration::from_secs(30);
-
-    while socket.is_none() && start_time.elapsed() < retry_duration {
-        match Url::parse(&url_string) {
-            Ok(url) => {
-                match connect_async(url.as_str()).await {
-                    Ok((ws_stream, _)) => {
-                        println!("[websocket]: Connected to the server");
-                        socket = Some(ws_stream);
-                    }
-                    Err(e) => {
-                        eprintln!("[websocket]: Error connecting: {}", e);
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Invalid URL: {}", e);
-                break; // Exit if the URL is invalid
-            }
-        }
+    // Get a room
+    let mut relay_url = "".to_string();
+    if let output_args::OutputOption::WHIP(whipargs) = &args.output {
+        relay_url = format!(
+            "
+            {}/api/whep/{}
+            ",
+            whipargs.endpoint, args.app.room
+        );
     }
-
-    // Create an async channel for sending events to the pipeline
-    let (event_tx, mut event_rx) = mpsc::channel(10);
-
-    // A shared state to track currently pressed keys
-    let pressed_keys = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
-
-    // Spawn a task to process events for the pipeline
-    let pipeline_task = {
-        let pipeline = Arc::clone(&pipeline_clone);
-        tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                let pipeline = pipeline.lock().await;
-                pipeline.send_event(event);
-            }
-        })
-    };
-
-    if let Some(socket) = socket {
-        let (mut ws_sink, mut ws_stream) = socket.split();
-
-        // Start the heartbeat task
-        let heartbeat_interval = Duration::from_secs(10); // Send a Ping every 10 seconds
-        let heartbeat_timeout = Duration::from_secs(20); // Consider the connection dead if no Pong within 20 seconds
-
-        println!("Spawning heartbeat task");
-        let heartbeat_task = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(heartbeat_interval);
-            loop {
-                interval.tick().await;
-
-                match tokio::time::timeout(heartbeat_timeout, ws_sink.send(Message::Ping(Vec::new()))).await {
-                    Ok(Ok(_)) => {}
-                    Ok(Err(e)) => {
-                        eprintln!("[heartbeat]: Failed to send Ping: {}", e);
-                        break;
-                    }
-                    Err(_) => {
-                        eprintln!("[heartbeat]: Pong not received within timeout");
-                        break;
-                    }
-                }
-            }
-            println!("[heartbeat]: Exiting heartbeat task");
-        });
-
-        while let Some(msg) = ws_stream.next().await {
-            match msg {
-                Ok(Message::Text(txt)) => {
-                    let event_tx = event_tx.clone();
-                    let pressed_keys = Arc::clone(&pressed_keys);
-
-                    // Spawn a task to handle the input message
-                    tokio::spawn(async move {
-                        if let Ok(input_msg) = from_str::<InputMessage>(&txt) {
-                            if let Some(event) = handle_input_message(input_msg, &pressed_keys).await {
-                                event_tx.send(event).await.unwrap();
-                            }
-                        }
-                    });
-                }
-                Ok(Message::Ping(_)) => {
-                    // Since we do our heartbeat logic above, no need to respond?
-                    //ws_sink.send(Message::Pong(bytes)).await.unwrap();
-                }
-                Ok(Message::Pong(_)) => {
-                    // Spammy if kept on
-                    //println!("[websocket]: Received Pong");
-                }
-                Ok(Message::Close(reason)) => {
-                    println!("WebSocket closed: {:?}", reason);
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("Error reading WebSocket message: {}", e);
-                }
-                _ => {}
-            }
-        }
-
-        pipeline_task.await?;
-
-        // Abort on exit to cleanup
-        heartbeat_task.abort();
-    } else {
-        eprintln!("[websocket]: Could not connect to the server within 30 seconds.");
-    }
+    let mut room_handler = room::Room::new(relay_url, pipeline_clone).await?;
+    room_handler.run().await?;
 
     Ok(())
-}
-
-async fn handle_input_message(
-    input_msg: InputMessage,
-    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>,
-) -> Option<gst::Event> {
-    match input_msg {
-        InputMessage::MouseMove { x, y } => {
-            let structure = gst::Structure::builder("MouseMoveRelative")
-                .field("pointer_x", x as f64)
-                .field("pointer_y", y as f64)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::MouseMoveAbs { x, y } => {
-            let structure = gst::Structure::builder("MouseMoveAbsolute")
-                .field("pointer_x", x as f64)
-                .field("pointer_y", y as f64)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::KeyDown { key } => {
-            let mut keys = pressed_keys.lock().await;
-            // If the key is already pressed, return to prevent key lockup
-            if keys.contains(&key) {
-                return None;
-            }
-            keys.insert(key);
-
-            let structure = gst::Structure::builder("KeyboardKey")
-                .field("key", key as u32)
-                .field("pressed", true)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::KeyUp { key } => {
-            let mut keys = pressed_keys.lock().await;
-            // Remove the key from the pressed state when released
-            keys.remove(&key);
-
-            let structure = gst::Structure::builder("KeyboardKey")
-                .field("key", key as u32)
-                .field("pressed", false)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::Wheel { x, y } => {
-            let structure = gst::Structure::builder("MouseAxis")
-                .field("x", x as f64)
-                .field("y", y as f64)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::MouseDown { key } => {
-            let structure = gst::Structure::builder("MouseButton")
-                .field("button", key as u32)
-                .field("pressed", true)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-        InputMessage::MouseUp { key } => {
-            let structure = gst::Structure::builder("MouseButton")
-                .field("button", key as u32)
-                .field("pressed", false)
-                .build();
-
-            Some(gst::event::CustomUpstream::new(structure))
-        }
-    }
 }

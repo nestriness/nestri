@@ -1,29 +1,24 @@
+use gst::prelude::*;
+use reqwest;
+use std::collections::HashSet;
+use std::io;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use tokio::sync::Mutex;
+use tokio::time::Duration;
+use webrtc::api::interceptor_registry::register_default_interceptors;
+// use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use std::collections::{HashSet};
-use std::error::Error;
-use std::sync::Arc;
-use futures_util::StreamExt;
-use gst::prelude::ElementExtManual;
-use gst_app::app_sink::AppSinkStream;
-use tokio::sync::{oneshot, Mutex};
-use tokio::sync::{mpsc};
-use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
-use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
-use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
-use webrtc::ice_transport::ice_gathering_state::RTCIceGatheringState;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
+use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
-use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
-use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
-use webrtc::track::track_local::TrackLocalWriter;
-use crate::messages::*;
-use crate::websocket::NestriWebSocket;
+use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -51,26 +46,33 @@ enum InputMessage {
 }
 
 pub struct Room {
-    nestri_ws: Arc<NestriWebSocket>,
-    webrtc_api: webrtc::api::API,
-    webrtc_config: RTCConfiguration,
+    peer_connection: Arc<webrtc::peer_connection::RTCPeerConnection>,
+    data_channel: Arc<webrtc::data_channel::RTCDataChannel>,
+    done_tx: mpsc::Sender<()>,
+    done_rx: mpsc::Receiver<()>,
+    relay_url: String,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
 }
 
 impl Room {
     pub async fn new(
-        nestri_ws: Arc<NestriWebSocket>,
-    ) -> Result<Room, Box<dyn Error>> {
-        // Create media engine and register default codecs
-        let mut media_engine = MediaEngine::default();
-        media_engine.register_default_codecs()?;
+        relay_url: String,
+        pipeline: Arc<Mutex<gst::Pipeline>>,
+    ) -> io::Result<Self> {
+        // Create a MediaEngine object to configure the supported codec
+        let mut m = MediaEngine::default();
 
-        // Registry
+        // Register default codecs
+        let _ = m.register_default_codecs().map_err(map_to_io_error)?;
+
         let mut registry = Registry::new();
-        registry = register_default_interceptors(registry, &mut media_engine)?;
+
+        // Use the default set of Interceptors
+        registry = register_default_interceptors(registry, &mut m).map_err(map_to_io_error)?;
 
         // Create the API object with the MediaEngine
         let api = APIBuilder::new()
-            .with_media_engine(media_engine)
+            .with_media_engine(m)
             .with_interceptor_registry(registry)
             .build();
 
@@ -83,379 +85,183 @@ impl Room {
             ..Default::default()
         };
 
-        Ok(Self {
-            nestri_ws,
-            webrtc_api: api,
-            webrtc_config: config,
-        })
-    }
-
-    pub async fn run(
-        &mut self,
-        audio_codec: &str,
-        video_codec: &str,
-        pipeline: Arc<Mutex<gst::Pipeline>>,
-        audio_sink: Arc<Mutex<AppSinkStream>>,
-        video_sink: Arc<Mutex<AppSinkStream>>,
-    ) -> Result<(), Box<dyn Error>> {
-        let (tx, rx) = oneshot::channel();
-        let tx = Arc::new(std::sync::Mutex::new(Some(tx)));
-        self.nestri_ws
-            .register_callback("answer",  {
-                let tx = tx.clone();
-                move |data| {
-                    if let Ok(answer) = decode_message_as::<MessageAnswer>(data) {
-                        log::info!("Received answer: {:?}", answer);
-                        match answer.answer_type {
-                            AnswerType::AnswerOffline => {
-                                log::warn!("Room is offline, we shouldn't be receiving this");
-                            }
-                            AnswerType::AnswerInUse => {
-                                log::error!("Room is in use by another node!");
-                            }
-                            AnswerType::AnswerOK => {
-                                // Notify that we got an OK answer
-                                if let Some(tx) = tx.lock().unwrap().take() {
-                                    if let Err(_) = tx.send(()) {
-                                        log::error!("Failed to send OK answer signal");
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        log::error!("Failed to decode answer");
-                    }
-                }
-            })
-            .await;
-
-        // Send a request to join the room
-        let join_msg = MessageJoin {
-            base: MessageBase {
-                payload_type: "join".to_string(),
-            },
-            joiner_type: JoinerType::JoinerNode,
-        };
-        if let Ok(encoded) = encode_message(&join_msg) {
-            self.nestri_ws.send_message(encoded).await?;
-        } else {
-            log::error!("Failed to encode join message");
-            return Err("Failed to encode join message".into());
-        }
-
-        // Wait for the signal indicating that we have received an OK answer
-        match rx.await {
-            Ok(()) => {
-                log::info!("Received OK answer, proceeding...");
-            }
-            Err(_) => {
-                log::error!("Oneshot channel closed unexpectedly");
-                return Err("Unexpected error while waiting for OK answer".into());
-            }
-        }
-
         // Create a new RTCPeerConnection
-        let config = self.webrtc_config.clone();
-        let peer_connection = Arc::new(self.webrtc_api.new_peer_connection(config).await?);
+        let peer_connection = Arc::new(
+            api.new_peer_connection(config)
+                .await
+                .map_err(map_to_io_error)?,
+        );
 
-        // Create audio track
-        let audio_track = Arc::new(TrackLocalStaticRTP::new(
-            RTCRtpCodecCapability {
-                mime_type: audio_codec.to_owned(),
-                ..Default::default()
-            },
-            "audio".to_owned(),
-            "audio-nestri-server".to_owned(),
-        ));
+        // Create a datachannel with label 'data'
+        let data_channel = peer_connection
+            .create_data_channel("input", None)
+            .await
+            .map_err(map_to_io_error)?;
 
-        // Create video track
-        let video_track = Arc::new(TrackLocalStaticRTP::new(
-            RTCRtpCodecCapability {
-                mime_type: video_codec.to_owned(),
-                ..Default::default()
-            },
-            "video".to_owned(),
-            "video-nestri-server".to_owned(),
-        ));
+        let (done_tx, done_rx) = mpsc::channel::<()>(1);
 
-        // Cancellation token to stop spawned tasks after peer connection is closed
-        let cancel_token = tokio_util::sync::CancellationToken::new();
-
-        // Add audio track to peer connection
-        let audio_sender = peer_connection.add_track(audio_track.clone()).await?;
-        let audio_sender_token = cancel_token.child_token();
-        tokio::spawn(async move {
-            loop {
-                let mut rtcp_buf = vec![0u8; 1500];
-                tokio::select! {
-                    _ = audio_sender_token.cancelled() => {
-                        break;
-                    }
-                    _ = audio_sender.read(&mut rtcp_buf) => {}
-                }
-            }
-        });
-
-        // Add video track to peer connection
-        let video_sender = peer_connection.add_track(video_track.clone()).await?;
-        let video_sender_token = cancel_token.child_token();
-        tokio::spawn(async move {
-            loop {
-                let mut rtcp_buf = vec![0u8; 1500];
-                tokio::select! {
-                    _ = video_sender_token.cancelled() => {
-                        break;
-                    }
-                    _ = video_sender.read(&mut rtcp_buf) => {}
-                }
-            }
-        });
-
-        // Create a datachannel with label 'input'
-        let data_channel_opts = Some(RTCDataChannelInit {
-            ordered: Some(false),
-            max_retransmits: Some(0),
-            ..Default::default()
-        });
-        let data_channel
-            = peer_connection.create_data_channel("input", data_channel_opts).await?;
-
-        // PeerConnection state change tracker
-        let (pc_sndr, mut pc_recv) = mpsc::channel(1);
-
+        let done_tx_clone = done_tx.clone();
         // Peer connection state change handler
         peer_connection.on_peer_connection_state_change(Box::new(
             move |s: RTCPeerConnectionState| {
-                let pc_sndr = pc_sndr.clone();
-                Box::pin(async move {
-                    log::info!("PeerConnection State has changed: {s}");
+                println!("Peer Connection State has changed: {s}");
 
-                    if s == RTCPeerConnectionState::Failed
-                        || s == RTCPeerConnectionState::Disconnected
-                        || s == RTCPeerConnectionState::Closed
-                    {
-                        // Notify pc_state that the peer connection has closed
-                        if let Err(e) = pc_sndr.send(s).await {
-                            log::error!("Failed to send PeerConnection state: {}", e);
-                        }
-                    }
-                })
+                if s == RTCPeerConnectionState::Failed {
+                    println!("Peer Connection has gone to failed exiting");
+                    let _ = done_tx_clone.try_send(());
+                }
+
+                Box::pin(async {})
             },
         ));
 
-        peer_connection.on_ice_gathering_state_change(Box::new(move |s| {
-            Box::pin(async move {
-                log::info!("ICE Gathering State has changed: {s}");
-            })
-        }));
+        Ok(Self {
+            peer_connection,
+            pipeline,
+            data_channel,
+            done_tx,
+            done_rx,
+            relay_url,
+        })
+    }
 
-        peer_connection.on_ice_connection_state_change(Box::new(move |s| {
-            Box::pin(async move {
-                log::info!("ICE Connection State has changed: {s}");
-            })
-        }));
-
-        // Trickle ICE over WebSocket
-        let ws = self.nestri_ws.clone();
-        peer_connection.on_ice_candidate(Box::new(move |c| {
-            let nestri_ws = ws.clone();
-            Box::pin(async move {
-                if let Some(candidate) = c {
-                    let candidate_json = candidate.to_json().unwrap();
-                    let ice_msg = MessageICE {
-                        base: MessageBase {
-                            payload_type: "ice".to_string(),
-                        },
-                        candidate: candidate_json,
-                    };
-                    if let Ok(encoded) = encode_message(&ice_msg) {
-                        let _ = nestri_ws.send_message(encoded);
-                    }
-                }
-            })
-        }));
-
-        // Temporary ICE candidate buffer until remote description is set
-        let ice_holder: Arc<Mutex<Vec<RTCIceCandidateInit>>> = Arc::new(Mutex::new(Vec::new()));
-        // Register set_response_callback for ICE candidate
-        let pc = peer_connection.clone();
-        let ice_clone = ice_holder.clone();
-        self.nestri_ws.register_callback("ice", move |data| {
-            match decode_message_as::<MessageICE>(data) {
-                Ok(message) => {
-                    log::info!("Received ICE message");
-                    let candidate = RTCIceCandidateInit::from(message.candidate);
-                    let pc = pc.clone();
-                    let ice_clone = ice_clone.clone();
-                    tokio::spawn(async move {
-                        // If remote description is not set, buffer ICE candidates
-                        if pc.remote_description().await.is_none() {
-                            let mut ice_holder = ice_clone.lock().await;
-                            ice_holder.push(candidate);
-                        } else {
-                            if let Err(e) = pc.add_ice_candidate(candidate).await {
-                                log::error!("Failed to add ICE candidate: {}", e);
-                            } else {
-                                // Add any held ICE candidates
-                                let mut ice_holder = ice_clone.lock().await;
-                                for candidate in ice_holder.drain(..) {
-                                    if let Err(e) = pc.add_ice_candidate(candidate).await {
-                                        log::error!("Failed to add ICE candidate: {}", e);
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-                Err(e) => eprintln!("Failed to decode callback message: {:?}", e),
-            }
-        }).await;
+    pub async fn run(&mut self) -> io::Result<()> {
+        // Create an async channel for sending events to the pipeline
+        let (event_tx, mut event_rx) = mpsc::channel(10);
 
         // A shared state to track currently pressed keys
-        let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
-        let pressed_buttons = Arc::new(Mutex::new(HashSet::new()));
+        let pressed_keys = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
 
-        // Data channel message handler
-        data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
-            let pipeline = pipeline.clone();
-            let pressed_keys = pressed_keys.clone();
-            let pressed_buttons = pressed_buttons.clone();
-            Box::pin({
-                async move {
-                    // We don't care about string messages for now
-                    if !msg.is_string {
-                        // Decode the message as an MessageInput (binary encoded gzip)
-                        match decode_message_as::<MessageInput>(msg.data.to_vec()) {
-                            Ok(message_input) => {
-                                // Handle the input message
-                                if let Ok(input_msg) = from_str::<InputMessage>(&message_input.data) {
-                                    if let Some(event) =
-                                        handle_input_message(input_msg, &pressed_keys, &pressed_buttons).await
-                                    {
-                                        let _ = pipeline.lock().await.send_event(event);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                log::error!("Failed to decode input message: {:?}", e);
-                            }
-                        }
-                    }
+        // Spawn a task to process events for the pipeline
+        let pipeline_task = {
+            // let pipeline = Arc::clone(self.pipeline);
+            let pipeline_clone = self.pipeline.clone();
+            tokio::spawn(async move {
+                while let Some(event) = event_rx.recv().await {
+                    let pipeline = pipeline_clone.lock().await;
+                    pipeline.send_event(event);
                 }
             })
-        }));
-
-        log::info!("Creating offer...");
-
-        // Create an offer to send to the browser
-        let offer = peer_connection.create_offer(None).await?;
-
-        log::info!("Setting local description...");
-
-        // Sets the LocalDescription, and starts our UDP listeners
-        peer_connection.set_local_description(offer).await?;
-
-        log::info!("Local description set...");
-
-        if let Some(local_description) = peer_connection.local_description().await {
-            // Wait until we have gathered all ICE candidates
-            while peer_connection.ice_gathering_state() != RTCIceGatheringState::Complete {
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            }
-
-            // Register set_response_callback for SDP answer
-            let pc = peer_connection.clone();
-            self.nestri_ws.register_callback("sdp", move |data| {
-                match decode_message_as::<MessageSDP>(data) {
-                    Ok(message) => {
-                        log::info!("Received SDP message");
-                        let sdp = message.sdp;
-                        let pc = pc.clone();
-                        tokio::spawn(async move {
-                            if let Err(e) = pc.set_remote_description(sdp).await {
-                                log::error!("Failed to set remote description: {}", e);
-                            }
-                        });
-                    }
-                    Err(e) => eprintln!("Failed to decode callback message: {:?}", e),
-                }
-            }).await;
-
-            log::info!("Sending local description to remote...");
-            // Encode and send the local description via WebSocket
-            let sdp_msg = MessageSDP {
-                base: MessageBase {
-                    payload_type: "sdp".to_string(),
-                },
-                sdp: local_description,
-            };
-            let encoded = encode_message(&sdp_msg)?;
-            self.nestri_ws.send_message(encoded).await?;
-        } else {
-            log::error!("generate local_description failed!");
-            cancel_token.cancel();
-            return Err("generate local_description failed!".into());
         };
 
-        // Send video and audio data
-        let audio_track = audio_track.clone();
-        tokio::spawn(async move {
-            let mut audio_sink = audio_sink.lock().await;
-            while let Some(sample) = audio_sink.next().await {
-                if let Some(buffer) = sample.buffer() {
-                    if let Ok(map) = buffer.map_readable() {
-                        if let Err(e) = audio_track.write(map.as_slice()).await {
-                            if webrtc::Error::ErrClosedPipe == e {
-                                break;
-                            } else {
-                                log::error!("Failed to write audio track: {}", e);
-                            }
-                        }
+        let data_channel = self.data_channel.clone();
+        //TODO: Handle heartbeats here
+        // let d1 = Arc::clone(&self.data_channel);
+        // data_channel.on_open(Box::new(move || {
+        //     println!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
+
+        //     let d2 = Arc::clone(&d1);
+        //     Box::pin(async move {
+        //         let mut result = std::io::Result::<usize>::Ok(0);
+        //         while result.is_ok() {
+        //             let timeout = tokio::time::sleep(Duration::from_secs(5));
+        //             tokio::pin!(timeout);
+
+        //             tokio::select! {
+        //                 _ = timeout.as_mut() =>{
+        //                     let message = math_rand_alpha(15);
+        //                     println!("Sending '{message}'");
+        //                     result = d2.send_text(message).await.map_err(map_to_io_error);
+        //                 }
+        //             };
+        //         }
+        //     })
+        // }));
+
+        // Data channel message handler
+        let d_label = data_channel.label().to_owned();
+        data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
+            let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
+            println!("Message from DataChannel '{d_label}': '{msg_str}'");
+
+            let event_tx = event_tx.clone();
+            let pressed_keys = Arc::clone(&pressed_keys);
+
+            tokio::spawn(async move {
+                if let Ok(input_msg) = from_str::<InputMessage>(&msg_str) {
+                    if let Some(event) = handle_input_message(input_msg, &pressed_keys).await {
+                        event_tx.send(event).await.unwrap();
                     }
                 }
-            }
-        });
+            });
 
-        let video_track = video_track.clone();
-        tokio::spawn(async move {
-            let mut video_sink = video_sink.lock().await;
-            while let Some(sample) = video_sink.next().await {
-                if let Some(buffer) = sample.buffer() {
-                    if let Ok(map) = buffer.map_readable() {
-                        if let Err(e) = video_track.write(map.as_slice()).await {
-                            if webrtc::Error::ErrClosedPipe == e {
-                                break;
-                            } else {
-                                log::error!("Failed to write video track: {}", e);
-                            }
-                        }
-                    }
-                }
-            }
-        });
+            Box::pin(async {})
+        }));
 
-        // Block until closed or error
+        // Create an offer to send to the browser
+        let offer = self
+            .peer_connection
+            .create_offer(None)
+            .await
+            .map_err(map_to_io_error)?;
+
+        // Create channel that is blocked until ICE Gathering is complete
+        let mut gather_complete = self.peer_connection.gathering_complete_promise().await;
+
+        // Sets the LocalDescription, and starts our UDP listeners
+        self.peer_connection
+            .set_local_description(offer)
+            .await
+            .map_err(map_to_io_error)?;
+
+        // Block until ICE Gathering is complete, disabling trickle ICE
+        // we do this because we only can exchange one signaling message
+        // in a production application you should exchange ICE Candidates via OnICECandidate
+        let _ = gather_complete.recv().await;
+
+        if let Some(local_description) = self.peer_connection.local_description().await {
+            let url = format!("{}",self.relay_url);
+            let response = reqwest::Client::new()
+                .post(&url)
+                .header("Content-Type", "application/sdp")
+                .body(local_description.sdp.clone()) // clone if you don't want to move offer.sdp
+                .send()
+                .await
+                .map_err(map_to_io_error)?;
+
+            let answer = response
+                .json::<RTCSessionDescription>()
+                .await
+                .map_err(map_to_io_error)?;
+
+            self.peer_connection
+                .set_remote_description(answer)
+                .await
+                .map_err(map_to_io_error)?;
+        } else {
+            println!("generate local_description failed!");
+        };
+
+        println!("Press ctrl-c to stop");
+
         tokio::select! {
-            _ = pc_recv.recv() => {
-                log::info!("Peer connection closed with state: {:?}", peer_connection.connection_state());
+            _ = self.done_rx.recv() => {
+                println!("received done signal!");
             }
-        }
+            _ = tokio::signal::ctrl_c() => {
+                println!();
+            }
+        };
 
-        cancel_token.cancel();
+        self.peer_connection
+            .close()
+            .await
+            .map_err(map_to_io_error)?;
 
-        // Make double-sure to close the peer connection
-        if let Err(e) = peer_connection.close().await {
-            log::error!("Failed to close peer connection: {}", e);
-        }
-
+        //FIXME: Ctr + C is not working... i suspect it has something to do with this guy -- Do not forget to fix packages/server/room.rs as well
+        
+        pipeline_task.await?;
         Ok(())
     }
 }
 
+fn map_to_io_error<E: std::fmt::Display>(e: E) -> io::Error {
+    io::Error::new(io::ErrorKind::Other, format!("{}", e))
+}
+
 async fn handle_input_message(
     input_msg: InputMessage,
-    pressed_keys: &Arc<Mutex<HashSet<i32>>>,
-    pressed_buttons: &Arc<Mutex<HashSet<i32>>>,
+    pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>,
 ) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
@@ -510,13 +316,6 @@ async fn handle_input_message(
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseDown { key } => {
-            let mut buttons = pressed_buttons.lock().await;
-            // If the button is already pressed, return to prevent button lockup
-            if buttons.contains(&key) {
-                return None;
-            }
-            buttons.insert(key);
-
             let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", true)
@@ -525,10 +324,6 @@ async fn handle_input_message(
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseUp { key } => {
-            let mut buttons = pressed_buttons.lock().await;
-            // Remove the button from the pressed state when released
-            buttons.remove(&key);
-
             let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", false)

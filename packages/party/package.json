@@ -1,7 +1,0 @@
-{
-    "name": "@nestri/party",
-    "private": true,
-    "scripts": {
-      "dev": "bun partykit dev"
-    }
-}
