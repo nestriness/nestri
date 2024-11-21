@@ -149,27 +149,27 @@ impl Room {
 
         let data_channel = self.data_channel.clone();
         //TODO: Handle heartbeats here
-        let d1 = Arc::clone(&self.data_channel);
-        data_channel.on_open(Box::new(move || {
-            println!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
+        // let d1 = Arc::clone(&self.data_channel);
+        // data_channel.on_open(Box::new(move || {
+        //     println!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
 
-            let d2 = Arc::clone(&d1);
-            Box::pin(async move {
-                let mut result = std::io::Result::<usize>::Ok(0);
-                while result.is_ok() {
-                    let timeout = tokio::time::sleep(Duration::from_secs(5));
-                    tokio::pin!(timeout);
+        //     let d2 = Arc::clone(&d1);
+        //     Box::pin(async move {
+        //         let mut result = std::io::Result::<usize>::Ok(0);
+        //         while result.is_ok() {
+        //             let timeout = tokio::time::sleep(Duration::from_secs(5));
+        //             tokio::pin!(timeout);
 
-                    tokio::select! {
-                        _ = timeout.as_mut() =>{
-                            let message = math_rand_alpha(15);
-                            println!("Sending '{message}'");
-                            result = d2.send_text(message).await.map_err(map_to_io_error);
-                        }
-                    };
-                }
-            })
-        }));
+        //             tokio::select! {
+        //                 _ = timeout.as_mut() =>{
+        //                     let message = math_rand_alpha(15);
+        //                     println!("Sending '{message}'");
+        //                     result = d2.send_text(message).await.map_err(map_to_io_error);
+        //                 }
+        //             };
+        //         }
+        //     })
+        // }));
 
         // Data channel message handler
         let d_label = data_channel.label().to_owned();

@@ -245,11 +245,12 @@ impl Room {
                 println!();
             }
         };
-
         self.peer_connection
             .close()
             .await
             .map_err(map_to_io_error)?;
+
+        //FIXME: Ctr + C is not working... i suspect it has something to do with this guy -- Do not forget to fix packages/server/room.rs as well
 
         pipeline_task.await?;
         Ok(())
@@ -265,12 +266,8 @@ async fn handle_input_message(
     pressed_keys: &Arc<tokio::sync::Mutex<HashSet<i32>>>,
 ) -> Option<String> {
     match input_msg {
-        InputMessage::MouseMove { x, y } => {
-           Some("MouseMoved".to_string())
-        }
-        InputMessage::MouseMoveAbs { x, y } => {
-            Some("MouseMoveAbsolute".to_string())
-        }
+        InputMessage::MouseMove { x, y } => Some("MouseMoved".to_string()),
+        InputMessage::MouseMoveAbs { x, y } => Some("MouseMoveAbsolute".to_string()),
         InputMessage::KeyDown { key } => {
             let mut keys = pressed_keys.lock().await;
             // If the key is already pressed, return to prevent key lockup
@@ -288,14 +285,8 @@ async fn handle_input_message(
 
             Some("KeyUp".to_string())
         }
-        InputMessage::Wheel { x, y } => {
-            Some("Wheel".to_string())
-        }
-        InputMessage::MouseDown { key } => {
-            Some("MouseDown".to_string())
-        }
-        InputMessage::MouseUp { key } => {
-            Some("MouseUp".to_string())
-        }
+        InputMessage::Wheel { x, y } => Some("Wheel".to_string()),
+        InputMessage::MouseDown { key } => Some("MouseDown".to_string()),
+        InputMessage::MouseUp { key } => Some("MouseUp".to_string()),
     }
 }
