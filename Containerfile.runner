@@ -14,7 +14,7 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # Clone nestri source #
-RUN git clone -b feat/stream https://github.com/nestriness/nestri.git
+RUN git clone -b feat/rooms https://github.com/nestriness/nestri.git
 
 # Build nestri #
 RUN cd nestri/packages/server/ && \

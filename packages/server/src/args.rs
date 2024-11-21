@@ -11,6 +11,7 @@ pub struct Args {
     pub device: device_args::DeviceArgs,
     pub encoding: encoding_args::EncodingArgs,
 }
+
 impl Args {
     pub fn new() -> Self {
         let matches = Command::new("nestri-server")

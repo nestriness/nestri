@@ -1,8 +1,6 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { useLocation } from "@builder.io/qwik-city";
-import PartySocket from "partysocket";
-import {Keyboard, Mouse} from "@nestri/input"
-import {WebRTCStream} from "../webrtc-stream"
+import {Keyboard, Mouse, WebRTCStream} from "@nestri/input"
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 
 export default component$(() => {
     const id = useLocation().params.id;
@@ -11,37 +9,7 @@ export default component$(() => {
     useVisibleTask$(({ track }) => {
         track(() => canvas.value);
 
-        const ws = new PartySocket({
-            host: "https://nestri-party.datcaptainhorse.partykit.dev", // or localhost:1999 in dev
-            room: id,   
-        });
-
         if (!canvas.value) return; // Ensure canvas is available
-
-        document.addEventListener("pointerlockchange", (e) => {
-            if (!canvas.value) return; // Ensure canvas is available
-            // @ts-ignore
-            if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
-                // @ts-ignore
-                window.nestrimouse = new Mouse({canvas: canvas.value, ws}, false); //< TODO: Make absolute mode toggleable, for now feels better?
-                // @ts-ignore
-                window.nestrikeyboard = new Keyboard({canvas: canvas.value, ws});
-                // @ts-ignore
-            } else if (!document.pointerLockElement && window.nestrimouse && window.nestrikeyboard) {
-                // @ts-ignore
-                window.nestrimouse.dispose();
-                // @ts-ignore
-                window.nestrimouse = undefined;
-                // @ts-ignore
-                window.nestrikeyboard.dispose();
-                // @ts-ignore
-                window.nestrikeyboard = undefined;
-            }
-        });
-
-        ws.onmessage = (msg) => {
-            console.log(msg.data)
-        }
 
         // Create video element and make it output to canvas (TODO: improve this)
         let video = document.getElementById("webrtc-video-player");
@@ -49,7 +17,7 @@ export default component$(() => {
             video = document.createElement("video");
             video.id = "stream-video-player";
             video.style.visibility = "hidden";
-            const webrtc = new WebRTCStream("https://relay.dathorse.com"); // or http://localhost:8088
+            const webrtc = new WebRTCStream("http://localhost:8088"); // or http://localhost:8088
             webrtc.connect(id).then(() => {
                 const mediaStream = webrtc.getMediaStream();
                 console.log("Setting mediastream");
@@ -83,6 +51,27 @@ export default component$(() => {
                                     }
                                 }
                                 requestAnimationFrame(renderer);
+                            }
+                        });
+
+                        document.addEventListener("pointerlockchange", (e) => {
+                            if (!canvas.value) return; // Ensure canvas is available
+                            // @ts-ignore
+                            if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
+                                // @ts-ignore
+                                window.nestrimouse = new Mouse({canvas: canvas.value, webrtc}, false); //< TODO: Make absolute mode toggleable, for now feels better?
+                                // @ts-ignore
+                                window.nestrikeyboard = new Keyboard({canvas: canvas.value, webrtc});
+                                // @ts-ignore
+                            } else if (!document.pointerLockElement && window.nestrimouse && window.nestrikeyboard) {
+                                // @ts-ignore
+                                window.nestrimouse.dispose();
+                                // @ts-ignore
+                                window.nestrimouse = undefined;
+                                // @ts-ignore
+                                window.nestrikeyboard.dispose();
+                                // @ts-ignore
+                                window.nestrikeyboard = undefined;
                             }
                         });
                     };

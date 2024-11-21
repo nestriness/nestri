@@ -14,8 +14,8 @@ func main() {
 	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
 
 	// Get flags and log them
-	relay.InitRelayFlags()
-	relay.GetRelayFlags().DebugLog()
+	relay.InitFlags()
+	relay.GetFlags().DebugLog()
 
 	// Init WebRTC API
 	err = relay.InitWebRTCAPI()

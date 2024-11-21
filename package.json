@@ -13,8 +13,7 @@
     "@types/aws-lambda": "8.10.145",
     "prettier": "^3.2.5",
     "turbo": "^2.0.12",
-    "typescript": "^5.4.5",
-    "partykit": "0.0.111"
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=18"
@@ -30,7 +29,6 @@
     "workerd"
   ],
   "dependencies": {
-    "sst": "3.0.94",
-    "partysocket": "1.0.2"
+    "sst": "3.0.94"
   }
 }
