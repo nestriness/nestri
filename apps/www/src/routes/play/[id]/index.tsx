@@ -17,7 +17,7 @@ export default component$(() => {
             video = document.createElement("video");
             video.id = "stream-video-player";
             video.style.visibility = "hidden";
-            const webrtc = new WebRTCStream("https://relay.dathorse.com"); // or http://localhost:8088
+            const webrtc = new WebRTCStream("https://nestri-relay.brumbas.se"); // or http://localhost:8088
             webrtc.connect(id).then(() => {
                 const mediaStream = webrtc.getMediaStream();
                 console.log("Setting mediastream");
