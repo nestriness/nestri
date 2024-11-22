@@ -3,6 +3,7 @@ use gst::prelude::{GstObjectExt, ObjectExt};
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum VideoCodec {
     H264,
+    H265,
     AV1,
     UNKNOWN,
 }
@@ -10,6 +11,7 @@ impl VideoCodec {
     pub fn to_str(&self) -> &'static str {
         match self {
             VideoCodec::H264 => "H.264",
+            VideoCodec::H265 => "H.265",
             VideoCodec::AV1 => "AV1",
             VideoCodec::UNKNOWN => "Unknown",
         }
@@ -20,6 +22,10 @@ impl VideoCodec {
             "h264" => VideoCodec::H264,
             "h.264" => VideoCodec::H264,
             "avc" => VideoCodec::H264,
+            "h265" => VideoCodec::H265,
+            "h.265" => VideoCodec::H265,
+            "hevc" => VideoCodec::H265,
+            "hev1" => VideoCodec::H265,
             "av1" => VideoCodec::AV1,
             _ => VideoCodec::UNKNOWN,
         }
@@ -310,6 +316,12 @@ pub fn encoder_low_latency_params(encoder: &VideoEncoderInfo) -> VideoEncoderInf
                     encoder_optz.set_parameter("preset", "p1");
                     encoder_optz.set_parameter("tune", "ultra-low-latency");
                 }
+                // same goes for nvcudah265enc
+                VideoCodec::H265 => {
+                    encoder_optz.set_parameter("multi-pass", "disabled");
+                    encoder_optz.set_parameter("preset", "p1");
+                    encoder_optz.set_parameter("tune", "ultra-low-latency");
+                }
                 // nvav1enc only supports older presets
                 VideoCodec::AV1 => {
                     encoder_optz.set_parameter("preset", "low-latency-hp");
@@ -322,6 +334,10 @@ pub fn encoder_low_latency_params(encoder: &VideoEncoderInfo) -> VideoEncoderInf
             match encoder_optz.codec {
                 // Only H.264 supports "ultra-low-latency" usage
                 VideoCodec::H264 => {
+                    encoder_optz.set_parameter("usage", "ultra-low-latency");
+                }
+                // Same goes for H.265
+                VideoCodec::H265 => {
                     encoder_optz.set_parameter("usage", "ultra-low-latency");
                 }
                 VideoCodec::AV1 => {
@@ -396,6 +412,8 @@ pub fn get_compatible_encoders() -> Vec<VideoEncoderInfo> {
                         // Match codec by looking for "264" or "av1" in encoder name
                         let codec = if encoder.contains("264") {
                             VideoCodec::H264
+                        } else if encoder.contains("265") {
+                            VideoCodec::H265
                         } else if encoder.contains("av1") {
                             VideoCodec::AV1
                         } else {
@@ -409,6 +427,8 @@ pub fn get_compatible_encoders() -> Vec<VideoEncoderInfo> {
                         if is_encoder_supported(&low_power_encoder) {
                             let codec = if low_power_encoder.contains("264") {
                                 VideoCodec::H264
+                            } else if low_power_encoder.contains("265") {
+                                VideoCodec::H265
                             } else if low_power_encoder.contains("av1") {
                                 VideoCodec::AV1
                             } else {

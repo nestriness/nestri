@@ -17,7 +17,7 @@ export default component$(() => {
             video = document.createElement("video");
             video.id = "stream-video-player";
             video.style.visibility = "hidden";
-            const webrtc = new WebRTCStream("http://localhost:8088"); // or http://localhost:8088
+            const webrtc = new WebRTCStream("https://nestri-relay.brumbas.se"); // or http://localhost:8088
             webrtc.connect(id).then(() => {
                 const mediaStream = webrtc.getMediaStream();
                 console.log("Setting mediastream");
@@ -92,9 +92,8 @@ export default component$(() => {
                     canvas.value.requestPointerLock();
                 }
             }}
-            //TODO: Fix the canvas issues
             //TODO: go full screen, then lock on "landscape" screen-orientation on mobile
-            class="aspect-video h-screen w-auto" />
+            class="aspect-video h-full w-full object-contain max-h-screen"/>
     )
 })
 
