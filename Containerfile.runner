@@ -52,35 +52,31 @@ FROM ${BASE_IMAGE} AS runtime
 ENV NESTRI_PARAMS=""
 ENV RESOLUTION="1280x720"
 
-## Graphics ##
-# Grab display packages (mesa, wayland things) #
-RUN pacman -Syu --noconfirm sudo mesa mesa-utils xorg-xwayland labwc wlr-randr
-# Vulkan drivers #
-# Intel
-RUN pacman -Syu --noconfirm vulkan-intel
-# AMD/ATI
-RUN pacman -Syu --noconfirm vulkan-radeon
-# NVIDIA
-RUN pacman -Syu --noconfirm nvidia-utils
+## Install Graphics, Media, and Audio packages ##
+RUN pacman -Syu --noconfirm --needed \
+    # Graphics packages
+    sudo mesa mesa-utils xorg-xwayland labwc wlr-randr mangohud \
+    # Vulkan drivers
+    vulkan-intel vulkan-radeon nvidia-utils \
+    # Media encoding packages
+    vpl-gpu-rt intel-media-driver libva-utils \
+    # GStreamer plugins
+    gstreamer gst-plugins-base gst-plugins-good \
+    gst-plugin-va gst-plugins-bad gst-plugin-fmp4 \
+    gst-plugin-qsv gst-plugin-pipewire gst-plugin-rswebrtc \
+    # Audio packages
+    pipewire pipewire-pulse pipewire-alsa wireplumber \
+    # Other requirements
+    supervisor \
+    # Custom
+    umu-launcher && \
+    # Clean up pacman cache and unnecessary files
+    pacman -Scc --noconfirm && \
+    rm -rf /var/cache/pacman/pkg/* /tmp/* /var/tmp/* && \
+    # Optionally clean documentation, man pages, and locales
+    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name "en*" -exec rm -rf {} + && \
+    rm -rf /usr/share/doc /usr/share/man /usr/share/info
 
-## Media / Encoding ##
-# Grab GPU encoding packages #
-# Intel (modern VPL + VA-API)
-RUN pacman -Syu --noconfirm vpl-gpu-rt intel-media-driver
-# AMD/ATI (VA-API)
-#RUN pacman -Syu --noconfirm libva-mesa-driver
-# NVIDIA (proprietary)
-RUN pacman -Syu --noconfirm nvidia-utils
-# Extras (debugging)
-RUN pacman -Syu --noconfirm libva-utils
-
-# Grab gstreamer packages #
-RUN pacman -Syu --noconfirm gstreamer gst-plugins-base gst-plugins-good \
-	gst-plugin-va gst-plugins-bad gst-plugin-fmp4 gst-plugin-qsv gst-plugin-pipewire gst-plugin-rswebrtc
-
-## Audio ##
-# Grab audio packages #
-RUN pacman -Syu --noconfirm pipewire pipewire-pulse pipewire-alsa wireplumber
 
 ## User ##
 # Create and setup user #
@@ -124,8 +120,6 @@ COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr
 COPY packages/scripts/ /etc/nestri/
 
 ## Startup ##
-# Grab supervisor package #
-RUN pacman -Syu --noconfirm supervisor
 # Setup supervisor #
 RUN <<-EOF
 echo -e "
