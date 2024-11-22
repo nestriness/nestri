@@ -104,7 +104,7 @@ impl Args {
                     .short('c')
                     .long("video-codec")
                     .env("VIDEO_CODEC")
-                    .help("Preferred video codec ('h264', 'av1')")
+                    .help("Preferred video codec ('h264', 'h265', 'av1')")
                     .default_value("h264"),
             )
             .arg(
