@@ -28,6 +28,23 @@ func InitWebRTCAPI() error {
 		return err
 	}
 
+	// Add H.265 for special cases
+	videoRTCPFeedback := []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
+	for _, codec := range []webrtc.RTPCodecParameters{
+		{
+			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH265, ClockRate: 90000, RTCPFeedback: videoRTCPFeedback},
+			PayloadType:        48,
+		},
+		{
+			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeRTX, ClockRate: 90000, SDPFmtpLine: "apt=48"},
+			PayloadType:        49,
+		},
+	} {
+		if err := mediaEngine.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
+			return err
+		}
+	}
+
 	// Interceptor registry
 	interceptorRegistry := &interceptor.Registry{}
 
