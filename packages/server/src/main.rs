@@ -255,6 +255,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
     video_encoder_info.apply_parameters(&video_encoder, &args.app.verbose);
 
+    // Required for AV1 - av1parse
+    let av1_parse = gst::ElementFactory::make("av1parse").build()?;
+
     // Video RTP Payloader Element
     let video_rtp_payloader = gst::ElementFactory::make(
         format!("rtp{}pay", video_encoder_info.codec.to_gst_str()).as_str(),
@@ -339,6 +342,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &debug_video_converter,
         &video_appsink.upcast_ref(),
         &video_rtp_payloader,
+        &av1_parse,
         &video_encoder,
         &video_converter,
         &video_tee,
@@ -382,15 +386,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ])?;
     }
 
-    // Link main video branch
-    gst::Element::link_many(&[
-        &video_tee,
-        &video_converter,
-        &video_encoder,
-        &video_rtp_payloader,
-        &main_video_queue,
-        &video_appsink.upcast_ref(),
-    ])?;
+    // Link main video branch, if AV1, add av1_parse
+    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
+        gst::Element::link_many(&[
+            &video_tee,
+            &video_converter,
+            &video_encoder,
+            &av1_parse,
+            &video_rtp_payloader,
+            &main_video_queue,
+            &video_appsink.upcast_ref(),
+        ])?;
+    } else {
+        gst::Element::link_many(&[
+            &video_tee,
+            &video_converter,
+            &video_encoder,
+            &video_rtp_payloader,
+            &main_video_queue,
+            &video_appsink.upcast_ref(),
+        ])?;
+    }
 
     // Wrap the pipeline in Arc<Mutex> to safely share it
     let pipeline = Arc::new(Mutex::new(pipeline));
