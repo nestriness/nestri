@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // WHIP - WebRTC HTTP Ingress Protocol
@@ -76,6 +77,9 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		logHTTPError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Modify SDP offer to remove opus "sprop-maxcapturerate=24000" (fixes opus bad quality issue, present in GStreamer)
+	sdpOffer = strings.Replace(sdpOffer, ";sprop-maxcapturerate=24000", "", -1)
 
 	room.PeerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
