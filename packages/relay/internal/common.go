@@ -6,8 +6,6 @@ import (
 	"log"
 )
 
-var Rooms = make(map[string]*Room) //< Room name -> Room
-
 var globalWebRTCAPI *webrtc.API
 var globalWebRTCConfig = webrtc.Configuration{
 	ICETransportPolicy: webrtc.ICETransportPolicyAll,

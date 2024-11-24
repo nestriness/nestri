@@ -4,12 +4,14 @@ use serde_json::from_str;
 use std::collections::{HashSet, VecDeque};
 use std::error::Error;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Notify};
 use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Notify};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
+use webrtc::data_channel::data_channel_state::RTCDataChannelState;
+use webrtc::ice_transport::ice_candidate::{RTCIceCandidate, RTCIceCandidateInit};
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -168,8 +170,8 @@ impl Room {
         let (pc_sndr, mut pc_recv) = mpsc::channel(1);
 
         // Peer connection state change handler
-        peer_connection
-            .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
+        peer_connection.on_peer_connection_state_change(Box::new(
+            move |s: RTCPeerConnectionState| {
                 let pc_sndr = pc_sndr.clone();
                 Box::pin(async move {
                     println!("PeerConnection State has changed: {s}");
@@ -184,31 +186,24 @@ impl Room {
                         }
                     }
                 })
-            }));
+            },
+        ));
 
-        peer_connection
-            .on_ice_gathering_state_change(Box::new(move |s| {
-                Box::pin(async move {
-                    println!("ICE Gathering State has changed: {s}");
-                })
-            }));
-
-        peer_connection
-            .on_ice_connection_state_change(Box::new(move |s| {
-                Box::pin(async move {
-                    println!("ICE Connection State has changed: {s}");
-                })
-            }));
-
-        peer_connection.on_ice_candidate(Box::new(move |c| {
+        peer_connection.on_ice_gathering_state_change(Box::new(move |s| {
             Box::pin(async move {
-                if let Some(candidate) = c {
-                    let jsoned = candidate.to_json().unwrap();
-                    let string_json = serde_json::to_string(&jsoned).unwrap();
-                    println!("ICE Candidate: {string_json}");
-                }
+                println!("ICE Gathering State has changed: {s}");
             })
         }));
+
+        peer_connection.on_ice_connection_state_change(Box::new(move |s| {
+            Box::pin(async move {
+                println!("ICE Connection State has changed: {s}");
+            })
+        }));
+
+        // TODO: Trickle ICE
+        /*peer_connection.on_ice_candidate(Box::new(move |c| {
+        }));*/
 
         // Data channel message handler
         let input_notify = self.input_notify.clone();

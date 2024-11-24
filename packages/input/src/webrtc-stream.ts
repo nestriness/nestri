@@ -25,6 +25,10 @@ export class WebRTCStream {
             // Update our mediastream as we receive tracks
             this._mediaStream = e.streams[e.streams.length - 1];
         };
+
+        this._pc.onicecandidate = (e) => {
+            // TODO: Trickle ICE
+        }
     }
 
     // Forces opus to stereo in Chromium browsers, because of course
@@ -41,7 +45,6 @@ export class WebRTCStream {
         const offer = await this._pc.createOffer();
         offer.sdp = this.forceOpusStereo(offer.sdp!);
         await this._pc.setLocalDescription(offer);
-
 
         const response = await fetch(`${this._url}/api/whep/${streamName}`, {
             method: "POST",

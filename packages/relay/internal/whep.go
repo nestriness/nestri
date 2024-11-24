@@ -3,12 +3,11 @@ package relay
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pion/webrtc/v4"
 	"io"
 	"log"
 	"net/http"
-
-	"github.com/google/uuid"
-	"github.com/pion/webrtc/v4"
+	"strings"
 )
 
 // WHEP - WebRTC HTTP Egress Protocol
@@ -21,12 +20,22 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Make sure room exists
-	room, ok := Rooms[roomName]
-	if !ok {
-		logHTTPError(w, "no room with given name online", http.StatusNotFound)
-		return
+	// Check if Room exist, create offline one if none
+	room := GetRoomByName(roomName)
+	if room == nil {
+		room = NewRoom(roomName)
+		AddRoom(room)
+		if GetFlags().Verbose {
+			log.Printf("Created new offline room: %s - %v\n", room.Name, room.ID)
+		}
 	}
+
+	// Create new participant
+	participant := NewParticipant()
+	if GetFlags().Verbose {
+		log.Println("New participant: ", participant.ID, " - for room: ", roomName)
+	}
+	room.addParticipant(participant)
 
 	// Get body
 	body, err := io.ReadAll(r.Body)
@@ -42,24 +51,13 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	participantName := r.URL.Query().Get("name")
-	if participantName == "" {
-		participantName = uuid.New().String()
-	}
-
 	// Callback for closing PeerConnection
 	onPCClose := func() {
 		if GetFlags().Verbose {
-			log.Println("Closed PeerConnection for participant: ", participantName, " - belonging to room: ", roomName)
+			log.Println("Closed PeerConnection for participant: ", participant.ID, " - for room: ", roomName)
 		}
-		room.removeParticipantByName(participantName)
+		room.removeParticipantByID(participant.ID)
 	}
-
-	// Create new participant
-	if GetFlags().Verbose {
-		log.Println("New participant for room: ", roomName)
-	}
-	participant := NewParticipant(participantName)
 
 	participant.PeerConnection, err = CreatePeerConnection(onPCClose)
 	if err != nil {
@@ -82,7 +80,19 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Register text message handling
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
-			room.broadcastMessage(msg, participant.ID) // Exclude the sender
+			if msg.IsString && strings.Contains(string(msg.Data), "candidate") {
+				// Handle potential ICE candidate
+				var iceCandidate webrtc.ICECandidateInit
+				if err = json.Unmarshal(msg.Data, &iceCandidate); err == nil {
+					err := participant.PeerConnection.AddICECandidate(iceCandidate)
+					if err != nil {
+						log.Println("Failed to add ICE candidate for participant: ", participant.ID)
+						return
+					}
+				}
+			} else {
+				room.broadcastMessage(msg, participant.ID) // Exclude the sender
+			}
 		})
 
 		// Register channel closing handling
@@ -96,22 +106,22 @@ func whepHandler(w http.ResponseWriter, r *http.Request) {
 		participant.DataChannel = d
 	})
 
+	participant.PeerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		// TODO: Trickle ICE
+	})
+
 	// Add room tracks for participant
 	if room.AudioTrack != nil {
 		if err = participant.addTrack(&room.AudioTrack); err != nil {
 			logHTTPError(w, "failed to add audio track to participant", http.StatusInternalServerError)
 			return
 		}
-	} else if GetFlags().Verbose {
-		log.Println("nil audio track for room: ", roomName)
 	}
 	if room.VideoTrack != nil {
 		if err = participant.addTrack(&room.VideoTrack); err != nil {
 			logHTTPError(w, "failed to add video track to participant", http.StatusInternalServerError)
 			return
 		}
-	} else if GetFlags().Verbose {
-		log.Println("nil video track for room: ", roomName)
 	}
 
 	// Set new remote description

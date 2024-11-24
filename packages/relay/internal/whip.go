@@ -21,6 +21,20 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if room by name already exists
+	room := GetRoomByName(roomName)
+	if room != nil && room.Online {
+		logHTTPError(w, "room name already in use", http.StatusBadRequest)
+		return
+	} else if room == nil {
+		// Create new room
+		room = NewRoom(roomName)
+		AddRoom(room)
+		if GetFlags().Verbose {
+			log.Printf("Created new online room %s - %v\n", room.Name, room.ID)
+		}
+	}
+
 	// Get body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -31,45 +45,17 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	// Get SDP offer from body
 	sdpOffer := string(body)
 	if sdpOffer == "" {
-		// If room exists, just return OK (force room close?)
-		if _, ok := Rooms[roomName]; ok {
-			w.WriteHeader(http.StatusOK)
-			return
-		} else {
-			logHTTPError(w, "SDP offer not set", http.StatusBadRequest)
-			return
-		}
-	}
-
-	// Verify there's no existing room with same name
-	if _, ok := Rooms[roomName]; ok {
-		logHTTPError(w, "room name already in use", http.StatusBadRequest)
+		logHTTPError(w, "SDP offer not set", http.StatusBadRequest)
 		return
 	}
 
 	// Callback for closing PeerConnection
 	onPCClose := func() {
 		if GetFlags().Verbose {
-			log.Println("Closed PeerConnection for room: ", roomName)
+			log.Println("Closed PeerConnection for room: ", room.Name)
 		}
-		delete(Rooms, roomName)
-	}
-
-	// Create a new room
-	if GetFlags().Verbose {
-		log.Println("Creating new room: ", roomName)
-	}
-
-	var room *Room
-	if _, ok := Rooms[roomName]; !ok {
-		room = NewRoom(roomName)
-		Rooms[roomName] = room
-		if GetFlags().Verbose {
-			log.Printf("> Created new room %s\n", roomName)
-		}
-	} else {
-		logHTTPError(w, "Room with that name already exists", http.StatusBadRequest)
-		return
+		room.Online = false
+		DeleteRoomIfEmpty(room)
 	}
 
 	room.PeerConnection, err = CreatePeerConnection(onPCClose)
@@ -85,27 +71,33 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		var localTrack *webrtc.TrackLocalStaticRTP
 		if remoteTrack.Kind() == webrtc.RTPCodecTypeVideo {
 			if GetFlags().Verbose {
-				log.Println("Received video track for room: ", roomName)
+				log.Println("Received video track for room: ", room.Name)
 			}
-			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "video", fmt.Sprint("nestri-", roomName))
+			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "video", fmt.Sprint("nestri-", room.Name))
 			if err != nil {
-				log.Println("Failed to create local video track for room: ", roomName, " - reason: ", err)
+				log.Println("Failed to create local video track for room: ", room.Name, " - reason: ", err)
 				return
 			}
 			room.VideoTrack = localTrack
 		} else if remoteTrack.Kind() == webrtc.RTPCodecTypeAudio {
 			if GetFlags().Verbose {
-				log.Println("Received audio track for room: ", roomName)
+				log.Println("Received audio track for room: ", room.Name)
 			}
-			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "audio", fmt.Sprint("nestri-", roomName))
+			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "audio", fmt.Sprint("nestri-", room.Name))
 			if err != nil {
-				log.Println("Failed to create local audio track for room: ", roomName, " - reason: ", err)
+				log.Println("Failed to create local audio track for room: ", room.Name, " - reason: ", err)
 				return
 			}
 			room.AudioTrack = localTrack
 		}
 
-		// TODO: With custom (non-WHEP) viewer connections, notify them of new room to set their tracks
+		// If both audio and video tracks are set, set online state
+		if room.AudioTrack != nil && room.VideoTrack != nil {
+			room.Online = true
+			if GetFlags().Verbose {
+				log.Println("Room online and receiving: ", room.Name)
+			}
+		}
 
 		rtpBuffer := make([]byte, 1400)
 		for {
@@ -113,18 +105,31 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				// EOF is expected when stopping room
 				if !errors.Is(err, io.EOF) {
-					log.Println("RTP read error from room: ", roomName, " - ", err)
+					log.Println("RTP read error from room: ", room.Name, " - ", err)
 				}
 				break
 			}
 
 			_, err = localTrack.Write(rtpBuffer[:read])
 			if err != nil && !errors.Is(err, io.ErrClosedPipe) {
-				log.Println("RTP write error from room: ", roomName, " - ", err)
+				log.Println("RTP write error from room: ", room.Name, " - ", err)
 				break
 			}
 		}
-		// TODO: Cleanup track from participant for room restart
+
+		if remoteTrack.Kind() == webrtc.RTPCodecTypeVideo {
+			room.VideoTrack = nil
+		} else if remoteTrack.Kind() == webrtc.RTPCodecTypeAudio {
+			room.AudioTrack = nil
+		}
+
+		if room.VideoTrack == nil && room.AudioTrack == nil {
+			room.Online = false
+			if GetFlags().Verbose {
+				log.Println("Room offline and no longer receiving: ", room.Name)
+			}
+			DeleteRoomIfEmpty(room)
+		}
 	})
 
 	room.PeerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
@@ -141,8 +146,19 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Register text message handling
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
-			// Log
-			log.Printf("Room Data channel message: %v", msg)
+			if msg.IsString && strings.Contains(string(msg.Data), "candidate") {
+				// Handle potential ICE candidate
+				var iceCandidate webrtc.ICECandidateInit
+				if err = json.Unmarshal(msg.Data, &iceCandidate); err == nil {
+					err := room.PeerConnection.AddICECandidate(iceCandidate)
+					if err != nil {
+						log.Println("Failed to add ICE candidate for room: ", room.ID)
+						return
+					}
+				}
+			} else {
+				log.Printf("Room Data channel message: %v", msg)
+			}
 		})
 
 		// Register channel closing handling
@@ -153,6 +169,10 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 		room.DataChannel = d
+	})
+
+	room.PeerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		// TODO: Trickle ICE
 	})
 
 	// Set new remote description
@@ -202,7 +222,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return SDP answer
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Location", fmt.Sprint("/api/whip/", roomName))
+	w.Header().Set("Location", fmt.Sprint("/api/whip/", room.Name))
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(jsonDesc)
 	if err != nil {
