@@ -179,8 +179,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Set up channels for pipeline and room communication
     let (event_tx, event_rx) = mpsc::channel(50);
     let event_rx = Arc::new(Mutex::new(event_rx));
-    let (audio_tx, audio_rx) = mpsc::channel::<Vec<u8>>(100);
-    let (video_tx, video_rx) = mpsc::channel::<Vec<u8>>(100);
+    let (audio_tx, audio_rx) = mpsc::channel::<Vec<u8>>(1000); // Seems to be okay size for now?
+    let (video_tx, video_rx) = mpsc::channel::<Vec<u8>>(1000);
     let audio_rx = Arc::new(Mutex::new(audio_rx));
     let video_rx = Arc::new(Mutex::new(video_rx));
 
