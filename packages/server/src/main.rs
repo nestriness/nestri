@@ -434,11 +434,8 @@ async fn run_pipeline(
     event_rx: Arc<Mutex<mpsc::Receiver<gstreamer::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
     // Set the pipeline state to Playing when starting the pipeline
-    if let Err(e) = pipeline.lock().await.set_state(gstreamer::State::Playing) {
-        eprintln!("Failed to set pipeline state to Playing: {}", e);
-        return Err("Failed to set pipeline state to Playing".into());
-    }
-
+    pipeline.lock().await.set_state(gstreamer::State::Playing)?;
+    
     // Spawn the error handling task
     let (error_tx, mut error_rx) = mpsc::channel(1);
     let pipeline_clone = pipeline.clone();
