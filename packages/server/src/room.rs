@@ -1,10 +1,10 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::error::Error;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Notify};
 use tokio::sync::Mutex;
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
@@ -45,20 +45,22 @@ enum InputMessage {
 }
 
 pub struct Room {
-    peer_connection: Arc<webrtc::peer_connection::RTCPeerConnection>,
-    data_channel: Arc<webrtc::data_channel::RTCDataChannel>,
-    audio_track: Arc<TrackLocalStaticRTP>,
-    video_track: Arc<TrackLocalStaticRTP>,
     relay_url: String,
-    event_tx: mpsc::Sender<gst::Event>,
+    webrtc_api: webrtc::api::API,
+    webrtc_config: RTCConfiguration,
+    input_notify: Arc<Notify>,
+    input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
+    audio_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
+    video_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
 }
 
 impl Room {
     pub async fn new(
         relay_url: String,
-        event_tx: mpsc::Sender<gst::Event>,
-        audio_codec: &str,
-        video_codec: &str,
+        input_notify: Arc<Notify>,
+        input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
+        audio_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
+        video_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
     ) -> Result<Room, Box<dyn Error>> {
         // Create media engine and register default codecs
         let mut media_engine = MediaEngine::default();
@@ -83,8 +85,25 @@ impl Room {
             ..Default::default()
         };
 
+        Ok(Self {
+            relay_url,
+            webrtc_api: api,
+            webrtc_config: config,
+            input_notify,
+            input_buffer,
+            audio_buffer,
+            video_buffer,
+        })
+    }
+
+    pub async fn run(
+        &mut self,
+        audio_codec: &str,
+        video_codec: &str,
+    ) -> Result<(), Box<dyn Error>> {
         // Create a new RTCPeerConnection
-        let peer_connection = Arc::new(api.new_peer_connection(config).await?);
+        let config = self.webrtc_config.clone();
+        let peer_connection = Arc::new(self.webrtc_api.new_peer_connection(config).await?);
 
         // Create audio track
         let audio_track = Arc::new(TrackLocalStaticRTP::new(
@@ -106,49 +125,50 @@ impl Room {
             "video-nestri-server".to_owned(),
         ));
 
+        // Cancellation token to stop spawned tasks after peer connection is closed
+        let cancel_token = tokio_util::sync::CancellationToken::new();
+
         // Add audio track to peer connection
         let audio_sender = peer_connection.add_track(audio_track.clone()).await?;
+        let audio_sender_token = cancel_token.child_token();
         tokio::spawn(async move {
-            let mut rtcp_buf = vec![0u8; 1500];
-            while let Ok((_, _)) = audio_sender.read(&mut rtcp_buf).await {}
+            loop {
+                let mut rtcp_buf = vec![0u8; 1500];
+                tokio::select! {
+                    _ = audio_sender_token.cancelled() => {
+                        break;
+                    }
+                    _ = audio_sender.read(&mut rtcp_buf) => {}
+                }
+            }
         });
 
         // Add video track to peer connection
         let video_sender = peer_connection.add_track(video_track.clone()).await?;
+        let video_sender_token = cancel_token.child_token();
         tokio::spawn(async move {
-            let mut rtcp_buf = vec![0u8; 1500];
-            while let Ok((_, _)) = video_sender.read(&mut rtcp_buf).await {}
+            loop {
+                let mut rtcp_buf = vec![0u8; 1500];
+                tokio::select! {
+                    _ = video_sender_token.cancelled() => {
+                        break;
+                    }
+                    _ = video_sender.read(&mut rtcp_buf) => {}
+                }
+            }
         });
 
         // Create a datachannel with label 'input'
         let data_channel = peer_connection.create_data_channel("input", None).await?;
 
-        Ok(Self {
-            peer_connection,
-            data_channel,
-            audio_track,
-            video_track,
-            relay_url,
-            event_tx,
-        })
-    }
-
-    pub async fn run(
-        &mut self,
-        audio_tx: Arc<Mutex<mpsc::Receiver<Vec<u8>>>>,
-        video_tx: Arc<Mutex<mpsc::Receiver<Vec<u8>>>>,
-    ) -> Result<(), Box<dyn Error>> {
-        let data_channel = self.data_channel.clone();
-
         // A shared state to track currently pressed keys
         let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
-        let event_tx = self.event_tx.clone();
 
         // PeerConnection state change tracker
         let (pc_sndr, mut pc_recv) = mpsc::channel(1);
 
         // Peer connection state change handler
-        self.peer_connection
+        peer_connection
             .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
                 let pc_sndr = pc_sndr.clone();
                 Box::pin(async move {
@@ -166,21 +186,21 @@ impl Room {
                 })
             }));
 
-        self.peer_connection
+        peer_connection
             .on_ice_gathering_state_change(Box::new(move |s| {
                 Box::pin(async move {
                     println!("ICE Gathering State has changed: {s}");
                 })
             }));
 
-        self.peer_connection
+        peer_connection
             .on_ice_connection_state_change(Box::new(move |s| {
                 Box::pin(async move {
                     println!("ICE Connection State has changed: {s}");
                 })
             }));
 
-        self.peer_connection.on_ice_candidate(Box::new(move |c| {
+        peer_connection.on_ice_candidate(Box::new(move |c| {
             Box::pin(async move {
                 if let Some(candidate) = c {
                     let jsoned = candidate.to_json().unwrap();
@@ -191,10 +211,13 @@ impl Room {
         }));
 
         // Data channel message handler
+        let input_notify = self.input_notify.clone();
+        let input_buffer = self.input_buffer.clone();
         data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
             let pressed_keys = pressed_keys.clone();
             Box::pin({
-                let event_tx = event_tx.clone();
+                let input_notify = input_notify.clone();
+                let input_buffer = input_buffer.clone();
                 async move {
                     if msg.is_string {
                         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
@@ -202,9 +225,13 @@ impl Room {
                             if let Some(event) =
                                 handle_input_message(input_msg, &pressed_keys).await
                             {
-                                if let Err(e) = event_tx.send(event).await {
-                                    eprintln!("Failed to send event: {}", e);
+                                let mut input_buf = input_buffer.lock().await;
+                                // Remove oldest if buffer is full
+                                if input_buf.len() >= input_buf.capacity() {
+                                    input_buf.pop_front();
                                 }
+                                input_buf.push_back(event);
+                                input_notify.notify_one();
                             }
                         }
                     }
@@ -215,22 +242,22 @@ impl Room {
         println!("Creating offer...");
 
         // Create an offer to send to the browser
-        let offer = self.peer_connection.create_offer(None).await?;
+        let offer = peer_connection.create_offer(None).await?;
 
         println!("Setting local description...");
 
         // Create channel that is blocked until ICE Gathering is complete
-        let mut gather_complete = self.peer_connection.gathering_complete_promise().await;
+        let mut gather_complete = peer_connection.gathering_complete_promise().await;
 
         // Sets the LocalDescription, and starts our UDP listeners
-        self.peer_connection.set_local_description(offer).await?;
+        peer_connection.set_local_description(offer).await?;
 
         // Block until ICE Gathering is complete
         let _ = gather_complete.recv().await;
 
         println!("Local description set, waiting for remote description...");
 
-        if let Some(local_description) = self.peer_connection.local_description().await {
+        if let Some(local_description) = peer_connection.local_description().await {
             let url = format!("{}", self.relay_url);
             let response = reqwest::Client::new()
                 .post(&url)
@@ -243,41 +270,64 @@ impl Room {
 
             println!("Setting remote description...");
 
-            self.peer_connection.set_remote_description(answer).await?;
+            peer_connection.set_remote_description(answer).await?;
 
             println!("Remote description set...");
         } else {
             println!("generate local_description failed!");
+            cancel_token.cancel();
             return Err("generate local_description failed!".into());
         };
 
         // Send video and audio data
-        let audio_track = self.audio_track.clone();
+        let audio_track = audio_track.clone();
+        let audio_buf = self.audio_buffer.clone();
+        let audio_token = cancel_token.child_token();
         tokio::spawn(async move {
             loop {
-                let audio_tx = audio_tx.clone();
-                let audio_frame = audio_tx.lock().await.recv().await.unwrap();
-                audio_track.write(audio_frame.as_slice()).await.unwrap();
+                tokio::select! {
+                    _ = audio_token.cancelled() => {
+                        break;
+                    }
+                    _ = async {
+                        let mut audio_buf = audio_buf.lock().await;
+                        if let Some(data) = audio_buf.pop_front() {
+                            audio_track.write(data.as_slice()).await.unwrap();
+                        }
+                    } => {}
+                }
             }
         });
-        let video_track = self.video_track.clone();
+        let video_track = video_track.clone();
+        let video_buf = self.video_buffer.clone();
+        let video_token = cancel_token.child_token();
         tokio::spawn(async move {
             loop {
-                let video_tx = video_tx.clone();
-                let video_frame = video_tx.lock().await.recv().await.unwrap();
-                video_track.write(video_frame.as_slice()).await.unwrap();
+                tokio::select! {
+                    _ = video_token.cancelled() => {
+                        break;
+                    }
+                    _ = async {
+                        let mut video_buf = video_buf.lock().await;
+                        if let Some(data) = video_buf.pop_front() {
+                            video_track.write(data.as_slice()).await.unwrap();
+                        }
+                    } => {}
+                }
             }
         });
 
         // Block until closed or error
         tokio::select! {
             _ = pc_recv.recv() => {
-                println!("Peer connection closed with state: {:?}", self.peer_connection.connection_state());
+                println!("Peer connection closed with state: {:?}", peer_connection.connection_state());
             }
         }
 
+        cancel_token.cancel();
+
         // Make double-sure to close the peer connection
-        if let Err(e) = self.peer_connection.close().await {
+        if let Err(e) = peer_connection.close().await {
             eprintln!("Failed to close peer connection: {}", e);
         }
 

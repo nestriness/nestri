@@ -5,10 +5,11 @@ mod gpu;
 use crate::args::encoding_args;
 use gst::prelude::*;
 use gst_app::AppSink;
+use std::collections::VecDeque;
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, Mutex, Notify};
 mod room;
 
 // Handles gathering GPU information and selecting the most suitable GPU
@@ -176,13 +177,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let audio_encoder = handle_encoder_audio(&args);
 
     /*** ROOM SETUP ***/
-    // Set up channels for pipeline and room communication
-    let (event_tx, event_rx) = mpsc::channel(50);
-    let event_rx = Arc::new(Mutex::new(event_rx));
-    let (audio_tx, audio_rx) = mpsc::channel::<Vec<u8>>(1000); // Seems to be okay size for now?
-    let (video_tx, video_rx) = mpsc::channel::<Vec<u8>>(1000);
-    let audio_rx = Arc::new(Mutex::new(audio_rx));
-    let video_rx = Arc::new(Mutex::new(video_rx));
+    // Set up buffers for pipeline and room communication
+    let input_notify = Arc::new(Notify::new());
+    let input_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
+    let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
+    let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
 
     // Set relay url
     let relay_url = format!(
@@ -194,9 +193,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let room = Arc::new(Mutex::new(
         room::Room::new(
             relay_url,
-            event_tx.clone(),
-            "audio/opus",
-            video_encoder_info.codec.to_mime_str(),
+            input_notify.clone(),
+            input_buffer.clone(),
+            audio_buffer.clone(),
+            video_buffer.clone(),
         )
         .await?,
     ));
@@ -251,8 +251,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let video_converter = gst::ElementFactory::make("videoconvert").build()?;
 
     // Video Encoder Element
-    let video_encoder =
-        gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
+    let video_encoder = gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
     video_encoder_info.apply_parameters(&video_encoder, &args.app.verbose);
 
     // Required for AV1 - av1parse
@@ -268,49 +267,63 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Audio AppSink Element
     let audio_appsink = gst::ElementFactory::make("appsink").build()?;
     audio_appsink.set_property("emit-signals", &true);
-    audio_appsink.connect("new-sample", false, move |args| {
-        let appsink = args[0].get::<AppSink>().unwrap();
-
-        // Pull the sample from the appsink
-        let sample = appsink.pull_sample();
-        if let Some(buffer) = sample.unwrap().buffer() {
-            // You can access the raw audio data here (e.g., buffer.map_readable())
-            let data = buffer.map_readable().unwrap();
-            let audio_data = data.to_vec();
-            // Send the audio data to the audio channel
-            if let Err(e) = audio_tx.try_send(audio_data) {
-                eprintln!("Failed to send audio data: {}", e);
+    // Handle new-sample samples
+    let audio_sink_buf = audio_buffer.clone();
+    let audio_appsink_clone = audio_appsink.clone();
+    tokio::spawn(async move {
+        let appsink = audio_appsink_clone.downcast_ref::<AppSink>().unwrap();
+        loop {
+            if appsink.is_eos() {
+                continue
             }
+            let sample = match appsink.pull_sample() {
+                Ok(sample) => sample,
+                Err(e) => {
+                    println!("Audio AppSink error: {}", e);
+                    break
+                }
+            };
+            let buffer = sample.buffer().unwrap();
+            let buffer = buffer.map_readable().unwrap();
+            let data = buffer.as_slice();
+            let mut audio_sink_buf = audio_sink_buf.lock().await;
+            // If at capacity, remove oldest element
+            if audio_sink_buf.len() >= audio_sink_buf.capacity() {
+                audio_sink_buf.pop_front();
+            }
+            audio_sink_buf.push_back(data.to_vec());
         }
-
-        Some(gst::glib::value::Value::from(
-            gst::FlowReturn::Ok,
-        ))
     });
 
     // Video AppSink Element
     let video_appsink = gst::ElementFactory::make("appsink").build()?;
     video_appsink.set_property("emit-signals", &true);
     // Handle new-sample samples
-    let video_tx_sink = video_tx.clone();
-    video_appsink.connect("new-sample", false, move |args| {
-        let appsink = args[0].get::<AppSink>().unwrap();
-
-        // Pull the sample from the appsink
-        let sample = appsink.pull_sample();
-        if let Some(buffer) = sample.unwrap().buffer() {
-            // You can access the raw video data here (e.g., buffer.map_readable())
-            let data = buffer.map_readable().unwrap();
-            let video_data = data.to_vec();
-            // Send the video data to the video channel
-            if let Err(e) = video_tx_sink.try_send(video_data) {
-                eprintln!("Failed to send video data: {}", e);
+    let video_sink_buf = video_buffer.clone();
+    let video_appsink_clone = video_appsink.clone();
+    tokio::spawn(async move {
+        let appsink = video_appsink_clone.downcast_ref::<AppSink>().unwrap();
+        loop {
+            if appsink.is_eos() {
+                continue
             }
+            let sample = match appsink.pull_sample() {
+                Ok(sample) => sample,
+                Err(e) => {
+                    println!("Video AppSink error: {}", e);
+                    break
+                }
+            };
+            let buffer = sample.buffer().unwrap();
+            let buffer = buffer.map_readable().unwrap();
+            let data = buffer.as_slice();
+            let mut video_sink_buf = video_sink_buf.lock().await;
+            // If at capacity, remove oldest element
+            if video_sink_buf.len() >= video_sink_buf.capacity() {
+                video_sink_buf.pop_front();
+            }
+            video_sink_buf.push_back(data.to_vec());
         }
-
-        Some(gst::glib::value::Value::from(
-            gst::FlowReturn::Ok,
-        ))
     });
 
     /* Debug */
@@ -353,21 +366,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &main_video_queue,
         &main_audio_queue,
     ])?;
-    
+
     // Add debug elements if debug is enabled
     if args.app.debug_feed {
-        pipeline.add_many(&[
-            &debug_sink,
-            &debug_queue,
-            &debug_video_converter,
-        ])?;
+        pipeline.add_many(&[&debug_sink, &debug_queue, &debug_video_converter])?;
     }
-    
+
     // Add debug latency element if debug latency is enabled
     if args.app.debug_latency {
         pipeline.add(&debug_latency)?;
     }
-    
+
     // Add AV1 parse element if AV1 is selected
     if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
         pipeline.add(&av1_parse)?;
@@ -427,8 +436,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Run both pipeline and websocket tasks concurrently
     let result = tokio::try_join!(
-        run_room(room.clone(), audio_rx.clone(), video_rx.clone()),
-        run_pipeline(pipeline.clone(), event_rx)
+        run_room(room.clone(),
+            "audio/opus",
+            video_encoder_info.codec.to_mime_str(),
+        ),
+        run_pipeline(pipeline.clone(), input_notify.clone(), input_buffer.clone())
     );
 
     match result {
@@ -445,13 +457,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn run_room(
     room: Arc<Mutex<room::Room>>,
-    audio_rx: Arc<Mutex<mpsc::Receiver<Vec<u8>>>>,
-    video_rx: Arc<Mutex<mpsc::Receiver<Vec<u8>>>>,
+    audio_codec: &str,
+    video_codec: &str,
 ) -> Result<(), Box<dyn Error>> {
     // Run loop, with recovery on error
     loop {
         let mut room = room.lock().await;
-        if let Err(e) = room.run(audio_rx.clone(), video_rx.clone()).await {
+        if let Err(e) = room.run(audio_codec, video_codec).await {
             eprintln!("Room error: {}", e);
             // Sleep for a while before retrying
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
@@ -461,7 +473,8 @@ async fn run_room(
 
 async fn run_pipeline(
     pipeline: Arc<Mutex<gst::Pipeline>>,
-    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
+    input_notify: Arc<Notify>,
+    input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
     // Set the pipeline state to Playing when starting the pipeline
     if let Err(e) = pipeline.lock().await.set_state(gst::State::Playing) {
@@ -477,20 +490,19 @@ async fn run_pipeline(
         }
     });
 
-    // Spawn the pipeline event task
-    let pipeline_event_task = spawn_pipeline_event_task(pipeline.clone(), event_rx.clone());
-
     // Wait for the event task to complete or an error to occur
-    tokio::select! {
-        res = pipeline_event_task => {
-            if let Err(e) = res {
-                eprintln!("Pipeline event task failed: {}", e);
-                return Err("Pipeline event task ended unexpectedly".into());
+    loop {
+        tokio::select! {
+            _ = input_notify.notified() => {
+                let mut buf =  input_buffer.lock().await;
+                while let Some(event) = buf.pop_front() {
+                    let _ = pipeline.lock().await.send_event(event); // Ignore success value
+                }
             }
-        }
-        Some(_) = error_rx.recv() => {
-            eprintln!("Pipeline error occurred. Stopping...");
-            return Err("Pipeline error occurred".into());
+            Some(_) = error_rx.recv() => {
+                eprintln!("Pipeline error occurred. Stopping..");
+                break;
+            }
         }
     }
 
@@ -524,20 +536,6 @@ async fn handle_pipeline_errors(
                 break;
             }
             _ => (),
-        }
-    }
-    Ok(())
-}
-
-async fn spawn_pipeline_event_task(
-    pipeline: Arc<Mutex<gst::Pipeline>>,
-    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
-) -> Result<(), Box<dyn Error>> {
-    while let Some(event) = event_rx.lock().await.recv().await {
-        let pipeline = pipeline.lock().await;
-        if !pipeline.send_event(event) {
-            // No need to spam this message, it's normal for some events to be dropped
-            //eprintln!("Failed to send event to the pipeline.");
         }
     }
     Ok(())
