@@ -50,13 +50,13 @@ pub struct Room {
     audio_track: Arc<TrackLocalStaticRTP>,
     video_track: Arc<TrackLocalStaticRTP>,
     relay_url: String,
-    event_tx: mpsc::Sender<gstreamer::Event>,
+    event_tx: mpsc::Sender<gst::Event>,
 }
 
 impl Room {
     pub async fn new(
         relay_url: String,
-        event_tx: mpsc::Sender<gstreamer::Event>,
+        event_tx: mpsc::Sender<gst::Event>,
         audio_codec: &str,
         video_codec: &str,
     ) -> Result<Room, Box<dyn Error>> {
@@ -288,23 +288,23 @@ impl Room {
 async fn handle_input_message(
     input_msg: InputMessage,
     pressed_keys: &Arc<Mutex<HashSet<i32>>>,
-) -> Option<gstreamer::Event> {
+) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
-            let structure = gstreamer::Structure::builder("MouseMoveRelative")
+            let structure = gst::Structure::builder("MouseMoveRelative")
                 .field("pointer_x", x as f64)
                 .field("pointer_y", y as f64)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseMoveAbs { x, y } => {
-            let structure = gstreamer::Structure::builder("MouseMoveAbsolute")
+            let structure = gst::Structure::builder("MouseMoveAbsolute")
                 .field("pointer_x", x as f64)
                 .field("pointer_y", y as f64)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::KeyDown { key } => {
             let mut keys = pressed_keys.lock().await;
@@ -314,48 +314,48 @@ async fn handle_input_message(
             }
             keys.insert(key);
 
-            let structure = gstreamer::Structure::builder("KeyboardKey")
+            let structure = gst::Structure::builder("KeyboardKey")
                 .field("key", key as u32)
                 .field("pressed", true)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::KeyUp { key } => {
             let mut keys = pressed_keys.lock().await;
             // Remove the key from the pressed state when released
             keys.remove(&key);
 
-            let structure = gstreamer::Structure::builder("KeyboardKey")
+            let structure = gst::Structure::builder("KeyboardKey")
                 .field("key", key as u32)
                 .field("pressed", false)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::Wheel { x, y } => {
-            let structure = gstreamer::Structure::builder("MouseAxis")
+            let structure = gst::Structure::builder("MouseAxis")
                 .field("x", x as f64)
                 .field("y", y as f64)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseDown { key } => {
-            let structure = gstreamer::Structure::builder("MouseButton")
+            let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", true)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseUp { key } => {
-            let structure = gstreamer::Structure::builder("MouseButton")
+            let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", false)
                 .build();
 
-            Some(gstreamer::event::CustomUpstream::new(structure))
+            Some(gst::event::CustomUpstream::new(structure))
         }
     }
 }

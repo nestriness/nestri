@@ -3,8 +3,8 @@ mod enc_helper;
 mod gpu;
 
 use crate::args::encoding_args;
-use gstreamer::prelude::*;
-use gstreamer_app::AppSink;
+use gst::prelude::*;
+use gst_app::AppSink;
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .install_default()
         .expect("Failed to install ring crypto provider");
 
-    let _ = gstreamer::init();
+    let _ = gst::init();
 
     // Handle GPU selection
     let gpu = handle_gpus(&args);
@@ -206,19 +206,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Audio Source Element
     let audio_source = match args.encoding.audio.capture_method {
         encoding_args::AudioCaptureMethod::PulseAudio => {
-            gstreamer::ElementFactory::make("pulsesrc").build()?
+            gst::ElementFactory::make("pulsesrc").build()?
         }
         encoding_args::AudioCaptureMethod::PipeWire => {
-            gstreamer::ElementFactory::make("pipewiresrc").build()?
+            gst::ElementFactory::make("pipewiresrc").build()?
         }
-        _ => gstreamer::ElementFactory::make("alsasrc").build()?,
+        _ => gst::ElementFactory::make("alsasrc").build()?,
     };
 
     // Audio Converter Element
-    let audio_converter = gstreamer::ElementFactory::make("audioconvert").build()?;
+    let audio_converter = gst::ElementFactory::make("audioconvert").build()?;
 
     // Audio Encoder Element
-    let audio_encoder = gstreamer::ElementFactory::make(audio_encoder.as_str()).build()?;
+    let audio_encoder = gst::ElementFactory::make(audio_encoder.as_str()).build()?;
     audio_encoder.set_property(
         "bitrate",
         &match &args.encoding.audio.rate_control {
@@ -229,41 +229,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     // Audio RTP Payloader Element
-    let audio_rtp_payloader = gstreamer::ElementFactory::make("rtpopuspay").build()?;
+    let audio_rtp_payloader = gst::ElementFactory::make("rtpopuspay").build()?;
 
     /* Video */
     // Video Source Element
-    let video_source = gstreamer::ElementFactory::make("waylanddisplaysrc").build()?;
+    let video_source = gst::ElementFactory::make("waylanddisplaysrc").build()?;
     video_source.set_property("render-node", &gpu.render_path());
 
     // Caps Filter Element (resolution, fps)
-    let caps_filter = gstreamer::ElementFactory::make("capsfilter").build()?;
-    let caps = gstreamer::Caps::from_str(&format!(
+    let caps_filter = gst::ElementFactory::make("capsfilter").build()?;
+    let caps = gst::Caps::from_str(&format!(
         "video/x-raw,width={},height={},framerate={}/1,format=RGBx",
         args.app.resolution.0, args.app.resolution.1, args.app.framerate
     ))?;
     caps_filter.set_property("caps", &caps);
 
     // Video Tee Element
-    let video_tee = gstreamer::ElementFactory::make("tee").build()?;
+    let video_tee = gst::ElementFactory::make("tee").build()?;
 
     // Video Converter Element
-    let video_converter = gstreamer::ElementFactory::make("videoconvert").build()?;
+    let video_converter = gst::ElementFactory::make("videoconvert").build()?;
 
     // Video Encoder Element
     let video_encoder =
-        gstreamer::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
+        gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
     video_encoder_info.apply_parameters(&video_encoder, &args.app.verbose);
 
     // Video RTP Payloader Element
-    let video_rtp_payloader = gstreamer::ElementFactory::make(
+    let video_rtp_payloader = gst::ElementFactory::make(
         format!("rtp{}pay", video_encoder_info.codec.to_gst_str()).as_str(),
     )
     .build()?;
 
     /* Output */
     // Audio AppSink Element
-    let audio_appsink = gstreamer::ElementFactory::make("appsink").build()?;
+    let audio_appsink = gst::ElementFactory::make("appsink").build()?;
     audio_appsink.set_property("emit-signals", &true);
     audio_appsink.connect("new-sample", false, move |args| {
         let appsink = args[0].get::<AppSink>().unwrap();
@@ -280,13 +280,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        Some(gstreamer::glib::value::Value::from(
-            gstreamer::FlowReturn::Ok,
+        Some(gst::glib::value::Value::from(
+            gst::FlowReturn::Ok,
         ))
     });
 
     // Video AppSink Element
-    let video_appsink = gstreamer::ElementFactory::make("appsink").build()?;
+    let video_appsink = gst::ElementFactory::make("appsink").build()?;
     video_appsink.set_property("emit-signals", &true);
     // Handle new-sample samples
     let video_tx_sink = video_tx.clone();
@@ -305,33 +305,33 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        Some(gstreamer::glib::value::Value::from(
-            gstreamer::FlowReturn::Ok,
+        Some(gst::glib::value::Value::from(
+            gst::FlowReturn::Ok,
         ))
     });
 
     /* Debug */
     // Debug Feed Element
-    let debug_latency = gstreamer::ElementFactory::make("timeoverlay").build()?;
+    let debug_latency = gst::ElementFactory::make("timeoverlay").build()?;
     debug_latency.set_property_from_str("halignment", &"right");
     debug_latency.set_property_from_str("valignment", &"bottom");
 
     // Debug Sink Element
-    let debug_sink = gstreamer::ElementFactory::make("ximagesink").build()?;
+    let debug_sink = gst::ElementFactory::make("ximagesink").build()?;
 
     // Debug video converter
-    let debug_video_converter = gstreamer::ElementFactory::make("videoconvert").build()?;
+    let debug_video_converter = gst::ElementFactory::make("videoconvert").build()?;
 
     // Queues with max 2ms latency
-    let debug_queue = gstreamer::ElementFactory::make("queue2").build()?;
+    let debug_queue = gst::ElementFactory::make("queue2").build()?;
     debug_queue.set_property("max-size-time", &2000000u64);
-    let main_video_queue = gstreamer::ElementFactory::make("queue2").build()?;
+    let main_video_queue = gst::ElementFactory::make("queue2").build()?;
     main_video_queue.set_property("max-size-time", &2000000u64);
-    let main_audio_queue = gstreamer::ElementFactory::make("queue2").build()?;
+    let main_audio_queue = gst::ElementFactory::make("queue2").build()?;
     main_audio_queue.set_property("max-size-time", &2000000u64);
 
     // Create the pipeline
-    let pipeline = gstreamer::Pipeline::new();
+    let pipeline = gst::Pipeline::new();
 
     // Add elements to the pipeline
     pipeline.add_many(&[
@@ -356,7 +356,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ])?;
 
     // Link main audio branch
-    gstreamer::Element::link_many(&[
+    gst::Element::link_many(&[
         &audio_source,
         &audio_converter,
         &audio_encoder,
@@ -367,14 +367,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // If debug latency, add time overlay before tee
     if args.app.debug_latency {
-        gstreamer::Element::link_many(&[&video_source, &caps_filter, &debug_latency, &video_tee])?;
+        gst::Element::link_many(&[&video_source, &caps_filter, &debug_latency, &video_tee])?;
     } else {
-        gstreamer::Element::link_many(&[&video_source, &caps_filter, &video_tee])?;
+        gst::Element::link_many(&[&video_source, &caps_filter, &video_tee])?;
     }
 
     // Link debug branch if debug is enabled
     if args.app.debug_feed {
-        gstreamer::Element::link_many(&[
+        gst::Element::link_many(&[
             &video_tee,
             &debug_video_converter,
             &debug_queue,
@@ -383,7 +383,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Link main video branch
-    gstreamer::Element::link_many(&[
+    gst::Element::link_many(&[
         &video_tee,
         &video_converter,
         &video_encoder,
@@ -430,12 +430,14 @@ async fn run_room(
 }
 
 async fn run_pipeline(
-    pipeline: Arc<Mutex<gstreamer::Pipeline>>,
-    event_rx: Arc<Mutex<mpsc::Receiver<gstreamer::Event>>>,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
+    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
     // Set the pipeline state to Playing when starting the pipeline
-    pipeline.lock().await.set_state(gstreamer::State::Playing)?;
-    
+    if let Err(e) = pipeline.lock().await.set_state(gst::State::Playing) {
+        return Err(format!("Failed to set pipeline state to Playing: {}", e).into());
+    }
+
     // Spawn the error handling task
     let (error_tx, mut error_rx) = mpsc::channel(1);
     let pipeline_clone = pipeline.clone();
@@ -466,7 +468,7 @@ async fn run_pipeline(
 }
 
 async fn handle_pipeline_errors(
-    pipeline: Arc<Mutex<gstreamer::Pipeline>>,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
     error_tx: mpsc::Sender<()>,
 ) -> Result<(), Box<dyn Error>> {
     let bus = pipeline
@@ -474,15 +476,15 @@ async fn handle_pipeline_errors(
         .await
         .bus()
         .expect("Pipeline without bus. Shouldn't happen!");
-    for msg in bus.iter_timed(gstreamer::ClockTime::NONE) {
-        use gstreamer::MessageView;
+    for msg in bus.iter_timed(gst::ClockTime::NONE) {
+        use gst::MessageView;
         match msg.view() {
             MessageView::Eos(..) => {
                 println!("Pipeline reached EOS.");
                 break;
             }
             MessageView::Error(err) => {
-                let _ = pipeline.lock().await.set_state(gstreamer::State::Null);
+                let _ = pipeline.lock().await.set_state(gst::State::Null);
                 eprintln!(
                     "Pipeline error: {} ({})",
                     err.error(),
@@ -498,8 +500,8 @@ async fn handle_pipeline_errors(
 }
 
 async fn spawn_pipeline_event_task(
-    pipeline: Arc<Mutex<gstreamer::Pipeline>>,
-    event_rx: Arc<Mutex<mpsc::Receiver<gstreamer::Event>>>,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
+    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
     while let Some(event) = event_rx.lock().await.recv().await {
         let pipeline = pipeline.lock().await;

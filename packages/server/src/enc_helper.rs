@@ -1,4 +1,4 @@
-use gstreamer::prelude::*;
+use gst::prelude::*;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum VideoCodec {
@@ -135,9 +135,9 @@ impl VideoEncoderInfo {
         self.parameters.push((key.to_string(), value.to_string()));
     }
 
-    pub fn apply_parameters(&self, element: &gstreamer::Element, verbose: &bool) {
+    pub fn apply_parameters(&self, element: &gst::Element, verbose: &bool) {
         for (key, value) in &self.parameters {
-            if element.has_property(key, None) {
+            if element.has_property(key) {
                 // If verbose, log property sets
                 if *verbose {
                     println!("Setting property {} to {}", key, value);
@@ -194,7 +194,7 @@ fn get_encoder_api(encoder: &String, encoder_type: &EncoderType) -> EncoderAPI {
 /// # Returns
 /// * `bool` - True if encoder is supported, false otherwise.
 fn is_encoder_supported(encoder: &String) -> bool {
-    gstreamer::ElementFactory::find(encoder.as_str()).is_some()
+    gst::ElementFactory::find(encoder.as_str()).is_some()
 }
 
 /// Helper to set CQP value of known encoder
@@ -207,7 +207,7 @@ pub fn encoder_cqp_params(encoder: &VideoEncoderInfo, quality: u32) -> VideoEnco
     let mut encoder_optz = encoder.clone();
 
     // Look for known keys by factory creation
-    let encoder = gstreamer::ElementFactory::make(encoder_optz.name.as_str())
+    let encoder = gst::ElementFactory::make(encoder_optz.name.as_str())
         .build()
         .unwrap();
 
@@ -241,7 +241,7 @@ pub fn encoder_vbr_params(encoder: &VideoEncoderInfo, bitrate: u32, max_bitrate:
     let mut encoder_optz = encoder.clone();
 
     // Look for known keys by factory creation
-    let encoder = gstreamer::ElementFactory::make(encoder_optz.name.as_str())
+    let encoder = gst::ElementFactory::make(encoder_optz.name.as_str())
         .build()
         .unwrap();
 
@@ -274,7 +274,7 @@ pub fn encoder_cbr_params(encoder: &VideoEncoderInfo, bitrate: u32) -> VideoEnco
     let mut encoder_optz = encoder.clone();
 
     // Look for known keys by factory creation
-    let encoder = gstreamer::ElementFactory::make(encoder_optz.name.as_str())
+    let encoder = gst::ElementFactory::make(encoder_optz.name.as_str())
         .build()
         .unwrap();
 
@@ -303,7 +303,7 @@ pub fn encoder_gop_params(encoder: &VideoEncoderInfo, gop_size: u32) -> VideoEnc
     let mut encoder_optz = encoder.clone();
 
     // Look for known keys by factory creation
-    let encoder = gstreamer::ElementFactory::make(encoder_optz.name.as_str())
+    let encoder = gst::ElementFactory::make(encoder_optz.name.as_str())
         .build()
         .unwrap();
 
@@ -414,13 +414,13 @@ pub fn encoder_low_latency_params(encoder: &VideoEncoderInfo) -> VideoEncoderInf
 pub fn get_compatible_encoders() -> Vec<VideoEncoderInfo> {
     let mut encoders: Vec<VideoEncoderInfo> = Vec::new();
 
-    let registry = gstreamer::Registry::get();
+    let registry = gst::Registry::get();
     let plugins = registry.plugins();
     for plugin in plugins {
         let features = registry.features_by_plugin(plugin.plugin_name().as_str());
         for feature in features {
             let encoder = feature.name().to_string();
-            let factory = gstreamer::ElementFactory::find(encoder.as_str());
+            let factory = gst::ElementFactory::find(encoder.as_str());
             if factory.is_some() {
                 let factory = factory.unwrap();
                 // Get klass metadata
