@@ -338,15 +338,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Add elements to the pipeline
     pipeline.add_many(&[
-        &debug_sink,
-        &debug_video_converter,
         &video_appsink.upcast_ref(),
         &video_rtp_payloader,
-        &av1_parse,
         &video_encoder,
         &video_converter,
         &video_tee,
-        &debug_latency,
         &caps_filter,
         &video_source,
         &audio_appsink.upcast_ref(),
@@ -354,10 +350,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &audio_encoder,
         &audio_converter,
         &audio_source,
-        &debug_queue,
         &main_video_queue,
         &main_audio_queue,
     ])?;
+    
+    // Add debug elements if debug is enabled
+    if args.app.debug_feed {
+        pipeline.add_many(&[
+            &debug_sink,
+            &debug_queue,
+            &debug_video_converter,
+        ])?;
+    }
+    
+    // Add debug latency element if debug latency is enabled
+    if args.app.debug_latency {
+        pipeline.add(&debug_latency)?;
+    }
+    
+    // Add AV1 parse element if AV1 is selected
+    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
+        pipeline.add(&av1_parse)?;
+    }
 
     // Link main audio branch
     gst::Element::link_many(&[
