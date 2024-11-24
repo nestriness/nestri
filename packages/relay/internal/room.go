@@ -13,6 +13,7 @@ type Room struct {
 	PeerConnection    *webrtc.PeerConnection
 	AudioTrack        webrtc.TrackLocal
 	VideoTrack        webrtc.TrackLocal
+	DataChannel       *webrtc.DataChannel
 	Participants      map[uuid.UUID]*Participant
 	ParticipantsMutex sync.Mutex
 }
@@ -60,6 +61,20 @@ func (r *Room) broadcastMessage(msg webrtc.DataChannelMessage, excludeID uuid.UU
 					log.Printf("Error broadcasting to %s: %v\n", participant.Name, err)
 				}
 			}
+		}
+	}
+	if r.DataChannel != nil {
+		if err := r.DataChannel.SendText(string(msg.Data)); err != nil {
+			log.Printf("Error broadcasting to Room: %v\n", err)
+		}
+	}
+}
+
+// Sends message to Room (nestri-server)
+func (r *Room) sendToRoom(msg webrtc.DataChannelMessage) {
+	if r.DataChannel != nil {
+		if err := r.DataChannel.SendText(string(msg.Data)); err != nil {
+			log.Printf("Error broadcasting to Room: %v\n", err)
 		}
 	}
 }

@@ -1,13 +1,13 @@
 package relay
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/pion/webrtc/v4"
 	"io"
 	"log"
 	"net/http"
-	"strings"
 )
 
 // WHIP - WebRTC HTTP Ingress Protocol
@@ -77,12 +77,12 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Modify SDP offer to remove opus "sprop-maxcapturerate=24000" (fixes opus bad quality issue, present in GStreamer)
-	sdpOffer = strings.Replace(sdpOffer, ";sprop-maxcapturerate=24000", "", -1)
-
 	room.PeerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
 		if remoteTrack.Kind() == webrtc.RTPCodecTypeVideo {
+			if GetFlags().Verbose {
+				log.Println("Received video track for room: ", roomName)
+			}
 			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "video", fmt.Sprint("nestri-", roomName))
 			if err != nil {
 				log.Println("Failed to create local video track for room: ", roomName, " - reason: ", err)
@@ -90,6 +90,9 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			room.VideoTrack = localTrack
 		} else if remoteTrack.Kind() == webrtc.RTPCodecTypeAudio {
+			if GetFlags().Verbose {
+				log.Println("Received audio track for room: ", roomName)
+			}
 			localTrack, err = webrtc.NewTrackLocalStaticRTP(remoteTrack.Codec().RTPCodecCapability, "audio", fmt.Sprint("nestri-", roomName))
 			if err != nil {
 				log.Println("Failed to create local audio track for room: ", roomName, " - reason: ", err)
@@ -118,6 +121,34 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// TODO: Cleanup track from participant for room restart
+	})
+
+	room.PeerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
+		if GetFlags().Verbose {
+			log.Printf("New Room DataChannel '%s'-'%d'\n", d.Label(), d.ID())
+		}
+
+		// Register channel opening handling
+		d.OnOpen(func() {
+			if GetFlags().Verbose {
+				log.Printf("Room Data channel '%s'-'%d' open\n", d.Label(), d.ID())
+			}
+		})
+
+		// Register text message handling
+		d.OnMessage(func(msg webrtc.DataChannelMessage) {
+			// Log
+			log.Printf("Room Data channel message: %v", msg)
+		})
+
+		// Register channel closing handling
+		d.OnClose(func() {
+			if GetFlags().Verbose {
+				log.Printf("Room Data channel '%s'-'%d' closed\n", d.Label(), d.ID())
+			}
+		})
+
+		room.DataChannel = d
 	})
 
 	// Set new remote description
@@ -149,11 +180,27 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	// Wait for ICE Gathering to complete
 	<-gatherComplete
 
+	// Create a struct to hold the description in a JSON-friendly format
+	descJSON := struct {
+		Type string `json:"type"`
+		Sdp  string `json:"sdp"`
+	}{
+		Type: answer.Type.String(),
+		Sdp:  answer.SDP,
+	}
+
+	jsonDesc, err := json.Marshal(descJSON)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Return SDP answer
-	w.Header().Set("Content-Type", "application/sdp")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Location", fmt.Sprint("/api/whip/", roomName))
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(room.PeerConnection.LocalDescription().SDP))
+	_, err = w.Write(jsonDesc)
 	if err != nil {
 		log.Println(err)
 		return
