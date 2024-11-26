@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/pion/interceptor v0.1.37
 	github.com/pion/webrtc/v4 v4.0.2
 )

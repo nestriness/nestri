@@ -1,6 +1,8 @@
 mod args;
 mod enc_helper;
 mod gpu;
+mod room;
+mod websocket;
 
 use crate::args::encoding_args;
 use gst::prelude::*;
@@ -10,7 +12,7 @@ use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, Notify};
-mod room;
+use crate::websocket::NestriWebSocket;
 
 // Handles gathering GPU information and selecting the most suitable GPU
 fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
@@ -131,7 +133,7 @@ fn handle_encoder_video_settings(
 }
 
 // Handles picking audio encoder
-// TODO: Expand enc_helper with audio types, for now just AAC or opus
+// TODO: Expand enc_helper with audio types, for now just opus
 fn handle_encoder_audio(args: &args::Args) -> String {
     let audio_encoder = if args.encoding.audio.encoder.is_empty() {
         "opusenc".to_string()
@@ -144,6 +146,7 @@ fn handle_encoder_audio(args: &args::Args) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Parse command line arguments
     let args = args::Args::new();
     if args.app.verbose {
         args.debug_print();
@@ -153,21 +156,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .install_default()
         .expect("Failed to install ring crypto provider");
 
+    // Begin connection attempt to the relay WebSocket endpoint
+    // replace any http/https with ws/wss
+    let replaced_relay_url
+        = args.app.relay_url.replace("http://", "ws://").replace("https://", "wss://");
+    let ws_url = format!(
+        "{}/api/ws-ingest/{}",
+        replaced_relay_url,
+        args.app.room,
+    );
+
+    // Setup our websocket
+    let nestri_ws = Arc::new(NestriWebSocket::new(ws_url).await?);
+    log::set_max_level(log::LevelFilter::Info);
+    log::set_boxed_logger(Box::new(nestri_ws.clone())).unwrap();
+
     let _ = gst::init();
 
     // Handle GPU selection
     let gpu = handle_gpus(&args);
     if gpu.is_none() {
-        println!("Failed to find a suitable GPU. Exiting..");
-        return Ok(());
+        log::error!("Failed to find a suitable GPU. Exiting..");
+        return Err("Failed to find a suitable GPU. Exiting..".into());
     }
     let gpu = gpu.unwrap();
 
     // Handle video encoder selection
     let video_encoder_info = handle_encoder_video(&args);
     if video_encoder_info.is_none() {
-        println!("Failed to find a suitable video encoder. Exiting..");
-        return Ok(());
+        log::error!("Failed to find a suitable video encoder. Exiting..");
+        return Err("Failed to find a suitable video encoder. Exiting..".into());
     }
     let mut video_encoder_info = video_encoder_info.unwrap();
     // Handle video encoder settings
@@ -183,16 +201,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
     let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
 
-    // Set relay url
-    let relay_url = format!(
-        "
-        {}/api/whip/{}
-        ",
-        args.app.relay_url, args.app.room
-    );
     let room = Arc::new(Mutex::new(
         room::Room::new(
-            relay_url,
+            nestri_ws.clone(),
             input_notify.clone(),
             input_buffer.clone(),
             audio_buffer.clone(),
@@ -279,7 +290,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let sample = match appsink.pull_sample() {
                 Ok(sample) => sample,
                 Err(e) => {
-                    println!("Audio AppSink error: {}", e);
+                    log::error!("Audio AppSink error: {}", e);
                     break
                 }
             };
@@ -310,7 +321,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let sample = match appsink.pull_sample() {
                 Ok(sample) => sample,
                 Err(e) => {
-                    println!("Video AppSink error: {}", e);
+                    log::error!("Video AppSink error: {}", e);
                     break
                 }
             };
@@ -444,11 +455,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     match result {
-        Ok(_) => println!("Both tasks completed successfully."),
+        Ok(_) => log::info!("All tasks completed successfully"),
         Err(e) => {
-            eprintln!("One of the tasks failed: {} - exiting", e);
-            // Exit immediately
-            std::process::exit(1);
+            log::error!("Error occurred in one of the tasks: {}", e);
+            return Err("Error occurred in one of the tasks".into());
         }
     }
 
@@ -464,7 +474,7 @@ async fn run_room(
     loop {
         let mut room = room.lock().await;
         if let Err(e) = room.run(audio_codec, video_codec).await {
-            eprintln!("Room error: {}", e);
+            log::error!("Room error: {}", e);
             // Sleep for a while before retrying
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
@@ -486,7 +496,7 @@ async fn run_pipeline(
     let pipeline_clone = pipeline.clone();
     tokio::spawn(async move {
         if let Err(e) = handle_pipeline_errors(pipeline_clone, error_tx).await {
-            eprintln!("Error handling pipeline errors: {}", e);
+            log::error!("Pipeline error handler error: {}", e);
         }
     });
 
@@ -500,7 +510,7 @@ async fn run_pipeline(
                 }
             }
             Some(_) = error_rx.recv() => {
-                eprintln!("Pipeline error occurred. Stopping..");
+                log::error!("Error occurred in pipeline");
                 break;
             }
         }
@@ -522,16 +532,12 @@ async fn handle_pipeline_errors(
         use gst::MessageView;
         match msg.view() {
             MessageView::Eos(..) => {
-                println!("Pipeline reached EOS.");
+                log::info!("End of stream reached in pipeline");
                 break;
             }
             MessageView::Error(err) => {
                 let _ = pipeline.lock().await.set_state(gst::State::Null);
-                eprintln!(
-                    "Pipeline error: {} ({})",
-                    err.error(),
-                    err.debug().unwrap_or_else(|| "".into())
-                );
+                log::error!("Error in pipeline: {:?}", err);
                 let _ = error_tx.send(()).await;
                 break;
             }

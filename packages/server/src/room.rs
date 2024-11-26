@@ -1,4 +1,3 @@
-use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::collections::{HashSet, VecDeque};
@@ -10,16 +9,16 @@ use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
-use webrtc::data_channel::data_channel_state::RTCDataChannelState;
-use webrtc::ice_transport::ice_candidate::{RTCIceCandidate, RTCIceCandidateInit};
+use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
+use webrtc::ice_transport::ice_gathering_state::RTCIceGatheringState;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
-use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 use webrtc::track::track_local::TrackLocalWriter;
+use crate::websocket::{decode_message_as, encode_message, NestriWebSocket, WSMessageBase, WSMessageICE, WSMessageSDP};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -47,7 +46,7 @@ enum InputMessage {
 }
 
 pub struct Room {
-    relay_url: String,
+    nestri_ws: Arc<NestriWebSocket>,
     webrtc_api: webrtc::api::API,
     webrtc_config: RTCConfiguration,
     input_notify: Arc<Notify>,
@@ -58,7 +57,7 @@ pub struct Room {
 
 impl Room {
     pub async fn new(
-        relay_url: String,
+        nestri_ws: Arc<NestriWebSocket>,
         input_notify: Arc<Notify>,
         input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
         audio_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
@@ -88,7 +87,7 @@ impl Room {
         };
 
         Ok(Self {
-            relay_url,
+            nestri_ws,
             webrtc_api: api,
             webrtc_config: config,
             input_notify,
@@ -174,7 +173,7 @@ impl Room {
             move |s: RTCPeerConnectionState| {
                 let pc_sndr = pc_sndr.clone();
                 Box::pin(async move {
-                    println!("PeerConnection State has changed: {s}");
+                    log::info!("PeerConnection State has changed: {s}");
 
                     if s == RTCPeerConnectionState::Failed
                         || s == RTCPeerConnectionState::Disconnected
@@ -182,7 +181,7 @@ impl Room {
                     {
                         // Notify pc_state that the peer connection has closed
                         if let Err(e) = pc_sndr.send(s).await {
-                            eprintln!("Failed to send PeerConnection state: {}", e);
+                            log::error!("Failed to send PeerConnection state: {}", e);
                         }
                     }
                 })
@@ -191,19 +190,71 @@ impl Room {
 
         peer_connection.on_ice_gathering_state_change(Box::new(move |s| {
             Box::pin(async move {
-                println!("ICE Gathering State has changed: {s}");
+                log::info!("ICE Gathering State has changed: {s}");
             })
         }));
 
         peer_connection.on_ice_connection_state_change(Box::new(move |s| {
             Box::pin(async move {
-                println!("ICE Connection State has changed: {s}");
+                log::info!("ICE Connection State has changed: {s}");
             })
         }));
 
-        // TODO: Trickle ICE
-        /*peer_connection.on_ice_candidate(Box::new(move |c| {
-        }));*/
+        // Trickle ICE over WebSocket
+        let ws = self.nestri_ws.clone();
+        peer_connection.on_ice_candidate(Box::new(move |c| {
+            let nestri_ws = ws.clone();
+            Box::pin(async move {
+                if let Some(candidate) = c {
+                    let candidate_json = candidate.to_json().unwrap();
+                    let ice_msg = WSMessageICE {
+                        base: WSMessageBase {
+                            payload_type: "ice".to_string(),
+                        },
+                        candidate: candidate_json,
+                    };
+                    if let Ok(encoded) = encode_message(&ice_msg) {
+                        let _ = nestri_ws.send_message(encoded);
+                    }
+                }
+            })
+        }));
+
+        // Temporary ICE candidate buffer until remote description is set
+        let ice_holder: Arc<Mutex<Vec<RTCIceCandidateInit>>> = Arc::new(Mutex::new(Vec::new()));
+        // Register set_response_callback for ICE candidate
+        let pc = peer_connection.clone();
+        let ice_clone = ice_holder.clone();
+        self.nestri_ws.register_callback("ice", move |data| {
+            match decode_message_as::<WSMessageICE>(data) {
+                Ok(message) => {
+                    log::info!("Received ICE message");
+                    let candidate = RTCIceCandidateInit::from(message.candidate);
+                    let pc = pc.clone();
+                    let ice_clone = ice_clone.clone();
+                    tokio::spawn(async move {
+                        // If remote description is not set, buffer ICE candidates
+                        if pc.remote_description().await.is_none() {
+                            let mut ice_holder = ice_clone.lock().await;
+                            ice_holder.push(candidate);
+                        } else {
+                            if let Err(e) = pc.add_ice_candidate(candidate).await {
+                                log::error!("Failed to add ICE candidate: {}", e);
+                            } else {
+                                // Add any held ICE candidates
+                                let mut ice_holder = ice_clone.lock().await;
+                                for candidate in ice_holder.drain(..) {
+                                    if let Err(e) = pc.add_ice_candidate(candidate).await {
+                                        log::error!("Failed to add ICE candidate: {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                Err(e) => eprintln!("Failed to decode callback message: {:?}", e),
+            }
+        }).await;
 
         // Data channel message handler
         let input_notify = self.input_notify.clone();
@@ -234,42 +285,54 @@ impl Room {
             })
         }));
 
-        println!("Creating offer...");
+        log::info!("Creating offer...");
 
         // Create an offer to send to the browser
         let offer = peer_connection.create_offer(None).await?;
 
-        println!("Setting local description...");
-
-        // Create channel that is blocked until ICE Gathering is complete
-        let mut gather_complete = peer_connection.gathering_complete_promise().await;
+        log::info!("Setting local description...");
 
         // Sets the LocalDescription, and starts our UDP listeners
         peer_connection.set_local_description(offer).await?;
 
-        // Block until ICE Gathering is complete
-        let _ = gather_complete.recv().await;
-
-        println!("Local description set, waiting for remote description...");
+        log::info!("Local description set...");
 
         if let Some(local_description) = peer_connection.local_description().await {
-            let url = format!("{}", self.relay_url);
-            let response = reqwest::Client::new()
-                .post(&url)
-                .header("Content-Type", "application/sdp")
-                .body(local_description.sdp.clone())
-                .send()
-                .await?;
+            // Wait until we have gathered all ICE candidates
+            while peer_connection.ice_gathering_state() != RTCIceGatheringState::Complete {
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            }
 
-            let answer = response.json::<RTCSessionDescription>().await?;
+            // Register set_response_callback for SDP answer
+            let pc = peer_connection.clone();
+            self.nestri_ws.register_callback("sdp", move |data| {
+                match decode_message_as::<WSMessageSDP>(data) {
+                    Ok(message) => {
+                        log::info!("Received SDP message");
+                        let sdp = message.sdp;
+                        let pc = pc.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = pc.set_remote_description(sdp).await {
+                                log::error!("Failed to set remote description: {}", e);
+                            }
+                        });
+                    }
+                    Err(e) => eprintln!("Failed to decode callback message: {:?}", e),
+                }
+            }).await;
 
-            println!("Setting remote description...");
-
-            peer_connection.set_remote_description(answer).await?;
-
-            println!("Remote description set...");
+            log::info!("Sending local description to remote...");
+            // Encode and send the local description via WebSocket
+            let sdp_msg = WSMessageSDP {
+                base: WSMessageBase {
+                    payload_type: "sdp".to_string(),
+                },
+                sdp: local_description,
+            };
+            let encoded = encode_message(&sdp_msg)?;
+            self.nestri_ws.send_message(encoded).await?;
         } else {
-            println!("generate local_description failed!");
+            log::error!("generate local_description failed!");
             cancel_token.cancel();
             return Err("generate local_description failed!".into());
         };
@@ -315,7 +378,7 @@ impl Room {
         // Block until closed or error
         tokio::select! {
             _ = pc_recv.recv() => {
-                println!("Peer connection closed with state: {:?}", peer_connection.connection_state());
+                log::info!("Peer connection closed with state: {:?}", peer_connection.connection_state());
             }
         }
 
@@ -323,7 +386,7 @@ impl Room {
 
         // Make double-sure to close the peer connection
         if let Err(e) = peer_connection.close().await {
-            eprintln!("Failed to close peer connection: {}", e);
+            log::error!("Failed to close peer connection: {}", e);
         }
 
         Ok(())

@@ -2,6 +2,7 @@ package relay
 
 import (
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v4"
 	"math/rand"
 )
@@ -9,14 +10,16 @@ import (
 type Participant struct {
 	ID             uuid.UUID //< Internal IDs are useful to keeping unique internal track and not have conflicts later
 	Name           string
+	WebSocket      *SafeWebSocket
 	PeerConnection *webrtc.PeerConnection
 	DataChannel    *webrtc.DataChannel
 }
 
-func NewParticipant() *Participant {
+func NewParticipant(connection *websocket.Conn) *Participant {
 	return &Participant{
-		ID:   uuid.New(),
-		Name: createRandomName(),
+		ID:        uuid.New(),
+		Name:      createRandomName(),
+		WebSocket: NewSafeWebSocket(connection),
 	}
 }
 

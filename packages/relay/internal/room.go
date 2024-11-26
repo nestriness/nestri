@@ -2,6 +2,7 @@ package relay
 
 import (
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v4"
 	"log"
 	"sync"
@@ -30,16 +31,24 @@ func GetRoomByName(name string) *Room {
 	return nil
 }
 
-func AddRoom(room *Room) {
-	if room != nil {
-		RoomsMutex.Lock()
-		Rooms[room.ID] = room
-		RoomsMutex.Unlock()
+func GetOrCreateRoom(name string) *Room {
+	if room := GetRoomByName(name); room != nil {
+		return room
 	}
+	RoomsMutex.Lock()
+	room := NewRoom(name)
+	Rooms[room.ID] = room
+	if GetFlags().Verbose {
+		log.Printf("New room: '%s'\n", room.Name)
+	}
+	RoomsMutex.Unlock()
+	return room
 }
 
 func DeleteRoomIfEmpty(room *Room) {
-	if room != nil && !room.Online && len(room.Participants) <= 0 {
+	room.ParticipantsMutex.RLock()
+	defer room.ParticipantsMutex.RUnlock()
+	if !room.Online && len(room.Participants) <= 0 {
 		RoomsMutex.Lock()
 		delete(Rooms, room.ID)
 		RoomsMutex.Unlock()
@@ -50,6 +59,7 @@ type Room struct {
 	ID                uuid.UUID //< Internal IDs are useful to keeping unique internal track
 	Name              string
 	Online            bool //< Whether the room is currently online, i.e. receiving data from a nestri-server
+	WebSocket         *SafeWebSocket
 	PeerConnection    *webrtc.PeerConnection
 	AudioTrack        webrtc.TrackLocal
 	VideoTrack        webrtc.TrackLocal
@@ -65,6 +75,15 @@ func NewRoom(name string) *Room {
 		Online:       false,
 		Participants: make(map[uuid.UUID]*Participant),
 	}
+}
+
+// Assigns a WebSocket connection to a Room
+func (r *Room) assignWebSocket(ws *websocket.Conn) {
+	// If WS already assigned, warn
+	if r.WebSocket != nil {
+		log.Printf("Warning: Room '%s' already has a WebSocket assigned\n", r.Name)
+	}
+	r.WebSocket = NewSafeWebSocket(ws)
 }
 
 // Adds a Participant to a Room
