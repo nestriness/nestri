@@ -15,7 +15,7 @@
     "build": "qwik build",
     "build.client": "vite build",
     "build.preview": "vite build --ssr src/entry.preview.tsx",
-    "build.server": "vite build -c adapters/cloudflare-pages/vite.config.ts",
+    "build.server": "vite build -c adapters/deno/vite.config.ts",
     "build.types": "tsc --incremental --noEmit",
     "deploy": "wrangler pages deploy ./dist",
     "dev": "vite --mode ssr",
@@ -24,7 +24,7 @@
     "fmt.check": "prettier --check .",
     "lint": "eslint \"src/**/*.ts*\"",
     "preview": "qwik build preview && vite preview --open",
-    "serve": "wrangler pages dev ./dist --compatibility-flags=nodejs_als",
+    "serve": "deno run --allow-net --allow-read --allow-env server/entry.deno.js",
     "start": "vite --open --mode ssr",
     "qwik": "qwik"
   },
@@ -57,6 +57,7 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
+    "@types/pako": "^2.0.3",
     "pako": "^2.1.0"
   }
 }

@@ -45,11 +45,11 @@ export async function decodeMessage<T>(data: Blob): Promise<T> {
 }
 
 export class WebRTCStream {
-  private _ws: WebSocket;
-  private _pc: RTCPeerConnection;
+  private _ws: WebSocket | undefined = undefined;
+  private _pc: RTCPeerConnection | undefined = undefined;
   private _mediaStream: MediaStream | undefined = undefined;
-  private _dataChannel: RTCDataChannel | undefined;
-  private _onConnected: () => void;
+  private _dataChannel: RTCDataChannel | undefined = undefined;
+  private _onConnected: (() => void) | undefined = undefined;
 
   constructor(serverURL: string, roomName: string, connectedCallback: () => void) {
     // If roomName is not provided, return
@@ -88,7 +88,7 @@ export class WebRTCStream {
         if (this._mediaStream.getAudioTracks().length > 0 && this._mediaStream.getVideoTracks().length > 0 && this._onConnected) {
           this._onConnected();
           // Prevent further calls to the connected callback
-          this._onConnected = () => {};
+          this._onConnected = undefined;
         }
       };
 
@@ -98,7 +98,7 @@ export class WebRTCStream {
             payload_type: "ice",
             candidate: e.candidate
           };
-          this._ws.send(encodeMessage(message));
+          this._ws!.send(encodeMessage(message));
         }
       }
 
@@ -114,7 +114,7 @@ export class WebRTCStream {
         payload_type: "sdp",
         sdp: offer
       };
-      this._ws.send(encodeMessage(message));
+      this._ws!.send(encodeMessage(message));
     }
 
     let iceHolder: RTCIceCandidateInit[] = [];
@@ -126,14 +126,14 @@ export class WebRTCStream {
       const message = await decodeMessage<WSMessageBase>(e.data);
       switch (message.payload_type) {
         case "sdp":
-          this._pc.setRemoteDescription((message as WSMessageSDP).sdp);
+          this._pc!.setRemoteDescription((message as WSMessageSDP).sdp);
           break;
         case "ice":
           // If remote description is not set yet, hold the ICE candidates
-          if (this._pc.remoteDescription) {
-            this._pc.addIceCandidate((message as WSMessageICE).candidate);
+          if (this._pc!.remoteDescription) {
+            this._pc!.addIceCandidate((message as WSMessageICE).candidate);
             // Add held ICE candidates
-            iceHolder.forEach(candidate => this._pc.addIceCandidate(candidate));
+            iceHolder.forEach(candidate => this._pc!.addIceCandidate(candidate));
             iceHolder = [];
           } else {
             iceHolder.push((message as WSMessageICE).candidate);
