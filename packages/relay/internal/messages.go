@@ -9,37 +9,46 @@ import (
 	"time"
 )
 
-// WSMessageBase is the base type for WebSocket messages.
-type WSMessageBase struct {
+// OnMessageCallback is a callback for binary messages of given type
+type OnMessageCallback func(data []byte)
+
+// MessageBase is the base type for WS/DC messages.
+type MessageBase struct {
 	PayloadType string `json:"payload_type"`
 }
 
-// WSMessageLog represents a log message.
-type WSMessageLog struct {
-	WSMessageBase
+// MessageInput represents an input message.
+type MessageInput struct {
+	MessageBase
+	Data string `json:"data"`
+}
+
+// MessageLog represents a log message.
+type MessageLog struct {
+	MessageBase
 	Level   string `json:"level"`
 	Message string `json:"message"`
 	Time    string `json:"time"`
 }
 
-// WSMessageMetrics represents a metrics/heartbeat message.
-type WSMessageMetrics struct {
-	WSMessageBase
+// MessageMetrics represents a metrics/heartbeat message.
+type MessageMetrics struct {
+	MessageBase
 	UsageCPU        float64 `json:"usage_cpu"`
 	UsageMemory     float64 `json:"usage_memory"`
 	Uptime          uint64  `json:"uptime"`
 	PipelineLatency float64 `json:"pipeline_latency"`
 }
 
-// WSMessageICECandidate represents an ICE candidate message.
-type WSMessageICECandidate struct {
-	WSMessageBase
+// MessageICECandidate represents an ICE candidate message.
+type MessageICECandidate struct {
+	MessageBase
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
 }
 
-// WSMessageSDP represents an SDP message.
-type WSMessageSDP struct {
-	WSMessageBase
+// MessageSDP represents an SDP message.
+type MessageSDP struct {
+	MessageBase
 	SDP webrtc.SessionDescription `json:"sdp"`
 }
 
@@ -62,9 +71,9 @@ func (jt *JoinerType) String() string {
 	}
 }
 
-// WSMessageJoin is used to tell us that either participant or ingest wants to join the room
-type WSMessageJoin struct {
-	WSMessageBase
+// MessageJoin is used to tell us that either participant or ingest wants to join the room
+type MessageJoin struct {
+	MessageBase
 	JoinerType JoinerType `json:"joiner_type"`
 }
 
@@ -77,13 +86,13 @@ const (
 	AnswerOK                        // For both, when the join request is handled successfully
 )
 
-// WSMessageAnswer is used to send the answer to a join request
-type WSMessageAnswer struct {
-	WSMessageBase
+// MessageAnswer is used to send the answer to a join request
+type MessageAnswer struct {
+	MessageBase
 	AnswerType AnswerType `json:"answer_type"`
 }
 
-// EncodeMessage encodes a message to be sent over the websocket with gzip compression
+// EncodeMessage encodes a message to be sent with gzip compression
 func EncodeMessage(msg interface{}) ([]byte, error) {
 	// Marshal the message to JSON
 	data, err := json.Marshal(msg)
@@ -105,7 +114,7 @@ func EncodeMessage(msg interface{}) ([]byte, error) {
 	return compressedData.Bytes(), nil
 }
 
-// DecodeMessage decodes a message received over the websocket with gzip decompression
+// DecodeMessage decodes a message received with gzip decompression
 func DecodeMessage(data []byte, target interface{}) error {
 	// Gzip decompress the data
 	reader, err := gzip.NewReader(bytes.NewReader(data))
@@ -127,26 +136,26 @@ func DecodeMessage(data []byte, target interface{}) error {
 	return nil
 }
 
-// SendLogMessage sends a log message to the given WebSocket connection.
-func (ws *SafeWebSocket) SendLogMessage(level, message string) error {
-	msg := WSMessageLog{
-		WSMessageBase: WSMessageBase{PayloadType: "log"},
-		Level:         level,
-		Message:       message,
-		Time:          time.Now().Format(time.RFC3339),
+// SendLogMessageWS sends a log message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendLogMessageWS(level, message string) error {
+	msg := MessageLog{
+		MessageBase: MessageBase{PayloadType: "log"},
+		Level:       level,
+		Message:     message,
+		Time:        time.Now().Format(time.RFC3339),
 	}
 	encoded, err := EncodeMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to encode log message: %w", err)
 	}
 
-	return ws.WriteBinary(encoded)
+	return ws.SendBinary(encoded)
 }
 
-// SendMetricsMessage sends a metrics message to the given WebSocket connection.
-func (ws *SafeWebSocket) SendMetricsMessage(usageCPU, usageMemory float64, uptime uint64, pipelineLatency float64) error {
-	msg := WSMessageMetrics{
-		WSMessageBase:   WSMessageBase{PayloadType: "metrics"},
+// SendMetricsMessageWS sends a metrics message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendMetricsMessageWS(usageCPU, usageMemory float64, uptime uint64, pipelineLatency float64) error {
+	msg := MessageMetrics{
+		MessageBase:     MessageBase{PayloadType: "metrics"},
 		UsageCPU:        usageCPU,
 		UsageMemory:     usageMemory,
 		Uptime:          uptime,
@@ -157,47 +166,61 @@ func (ws *SafeWebSocket) SendMetricsMessage(usageCPU, usageMemory float64, uptim
 		return fmt.Errorf("failed to encode metrics message: %w", err)
 	}
 
-	return ws.WriteBinary(encoded)
+	return ws.SendBinary(encoded)
 }
 
-// SendICECandidateMessage sends an ICE candidate message to the given WebSocket connection.
-func (ws *SafeWebSocket) SendICECandidateMessage(candidate webrtc.ICECandidateInit) error {
-	msg := WSMessageICECandidate{
-		WSMessageBase: WSMessageBase{PayloadType: "ice"},
-		Candidate:     candidate,
+// SendICECandidateMessageWS sends an ICE candidate message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendICECandidateMessageWS(candidate webrtc.ICECandidateInit) error {
+	msg := MessageICECandidate{
+		MessageBase: MessageBase{PayloadType: "ice"},
+		Candidate:   candidate,
 	}
 	encoded, err := EncodeMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to encode ICE candidate message: %w", err)
 	}
 
-	return ws.WriteBinary(encoded)
+	return ws.SendBinary(encoded)
 }
 
-// SendSDPMessage sends an SDP message to the given WebSocket connection.
-func (ws *SafeWebSocket) SendSDPMessage(sdp webrtc.SessionDescription) error {
-	msg := WSMessageSDP{
-		WSMessageBase: WSMessageBase{PayloadType: "sdp"},
-		SDP:           sdp,
+// SendSDPMessageWS sends an SDP message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendSDPMessageWS(sdp webrtc.SessionDescription) error {
+	msg := MessageSDP{
+		MessageBase: MessageBase{PayloadType: "sdp"},
+		SDP:         sdp,
 	}
 	encoded, err := EncodeMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to encode SDP message: %w", err)
 	}
 
-	return ws.WriteBinary(encoded)
+	return ws.SendBinary(encoded)
 }
 
-// SendAnswerMessage sends an answer message to the given WebSocket connection.
-func (ws *SafeWebSocket) SendAnswerMessage(answer AnswerType) error {
-	msg := WSMessageAnswer{
-		WSMessageBase: WSMessageBase{PayloadType: "answer"},
-		AnswerType:    answer,
+// SendAnswerMessageWS sends an answer message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendAnswerMessageWS(answer AnswerType) error {
+	msg := MessageAnswer{
+		MessageBase: MessageBase{PayloadType: "answer"},
+		AnswerType:  answer,
 	}
 	encoded, err := EncodeMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to encode answer message: %w", err)
 	}
 
-	return ws.WriteBinary(encoded)
+	return ws.SendBinary(encoded)
+}
+
+// SendInputMessageDC sends an input message to the given DataChannel connection.
+func (ndc *NestriDataChannel) SendInputMessageDC(data string) error {
+	msg := MessageInput{
+		MessageBase: MessageBase{PayloadType: "input"},
+		Data:        data,
+	}
+	encoded, err := EncodeMessage(msg)
+	if err != nil {
+		return fmt.Errorf("failed to encode input message: %w", err)
+	}
+
+	return ndc.SendBinary(encoded)
 }

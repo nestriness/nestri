@@ -1,15 +1,20 @@
 import {gzip, ungzip} from "pako";
 
-interface WSMessageBase {
+interface MessageBase {
   payload_type: string;
 }
 
-interface WSMessageICE extends WSMessageBase {
+export interface MessageInput extends MessageBase {
+  payload_type: "input";
+  data: string;
+}
+
+interface MessageICE extends MessageBase {
   payload_type: "ice";
   candidate: RTCIceCandidateInit;
 }
 
-interface WSMessageSDP extends WSMessageBase {
+interface MessageSDP extends MessageBase {
   payload_type: "sdp";
   sdp: RTCSessionDescriptionInit;
 }
@@ -19,7 +24,7 @@ enum JoinerType {
   JoinerClient = 1,
 }
 
-interface WSMessageJoin extends WSMessageBase {
+interface MessageJoin extends MessageBase {
   payload_type: "join";
   joiner_type: JoinerType;
 }
@@ -30,7 +35,7 @@ enum AnswerType {
   AnswerOK
 }
 
-interface WSMessageAnswer extends WSMessageBase {
+interface MessageAnswer extends MessageBase {
   payload_type: "answer";
   answer_type: AnswerType;
 }
@@ -112,7 +117,7 @@ export class WebRTCStream {
 
       this._pc.onicecandidate = (e) => {
         if (e.candidate) {
-          const message: WSMessageICE = {
+          const message: MessageICE = {
             payload_type: "ice",
             candidate: e.candidate
           };
@@ -126,7 +131,7 @@ export class WebRTCStream {
       }
 
       // Send join message
-      const joinMessage: WSMessageJoin = {
+      const joinMessage: MessageJoin = {
         payload_type: "join",
         joiner_type: JoinerType.JoinerClient
       };
@@ -139,10 +144,10 @@ export class WebRTCStream {
       // allow only binary
       if (typeof e.data !== "object") return;
       if (!e.data) return;
-      const message = await decodeMessage<WSMessageBase>(e.data);
+      const message = await decodeMessage<MessageBase>(e.data);
       switch (message.payload_type) {
         case "sdp":
-          await this._pc!.setRemoteDescription((message as WSMessageSDP).sdp);
+          await this._pc!.setRemoteDescription((message as MessageSDP).sdp);
           // Create our answer
           const answer = await this._pc!.createAnswer();
           // Force stereo in Chromium browsers
@@ -156,18 +161,18 @@ export class WebRTCStream {
         case "ice":
           // If remote description is not set yet, hold the ICE candidates
           if (this._pc!.remoteDescription) {
-            await this._pc!.addIceCandidate((message as WSMessageICE).candidate);
+            await this._pc!.addIceCandidate((message as MessageICE).candidate);
             // Add held ICE candidates
             for (const ice of iceHolder) {
               await this._pc!.addIceCandidate(ice);
             }
             iceHolder = [];
           } else {
-            iceHolder.push((message as WSMessageICE).candidate);
+            iceHolder.push((message as MessageICE).candidate);
           }
           break;
         case "answer":
-          switch ((message as WSMessageAnswer).answer_type) {
+          switch ((message as MessageAnswer).answer_type) {
             case AnswerType.AnswerOffline:
               console.log("Room is offline");
               // Call callback with null stream
@@ -211,12 +216,11 @@ export class WebRTCStream {
     this._dataChannel.onmessage = e => console.log(`Message from DataChannel '${this._dataChannel?.label}' payload '${e.data}'`)
   }
 
-  // Optional: Method to send arbitrary data over the data channel
-  public sendData(message: string) {
-    if (this._dataChannel && this._dataChannel.readyState === "open") {
-      this._dataChannel.send(message);
-    } else {
+  // Send binary message through the data channel
+  public sendBinary(data: Uint8Array) {
+    if (this._dataChannel && this._dataChannel.readyState === "open")
+      this._dataChannel.send(data);
+    else
       console.log("Data channel not open or not established.");
-    }
   }
 }

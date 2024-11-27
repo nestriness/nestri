@@ -1,6 +1,6 @@
 import {type Input} from "./types"
 import {keyCodeToLinuxEventCode} from "./codes"
-import { WebRTCStream } from "./webrtc-stream";
+import {WebRTCStream, MessageInput, encodeMessage} from "./webrtc-stream";
 
 interface Props {
     webrtc: WebRTCStream;
@@ -67,7 +67,12 @@ export class Keyboard {
                 return;
 
             const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
-            this.wrtc.sendData(JSON.stringify({...data, type} as Input));
+            const dataString = JSON.stringify({...data, type} as Input);
+            const message: MessageInput = {
+                payload_type: "input",
+                data: dataString,
+            };
+            this.wrtc.sendBinary(encodeMessage(message));
         };
     }
 

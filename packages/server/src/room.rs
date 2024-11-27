@@ -19,7 +19,19 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 use webrtc::track::track_local::TrackLocalWriter;
-use crate::websocket::{decode_message_as, encode_message, AnswerType, JoinerType, NestriWebSocket, WSMessageAnswer, WSMessageBase, WSMessageICE, WSMessageJoin, WSMessageSDP};
+use crate::websocket::{
+    decode_message_as,
+    encode_message,
+    AnswerType,
+    JoinerType,
+    NestriWebSocket,
+    MessageAnswer,
+    MessageBase,
+    MessageICE,
+    MessageJoin,
+    MessageSDP,
+    MessageInput
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -109,7 +121,7 @@ impl Room {
             .register_callback("answer",  {
                 let tx = tx.clone();
                 move |data| {
-                    if let Ok(answer) = decode_message_as::<WSMessageAnswer>(data) {
+                    if let Ok(answer) = decode_message_as::<MessageAnswer>(data) {
                         log::info!("Received answer: {:?}", answer);
                         match answer.answer_type {
                             AnswerType::AnswerOffline => {
@@ -135,8 +147,8 @@ impl Room {
             .await;
 
         // Send a request to join the room
-        let join_msg = WSMessageJoin {
-            base: WSMessageBase {
+        let join_msg = MessageJoin {
+            base: MessageBase {
                 payload_type: "join".to_string(),
             },
             joiner_type: JoinerType::JoinerNode,
@@ -267,8 +279,8 @@ impl Room {
             Box::pin(async move {
                 if let Some(candidate) = c {
                     let candidate_json = candidate.to_json().unwrap();
-                    let ice_msg = WSMessageICE {
-                        base: WSMessageBase {
+                    let ice_msg = MessageICE {
+                        base: MessageBase {
                             payload_type: "ice".to_string(),
                         },
                         candidate: candidate_json,
@@ -286,7 +298,7 @@ impl Room {
         let pc = peer_connection.clone();
         let ice_clone = ice_holder.clone();
         self.nestri_ws.register_callback("ice", move |data| {
-            match decode_message_as::<WSMessageICE>(data) {
+            match decode_message_as::<MessageICE>(data) {
                 Ok(message) => {
                     log::info!("Received ICE message");
                     let candidate = RTCIceCandidateInit::from(message.candidate);
@@ -330,20 +342,29 @@ impl Room {
                 let input_notify = input_notify.clone();
                 let input_buffer = input_buffer.clone();
                 async move {
-                    if msg.is_string {
-                        let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
-                        if let Ok(input_msg) = from_str::<InputMessage>(&msg_str) {
-                            if let Some(event) =
-                                handle_input_message(input_msg, &pressed_keys, &pressed_buttons).await
-                            {
-                                let mut input_buf = input_buffer.lock().await;
-                                // Remove oldest if buffer is full
-                                if input_buf.len() >= input_buf.capacity() {
-                                    log::info!("Input buffer full, removing oldest event");
-                                    input_buf.pop_front();
+                    // We don't care about string messages for now
+                    if !msg.is_string {
+                        // Decode the message as an MessageInput (binary encoded gzip)
+                        match decode_message_as::<MessageInput>(msg.data.to_vec()) {
+                            Ok(message_input) => {
+                                // Handle the input message
+                                if let Ok(input_msg) = from_str::<InputMessage>(&message_input.data) {
+                                    if let Some(event) =
+                                        handle_input_message(input_msg, &pressed_keys, &pressed_buttons).await
+                                    {
+                                        let mut input_buf = input_buffer.lock().await;
+                                        // Remove oldest if buffer is full
+                                        if input_buf.len() >= input_buf.capacity() {
+                                            log::info!("Input buffer full, removing oldest event");
+                                            input_buf.pop_front();
+                                        }
+                                        input_buf.push_back(event);
+                                        input_notify.notify_one();
+                                    }
                                 }
-                                input_buf.push_back(event);
-                                input_notify.notify_one();
+                            }
+                            Err(e) => {
+                                log::error!("Failed to decode input message: {:?}", e);
                             }
                         }
                     }
@@ -372,7 +393,7 @@ impl Room {
             // Register set_response_callback for SDP answer
             let pc = peer_connection.clone();
             self.nestri_ws.register_callback("sdp", move |data| {
-                match decode_message_as::<WSMessageSDP>(data) {
+                match decode_message_as::<MessageSDP>(data) {
                     Ok(message) => {
                         log::info!("Received SDP message");
                         let sdp = message.sdp;
@@ -389,8 +410,8 @@ impl Room {
 
             log::info!("Sending local description to remote...");
             // Encode and send the local description via WebSocket
-            let sdp_msg = WSMessageSDP {
-                base: WSMessageBase {
+            let sdp_msg = MessageSDP {
+                base: MessageBase {
                     payload_type: "sdp".to_string(),
                 },
                 sdp: local_description,

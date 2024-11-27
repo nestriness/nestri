@@ -24,7 +24,7 @@ func participantHandler(participant *Participant, room *Room) {
 	// Data channel settings
 	settingOrdered := false
 	settingMaxRetransmits := uint16(0)
-	participant.DataChannel, err = participant.PeerConnection.CreateDataChannel("data", &webrtc.DataChannelInit{
+	dc, err := participant.PeerConnection.CreateDataChannel("data", &webrtc.DataChannelInit{
 		Ordered:        &settingOrdered,
 		MaxRetransmits: &settingMaxRetransmits,
 	})
@@ -32,23 +32,29 @@ func participantHandler(participant *Participant, room *Room) {
 		log.Printf("Failed to create data channel for participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 		return
 	}
+	participant.DataChannel = NewNestriDataChannel(dc)
 
 	// Register channel opening handling
-	participant.DataChannel.OnOpen(func() {
+	participant.DataChannel.RegisterOnOpen(func() {
 		if GetFlags().Verbose {
 			log.Printf("DataChannel open for participant: %s\n", participant.ID)
 		}
 	})
 
-	// Register text message handling
-	participant.DataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		room.broadcastMessage(msg, participant.ID) // Exclude the sender
-	})
-
 	// Register channel closing handling
-	participant.DataChannel.OnClose(func() {
+	participant.DataChannel.RegisterOnClose(func() {
 		if GetFlags().Verbose {
 			log.Printf("DataChannel closed for participant: %s\n", participant.ID)
+		}
+	})
+
+	// Register text message handling
+	participant.DataChannel.RegisterMessageCallback("input", func(data []byte) {
+		// Send to room if it has a DataChannel
+		if room.DataChannel != nil {
+			if err = room.DataChannel.SendBinary(data); err != nil {
+				log.Printf("Failed to send input message to room: '%s' - reason: %s\n", room.Name, err)
+			}
 		}
 	})
 
@@ -59,7 +65,7 @@ func participantHandler(participant *Participant, room *Room) {
 		if GetFlags().Verbose {
 			log.Printf("ICE candidate for participant: '%s' in room: '%s'\n", participant.ID, room.Name)
 		}
-		err = participant.WebSocket.SendICECandidateMessage(candidate.ToJSON())
+		err = participant.WebSocket.SendICECandidateMessageWS(candidate.ToJSON())
 		if err != nil {
 			log.Printf("Failed to send ICE candidate for participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 		}
@@ -69,7 +75,7 @@ func participantHandler(participant *Participant, room *Room) {
 
 	// ICE callback
 	participant.WebSocket.RegisterMessageCallback("ice", func(data []byte) {
-		var iceMsg WSMessageICECandidate
+		var iceMsg MessageICECandidate
 		if err = DecodeMessage(data, &iceMsg); err != nil {
 			log.Printf("Failed to decode ICE message from participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 			return
@@ -95,7 +101,7 @@ func participantHandler(participant *Participant, room *Room) {
 
 	// SDP answer callback
 	participant.WebSocket.RegisterMessageCallback("sdp", func(data []byte) {
-		var sdpMsg WSMessageSDP
+		var sdpMsg MessageSDP
 		if err = DecodeMessage(data, &sdpMsg); err != nil {
 			log.Printf("Failed to decode SDP message from participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 			return
@@ -105,7 +111,7 @@ func participantHandler(participant *Participant, room *Room) {
 
 	// Log callback
 	participant.WebSocket.RegisterMessageCallback("log", func(data []byte) {
-		var logMsg WSMessageLog
+		var logMsg MessageLog
 		if err = DecodeMessage(data, &logMsg); err != nil {
 			log.Printf("Failed to decode log message from participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 			return
@@ -127,7 +133,7 @@ func participantHandler(participant *Participant, room *Room) {
 	})
 
 	log.Printf("Participant: '%s' in room: '%s' is now ready, sending an OK\n", participant.ID, room.Name)
-	if err = participant.WebSocket.SendAnswerMessage(AnswerOK); err != nil {
+	if err = participant.WebSocket.SendAnswerMessageWS(AnswerOK); err != nil {
 		log.Printf("Failed to send OK answer for participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
 	}
 
@@ -150,7 +156,7 @@ func participantHandler(participant *Participant, room *Room) {
 }
 
 // SDP answer handler for participants
-func handleParticipantSDP(participant *Participant, answerMsg WSMessageSDP) {
+func handleParticipantSDP(participant *Participant, answerMsg MessageSDP) {
 	// Get SDP offer
 	sdpAnswer := answerMsg.SDP.SDP
 

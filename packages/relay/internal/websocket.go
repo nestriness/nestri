@@ -10,13 +10,14 @@ import (
 type SafeWebSocket struct {
 	*websocket.Conn
 	sync.Mutex
-	binaryCallbacks map[string]OnMessageCallback // WSMessageBase type -> callback
+	binaryCallbacks map[string]OnMessageCallback // MessageBase type -> callback
 }
 
 // NewSafeWebSocket creates a new SafeWebSocket from *websocket.Conn
 func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 	ws := &SafeWebSocket{
-		Conn: conn,
+		Conn:            conn,
+		binaryCallbacks: make(map[string]OnMessageCallback),
 	}
 
 	// Launch a goroutine to handle binary messages
@@ -47,7 +48,7 @@ func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 				continue
 			case websocket.BinaryMessage:
 				// Decode message
-				var msg WSMessageBase
+				var msg MessageBase
 				if err = DecodeMessage(data, &msg); err != nil {
 					log.Printf("Failed to decode binary WebSocket message, reason: %s\n", err)
 					continue
@@ -66,22 +67,19 @@ func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 	return ws
 }
 
-// WriteJSON writes JSON to a websocket with a mutex
-func (ws *SafeWebSocket) WriteJSON(v interface{}) error {
+// SendJSON writes JSON to a websocket with a mutex
+func (ws *SafeWebSocket) SendJSON(v interface{}) error {
 	ws.Lock()
 	defer ws.Unlock()
 	return ws.Conn.WriteJSON(v)
 }
 
-// WriteBinary writes binary to a websocket with a mutex
-func (ws *SafeWebSocket) WriteBinary(data []byte) error {
+// SendBinary writes binary to a websocket with a mutex
+func (ws *SafeWebSocket) SendBinary(data []byte) error {
 	ws.Lock()
 	defer ws.Unlock()
 	return ws.Conn.WriteMessage(websocket.BinaryMessage, data)
 }
-
-// OnMessageCallback is a callback for binary messages of given type
-type OnMessageCallback func(data []byte)
 
 // RegisterMessageCallback sets the callback for binary message of given type
 func (ws *SafeWebSocket) RegisterMessageCallback(msgType string, callback OnMessageCallback) {
@@ -97,7 +95,9 @@ func (ws *SafeWebSocket) RegisterMessageCallback(msgType string, callback OnMess
 func (ws *SafeWebSocket) UnregisterMessageCallback(msgType string) {
 	ws.Lock()
 	defer ws.Unlock()
-	delete(ws.binaryCallbacks, msgType)
+	if ws.binaryCallbacks != nil {
+		delete(ws.binaryCallbacks, msgType)
+	}
 }
 
 // RegisterOnClose sets the callback for websocket closing

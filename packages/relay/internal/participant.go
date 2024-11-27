@@ -12,7 +12,7 @@ type Participant struct {
 	Name           string
 	WebSocket      *SafeWebSocket
 	PeerConnection *webrtc.PeerConnection
-	DataChannel    *webrtc.DataChannel
+	DataChannel    *NestriDataChannel
 }
 
 func NewParticipant(ws *SafeWebSocket) *Participant {
@@ -56,7 +56,7 @@ func (vw *Participant) signalOffer() error {
 		return err
 	}
 
-	return vw.WebSocket.SendSDPMessage(offer)
+	return vw.WebSocket.SendSDPMessageWS(offer)
 }
 
 var namesFirst = []string{"Happy", "Sad", "Angry", "Calm", "Excited", "Bored", "Confused", "Confident", "Curious", "Depressed", "Disappointed", "Embarrassed", "Energetic", "Fearful", "Frustrated", "Glad", "Guilty", "Hopeful", "Impatient", "Jealous", "Lonely", "Motivated", "Nervous", "Optimistic", "Pessimistic", "Proud", "Relaxed", "Shy", "Stressed", "Surprised", "Tired", "Worried"}

@@ -94,33 +94,26 @@ func ingestHandler(room *Room) {
 		}
 	})
 
-	room.PeerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
+	room.PeerConnection.OnDataChannel(func(dc *webrtc.DataChannel) {
+		room.DataChannel = NewNestriDataChannel(dc)
 		if GetFlags().Verbose {
-			log.Printf("New DataChannel for room: '%s' - '%s'\n", room.Name, d.Label())
+			log.Printf("New DataChannel for room: '%s' - '%s'\n", room.Name, room.DataChannel.Label())
 		}
 
 		// Register channel opening handling
-		d.OnOpen(func() {
+		room.DataChannel.RegisterOnOpen(func() {
 			if GetFlags().Verbose {
-				log.Printf("DataChannel for room: '%s' - '%s' open\n", room.Name, d.Label())
+				log.Printf("DataChannel for room: '%s' - '%s' open\n", room.Name, room.DataChannel.Label())
 			}
 		})
 
-		// Register text message handling
-		d.OnMessage(func(msg webrtc.DataChannelMessage) {
+		room.DataChannel.OnClose(func() {
 			if GetFlags().Verbose {
-				log.Printf("DataChannel for room: '%s' - '%s' message: %s\n", room.Name, d.Label(), msg.Data)
+				log.Printf("DataChannel for room: '%s' - '%s' closed\n", room.Name, room.DataChannel.Label())
 			}
 		})
 
-		// Register channel closing handling
-		d.OnClose(func() {
-			if GetFlags().Verbose {
-				log.Printf("DataChannel for room: '%s' - '%s' closed\n", room.Name, d.Label())
-			}
-		})
-
-		room.DataChannel = d
+		// We do not handle any messages from ingest via DataChannel yet
 	})
 
 	room.PeerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
@@ -130,7 +123,7 @@ func ingestHandler(room *Room) {
 		if GetFlags().Verbose {
 			log.Printf("ICE candidate for room: '%s'\n", room.Name)
 		}
-		err = room.WebSocket.SendICECandidateMessage(candidate.ToJSON())
+		err = room.WebSocket.SendICECandidateMessageWS(candidate.ToJSON())
 		if err != nil {
 			log.Printf("Failed to send ICE candidate for room: '%s' - reason: %s\n", room.Name, err)
 		}
@@ -140,7 +133,7 @@ func ingestHandler(room *Room) {
 
 	// ICE callback
 	room.WebSocket.RegisterMessageCallback("ice", func(data []byte) {
-		var iceMsg WSMessageICECandidate
+		var iceMsg MessageICECandidate
 		if err = DecodeMessage(data, &iceMsg); err != nil {
 			log.Printf("Failed to decode ICE candidate message from ingest for room: '%s' - reason: %s\n", room.Name, err)
 			return
@@ -171,14 +164,14 @@ func ingestHandler(room *Room) {
 
 	// SDP offer callback
 	room.WebSocket.RegisterMessageCallback("sdp", func(data []byte) {
-		var sdpMsg WSMessageSDP
+		var sdpMsg MessageSDP
 		if err = DecodeMessage(data, &sdpMsg); err != nil {
 			log.Printf("Failed to decode SDP message from ingest for room: '%s' - reason: %s\n", room.Name, err)
 			return
 		}
 		answer := handleIngestSDP(room, sdpMsg)
 		if answer != nil {
-			if err = room.WebSocket.SendSDPMessage(*answer); err != nil {
+			if err = room.WebSocket.SendSDPMessageWS(*answer); err != nil {
 				log.Printf("Failed to send SDP answer to ingest for room: '%s' - reason: %s\n", room.Name, err)
 			}
 		} else {
@@ -188,7 +181,7 @@ func ingestHandler(room *Room) {
 
 	// Log callback
 	room.WebSocket.RegisterMessageCallback("log", func(data []byte) {
-		var logMsg WSMessageLog
+		var logMsg MessageLog
 		if err = DecodeMessage(data, &logMsg); err != nil {
 			log.Printf("Failed to decode log message from ingest for room: '%s' - reason: %s\n", room.Name, err)
 			return
@@ -198,7 +191,7 @@ func ingestHandler(room *Room) {
 
 	// Metrics callback
 	room.WebSocket.RegisterMessageCallback("metrics", func(data []byte) {
-		var metricsMsg WSMessageMetrics
+		var metricsMsg MessageMetrics
 		if err = DecodeMessage(data, &metricsMsg); err != nil {
 			log.Printf("Failed to decode metrics message from ingest for room: '%s' - reason: %s\n", room.Name, err)
 			return
@@ -215,13 +208,13 @@ func ingestHandler(room *Room) {
 	})
 
 	log.Printf("Room: '%s' is ready, sending an OK\n", room.Name)
-	if err = room.WebSocket.SendAnswerMessage(AnswerOK); err != nil {
+	if err = room.WebSocket.SendAnswerMessageWS(AnswerOK); err != nil {
 		log.Printf("Failed to send OK answer for room: '%s' - reason: %s\n", room.Name, err)
 	}
 }
 
 // SDP offer handler, returns SDP answer
-func handleIngestSDP(room *Room, offerMsg WSMessageSDP) *webrtc.SessionDescription {
+func handleIngestSDP(room *Room, offerMsg MessageSDP) *webrtc.SessionDescription {
 	var err error
 
 	// Get SDP offer

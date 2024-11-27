@@ -62,7 +62,7 @@ type Room struct {
 	PeerConnection    *webrtc.PeerConnection
 	AudioTrack        webrtc.TrackLocal
 	VideoTrack        webrtc.TrackLocal
-	DataChannel       *webrtc.DataChannel
+	DataChannel       *NestriDataChannel
 	Participants      map[uuid.UUID]*Participant
 	ParticipantsMutex sync.RWMutex
 }
@@ -142,7 +142,7 @@ func (r *Room) signalParticipantsWithTracks() {
 func (r *Room) signalParticipantsOffline() {
 	r.ParticipantsMutex.RLock()
 	for _, participant := range r.Participants {
-		if err := participant.WebSocket.SendAnswerMessage(AnswerOffline); err != nil {
+		if err := participant.WebSocket.SendAnswerMessageWS(AnswerOffline); err != nil {
 			log.Printf("Failed to send Offline answer for participant: '%s' - reason: %s\n", participant.ID, err)
 		}
 	}

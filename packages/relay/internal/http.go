@@ -80,7 +80,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	ws := NewSafeWebSocket(wsConn)
 	// Assign message handler for join request
 	ws.RegisterMessageCallback("join", func(data []byte) {
-		var joinMsg WSMessageJoin
+		var joinMsg MessageJoin
 		if err = DecodeMessage(data, &joinMsg); err != nil {
 			log.Printf("Failed to decode join message: %s\n", err)
 			return
@@ -95,7 +95,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		case JoinerNode:
 			// If room already online, send InUse answer
 			if room.Online {
-				if err = ws.SendAnswerMessage(AnswerInUse); err != nil {
+				if err = ws.SendAnswerMessageWS(AnswerInUse); err != nil {
 					log.Printf("Failed to send InUse answer for Room: '%s' - reason: %s\n", room.Name, err)
 				}
 				return
@@ -108,7 +108,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			room.addParticipant(participant)
 			// If room not online, send Offline answer
 			if !room.Online {
-				if err = ws.SendAnswerMessage(AnswerOffline); err != nil {
+				if err = ws.SendAnswerMessageWS(AnswerOffline); err != nil {
 					log.Printf("Failed to send Offline answer for Room: '%s' - reason: %s\n", room.Name, err)
 				}
 			}

@@ -23,24 +23,30 @@ use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageBase
-{
+pub struct MessageBase {
     pub payload_type: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageLog {
+pub struct MessageInput {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
+    pub data: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MessageLog {
+    #[serde(flatten)]
+    pub base: MessageBase,
     pub level: String,
     pub message: String,
     pub time: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageMetrics {
+pub struct MessageMetrics {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
     pub usage_cpu: f64,
     pub usage_memory: f64,
     pub uptime: u64,
@@ -48,16 +54,16 @@ pub struct WSMessageMetrics {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageICE {
+pub struct MessageICE {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
     pub candidate: RTCIceCandidateInit,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageSDP {
+pub struct MessageSDP {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
     pub sdp: RTCSessionDescription,
 }
 
@@ -82,9 +88,9 @@ impl From<JoinerType> for i32 {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageJoin {
+pub struct MessageJoin {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
     pub joiner_type: JoinerType,
 }
 
@@ -110,13 +116,13 @@ impl From<AnswerType> for i32 {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WSMessageAnswer {
+pub struct MessageAnswer {
     #[serde(flatten)]
-    pub base: WSMessageBase,
+    pub base: MessageBase,
     pub answer_type: AnswerType,
 }
 
-pub fn encode_message<T: Serialize>(message: &T) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn encode_message<T: Serialize>(message: &T) -> Result<Vec<u8>, Box<dyn Error>> {
     // Serialize the message to JSON
     let json = serde_json::to_string(message)?;
 
@@ -128,18 +134,18 @@ pub fn encode_message<T: Serialize>(message: &T) -> Result<Vec<u8>, Box<dyn std:
     Ok(compressed_data)
 }
 
-pub fn decode_message(data: &[u8]) -> Result<WSMessageBase, Box<dyn std::error::Error + Send + Sync>> {
+pub fn decode_message(data: &[u8]) -> Result<MessageBase, Box<dyn Error + Send + Sync>> {
     let mut decoder = GzDecoder::new(data);
     let mut decompressed_data = String::new();
     decoder.read_to_string(&mut decompressed_data)?;
 
-    let base_message: WSMessageBase = serde_json::from_str(&decompressed_data)?;
+    let base_message: MessageBase = serde_json::from_str(&decompressed_data)?;
     Ok(base_message)
 }
 
 pub fn decode_message_as<T: for<'de> Deserialize<'de>>(
     data: Vec<u8>,
-) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<T, Box<dyn Error + Send + Sync>> {
     let mut decoder = GzDecoder::new(data.as_slice());
     let mut decompressed_data = String::new();
     decoder.read_to_string(&mut decompressed_data)?;
@@ -287,8 +293,8 @@ impl Log for NestriWebSocket {
             println!("{}: {}", level, message);
 
             // Encode and send the log message
-            let log_message = WSMessageLog {
-                base: WSMessageBase {
+            let log_message = MessageLog {
+                base: MessageBase {
                     payload_type: "log".to_string(),
                 },
                 level,
