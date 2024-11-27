@@ -146,7 +146,7 @@ export class WebRTCStream {
           // Create our answer
           const answer = await this._pc!.createAnswer();
           // Force stereo in Chromium browsers
-          answer.sdp = this.forceOpusStereo(answer.sdp);
+          answer.sdp = this.forceOpusStereo(answer.sdp!);
           await this._pc!.setLocalDescription(answer);
           this._ws!.send(encodeMessage({
             payload_type: "sdp",
