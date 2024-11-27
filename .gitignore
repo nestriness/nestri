@@ -45,3 +45,6 @@ bun.lockb
 
 #tests
 id_*
+
+# Rust
+target

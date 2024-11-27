@@ -46,7 +46,7 @@ export const ImageLoader = component$((props: ImageLoaderProps) => {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    img.crossOrigin = "anonymous"
+    // img.crossOrigin = "anonymous"
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
