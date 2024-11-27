@@ -11,35 +11,21 @@ export class Mouse {
     protected canvas: HTMLCanvasElement;
     protected connected!: boolean;
 
-    private absX: number = 0;
-    private absY: number = 0;
-
     // Store references to event listeners
     private mousemoveListener: (e: MouseEvent) => void;
     private mousedownListener: (e: MouseEvent) => void;
     private mouseupListener: (e: MouseEvent) => void;
     private mousewheelListener: (e: WheelEvent) => void;
 
-    constructor({ webrtc, canvas }: Props, absoluteTrick?: boolean) {
+    constructor({ webrtc, canvas }: Props) {
         this.wrtc = webrtc;
         this.canvas = canvas;
-        if (!absoluteTrick) {
-            this.mousemoveListener = this.createMouseListener("mousemove", (e: any) => ({
-                type: "MouseMove",
-                x: e.movementX,
-                y: e.movementY
-            }));
-        } else {
-            this.mousemoveListener = this.createMouseListener("mousemoveabs", (e: any) => ({
-                type: "MouseMoveAbs",
-                x: this.absX = this.absX + e.movementX,
-                y: this.absY = this.absY + e.movementY
-            }));
 
-            this.absX = this.canvas.width / 2;
-            this.absY = this.canvas.height / 2;
-        }
-
+        this.mousemoveListener = this.createMouseListener("mousemove", (e: any) => ({
+            type: "MouseMove",
+            x: e.movementX,
+            y: e.movementY
+        }));
         this.mousedownListener = this.createMouseListener("mousedown", (e: any) => ({
             type: "MouseKeyDown",
             key: this.keyToVirtualKeyCode(e.button)

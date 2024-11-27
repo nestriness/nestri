@@ -9,7 +9,7 @@ WORKDIR /builder/
 
 # Grab build and rust packages #
 RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
-	gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
+	gstreamer gst-plugins-base gst-plugins-good
 
 # Setup stable rust toolchain #
 RUN rustup default stable
@@ -64,6 +64,7 @@ RUN pacman -Syu --noconfirm --needed \
     gstreamer gst-plugins-base gst-plugins-good \
     gst-plugin-va gst-plugins-bad gst-plugin-fmp4 \
     gst-plugin-qsv gst-plugin-pipewire gst-plugin-rswebrtc \
+    gst-plugins-ugly gst-plugin-rsrtp \
     # Audio packages
     pipewire pipewire-pulse pipewire-alsa wireplumber \
     # Other requirements

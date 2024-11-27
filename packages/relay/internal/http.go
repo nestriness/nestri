@@ -15,8 +15,7 @@ func InitHTTPEndpoint() {
 
 	// Endpoints themselves
 	httpMux.Handle("/", http.NotFoundHandler())
-	httpMux.HandleFunc("/api/ws-ingest/{roomName}", corsAnyHandler(wsIngestHandler))
-	httpMux.HandleFunc("/api/ws-participant/{roomName}", corsAnyHandler(wsParticipantHandler))
+	httpMux.HandleFunc("/api/ws/{roomName}", corsAnyHandler(wsHandler))
 
 	// Get our serving port
 	port := GetFlags().EndpointPort
@@ -53,9 +52,8 @@ func corsAnyHandler(next func(w http.ResponseWriter, r *http.Request)) http.Hand
 	}
 }
 
-// wsIngestHandler is the handler for the /api/ws-ingest/{roomName} endpoint
-// takes an "ingest" stream from a nestri-server
-func wsIngestHandler(w http.ResponseWriter, r *http.Request) {
+// wsHandler is the handler for the /api/ws/{roomName} endpoint
+func wsHandler(w http.ResponseWriter, r *http.Request) {
 	// Get given room name now
 	roomName := r.PathValue("roomName")
 	if len(roomName) <= 0 {
@@ -63,12 +61,8 @@ func wsIngestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if room by name already exists
+	// Get or create room in any case
 	room := GetOrCreateRoom(roomName)
-	if room.Online {
-		logHTTPError(w, "room name already in use by a node", http.StatusBadRequest)
-		return
-	}
 
 	// Upgrade to WebSocket
 	upgrader := websocket.Upgrader{
@@ -82,56 +76,48 @@ func wsIngestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Assign the WebSocket connection to the room
-	room.assignWebSocket(wsConn)
+	// Create SafeWebSocket
+	ws := NewSafeWebSocket(wsConn)
+	// Assign message handler for join request
+	ws.RegisterMessageCallback("join", func(data []byte) {
+		var joinMsg WSMessageJoin
+		if err = DecodeMessage(data, &joinMsg); err != nil {
+			log.Printf("Failed to decode join message: %s\n", err)
+			return
+		}
 
-	// If verbose, log
-	if GetFlags().Verbose {
-		log.Printf("New ingest for room: '%s'\n", room.Name)
-	}
+		if GetFlags().Verbose {
+			log.Printf("Join request for room: '%s' from: '%s'\n", room.Name, joinMsg.JoinerType.String())
+		}
 
-	// Start the ingest handler
-	go ingestHandler(room)
-}
+		// Handle join request, depending if it's from ingest/node or participant/client
+		switch joinMsg.JoinerType {
+		case JoinerNode:
+			// If room already online, send InUse answer
+			if room.Online {
+				if err = ws.SendAnswerMessage(AnswerInUse); err != nil {
+					log.Printf("Failed to send InUse answer for Room: '%s' - reason: %s\n", room.Name, err)
+				}
+				return
+			}
+			room.assignWebSocket(ws)
+			go ingestHandler(room)
+		case JoinerClient:
+			// Create participant and add to room regardless of online status
+			participant := NewParticipant(ws)
+			room.addParticipant(participant)
+			// If room not online, send Offline answer
+			if !room.Online {
+				if err = ws.SendAnswerMessage(AnswerOffline); err != nil {
+					log.Printf("Failed to send Offline answer for Room: '%s' - reason: %s\n", room.Name, err)
+				}
+			}
+			go participantHandler(participant, room)
+		default:
+			log.Printf("Unknown joiner type: %d\n", joinMsg.JoinerType)
+		}
 
-// wsParticipantHandler is the handler for the /api/ws-participant/{roomName} endpoint
-// takes a "participant" client connection
-func wsParticipantHandler(w http.ResponseWriter, r *http.Request) {
-	// Get given room name now
-	roomName := r.PathValue("roomName")
-	if len(roomName) <= 0 {
-		logHTTPError(w, "no room name given", http.StatusBadRequest)
-		return
-	}
-	// Upgrade to WebSocket
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	wsConn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		logHTTPError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Get room by name
-	room := GetOrCreateRoom(roomName)
-
-	// Create new participant
-	participant := NewParticipant(wsConn)
-	if GetFlags().Verbose {
-		log.Printf("New participant: '%s' - for room: '%s'\n", participant.ID, room.Name)
-	}
-
-	// Add participant to room
-	room.addParticipant(participant)
-
-	// If verbose, log
-	if GetFlags().Verbose {
-		log.Printf("Added participant: '%s' to room: '%s'\n", participant.ID, room.Name)
-	}
-
-	// Start the participant handler
-	go participantHandler(participant, room)
+		// Unregister ourselves, if something happens on the other side they should just reconnect?
+		ws.UnregisterMessageCallback("join")
+	})
 }

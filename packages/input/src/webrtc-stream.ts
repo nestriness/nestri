@@ -14,6 +14,27 @@ interface WSMessageSDP extends WSMessageBase {
   sdp: RTCSessionDescriptionInit;
 }
 
+enum JoinerType {
+  JoinerNode = 0,
+  JoinerClient = 1,
+}
+
+interface WSMessageJoin extends WSMessageBase {
+  payload_type: "join";
+  joiner_type: JoinerType;
+}
+
+enum AnswerType {
+  AnswerOffline = 0,
+  AnswerInUse,
+  AnswerOK
+}
+
+interface WSMessageAnswer extends WSMessageBase {
+  payload_type: "answer";
+  answer_type: AnswerType;
+}
+
 function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -49,9 +70,9 @@ export class WebRTCStream {
   private _pc: RTCPeerConnection | undefined = undefined;
   private _mediaStream: MediaStream | undefined = undefined;
   private _dataChannel: RTCDataChannel | undefined = undefined;
-  private _onConnected: (() => void) | undefined = undefined;
+  private _onConnected: ((stream: MediaStream | null) => void) | undefined = undefined;
 
-  constructor(serverURL: string, roomName: string, connectedCallback: () => void) {
+  constructor(serverURL: string, roomName: string, connectedCallback: (stream: MediaStream | null) => void) {
     // If roomName is not provided, return
     if (roomName.length <= 0) {
       console.error("Room name not provided");
@@ -63,7 +84,7 @@ export class WebRTCStream {
     console.log("Setting up WebSocket");
     // Replace http/https with ws/wss
     const wsURL = serverURL.replace(/^http/, "ws");
-    this._ws = new WebSocket(`${wsURL}/api/ws-participant/${roomName}`);
+    this._ws = new WebSocket(`${wsURL}/api/ws/${roomName}`);
     this._ws.onopen = async () => {
       console.log("WebSocket opened");
 
@@ -76,19 +97,16 @@ export class WebRTCStream {
         ],
       });
 
-      // Allow us to receive single audio and video tracks
-      this._pc.addTransceiver("audio", {direction: "recvonly"});
-      this._pc.addTransceiver("video", {direction: "recvonly"});
-
       this._pc.ontrack = (e) => {
         console.log("Track received: ", e.track);
-        // Update our mediastream as we receive tracks
         this._mediaStream = e.streams[e.streams.length - 1];
-        // If both audio and video tracks are received, call the connected callback
-        if (this._mediaStream.getAudioTracks().length > 0 && this._mediaStream.getVideoTracks().length > 0 && this._onConnected) {
-          this._onConnected();
-          // Prevent further calls to the connected callback
-          this._onConnected = undefined;
+      };
+
+      this._pc.onconnectionstatechange = () => {
+        console.log("Connection state: ", this._pc!.connectionState);
+        if (this._pc!.connectionState === "connected") {
+          if (this._onConnected && this._mediaStream)
+            this._onConnected(this._mediaStream);
         }
       };
 
@@ -102,19 +120,17 @@ export class WebRTCStream {
         }
       }
 
-      // Create Data Channel
-      this._dataChannel = this._pc.createDataChannel("input");
-      this._setupDataChannelEvents();
+      this._pc.ondatachannel = (e) => {
+        this._dataChannel = e.channel;
+        this._setupDataChannelEvents();
+      }
 
-      const offer = await this._pc.createOffer();
-      offer.sdp = this.forceOpusStereo(offer.sdp!);
-      await this._pc.setLocalDescription(offer);
-
-      const message: WSMessageSDP = {
-        payload_type: "sdp",
-        sdp: offer
+      // Send join message
+      const joinMessage: WSMessageJoin = {
+        payload_type: "join",
+        joiner_type: JoinerType.JoinerClient
       };
-      this._ws!.send(encodeMessage(message));
+      this._ws!.send(encodeMessage(joinMessage));
     }
 
     let iceHolder: RTCIceCandidateInit[] = [];
@@ -126,19 +142,49 @@ export class WebRTCStream {
       const message = await decodeMessage<WSMessageBase>(e.data);
       switch (message.payload_type) {
         case "sdp":
-          this._pc!.setRemoteDescription((message as WSMessageSDP).sdp);
+          await this._pc!.setRemoteDescription((message as WSMessageSDP).sdp);
+          // Create our answer
+          const answer = await this._pc!.createAnswer();
+          // Force stereo in Chromium browsers
+          answer.sdp = this.forceOpusStereo(answer.sdp);
+          await this._pc!.setLocalDescription(answer);
+          this._ws!.send(encodeMessage({
+            payload_type: "sdp",
+            sdp: answer
+          }));
           break;
         case "ice":
           // If remote description is not set yet, hold the ICE candidates
           if (this._pc!.remoteDescription) {
-            this._pc!.addIceCandidate((message as WSMessageICE).candidate);
+            await this._pc!.addIceCandidate((message as WSMessageICE).candidate);
             // Add held ICE candidates
-            iceHolder.forEach(candidate => this._pc!.addIceCandidate(candidate));
+            for (const ice of iceHolder) {
+              await this._pc!.addIceCandidate(ice);
+            }
             iceHolder = [];
           } else {
             iceHolder.push((message as WSMessageICE).candidate);
           }
           break;
+        case "answer":
+          switch ((message as WSMessageAnswer).answer_type) {
+            case AnswerType.AnswerOffline:
+              console.log("Room is offline");
+              // Call callback with null stream
+              if (this._onConnected)
+                this._onConnected(null);
+
+              break;
+            case AnswerType.AnswerInUse:
+              console.warn("Room is in use, we shouldn't even be getting this message");
+              break;
+            case AnswerType.AnswerOK:
+              console.log("Joining Room was successful");
+              break;
+          }
+          break;
+        default:
+          console.error("Unknown message type: ", message);
       }
     }
 
@@ -155,10 +201,6 @@ export class WebRTCStream {
   private forceOpusStereo(SDP: string): string {
     // Look for "minptime=10;useinbandfec=1" and replace with "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;"
     return SDP.replace(/(minptime=10;useinbandfec=1)/, "$1;stereo=1;sprop-stereo=1;");
-  }
-
-  public getMediaStream() {
-    return this._mediaStream;
   }
 
   private _setupDataChannelEvents() {

@@ -257,6 +257,10 @@ pub fn encoder_vbr_params(encoder: &VideoEncoderInfo, bitrate: u32, max_bitrate:
         } else if prop_name.to_lowercase().contains("bitrate")
             && prop_name.to_lowercase().contains("max")
         {
+            // If SVT-AV1, don't set max bitrate
+            if encoder_optz.name == "svtav1enc" {
+                continue;
+            }
             encoder_optz.set_parameter(prop_name, &max_bitrate.to_string());
         }
     }
@@ -392,7 +396,16 @@ pub fn encoder_low_latency_params(encoder: &VideoEncoderInfo) -> VideoEncoderInf
                 }
                 "svtav1enc" => {
                     encoder_optz.set_parameter("preset", "12");
-                    encoder_optz.set_parameter("parameters-string", "pred-struct=1:lookahead=0");
+                    // Add ":pred-struct=1" only in CBR mode
+                    let params_string = format!(
+                        "lookahead=0{}",
+                        if encoder_optz.get_parameters_string().contains("cbr") {
+                            ":pred-struct=1"
+                        } else {
+                            ""
+                        }
+                    );
+                    encoder_optz.set_parameter("parameters-string", params_string.as_str());
                 }
                 "av1enc" => {
                     encoder_optz.set_parameter("usage-profile", "realtime");

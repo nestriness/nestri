@@ -43,6 +43,46 @@ type WSMessageSDP struct {
 	SDP webrtc.SessionDescription `json:"sdp"`
 }
 
+// JoinerType is an enum for the type of incoming room joiner
+type JoinerType int
+
+const (
+	JoinerNode JoinerType = iota
+	JoinerClient
+)
+
+func (jt *JoinerType) String() string {
+	switch *jt {
+	case JoinerNode:
+		return "node"
+	case JoinerClient:
+		return "client"
+	default:
+		return "unknown"
+	}
+}
+
+// WSMessageJoin is used to tell us that either participant or ingest wants to join the room
+type WSMessageJoin struct {
+	WSMessageBase
+	JoinerType JoinerType `json:"joiner_type"`
+}
+
+// AnswerType is an enum for the type of answer, signaling Room state for a joiner
+type AnswerType int
+
+const (
+	AnswerOffline AnswerType = iota // For participant/client, when the room is offline without stream
+	AnswerInUse                     // For ingest/node joiner, when the room is already in use by another ingest/node
+	AnswerOK                        // For both, when the join request is handled successfully
+)
+
+// WSMessageAnswer is used to send the answer to a join request
+type WSMessageAnswer struct {
+	WSMessageBase
+	AnswerType AnswerType `json:"answer_type"`
+}
+
 // EncodeMessage encodes a message to be sent over the websocket with gzip compression
 func EncodeMessage(msg interface{}) ([]byte, error) {
 	// Marshal the message to JSON
@@ -143,6 +183,20 @@ func (ws *SafeWebSocket) SendSDPMessage(sdp webrtc.SessionDescription) error {
 	encoded, err := EncodeMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to encode SDP message: %w", err)
+	}
+
+	return ws.WriteBinary(encoded)
+}
+
+// SendAnswerMessage sends an answer message to the given WebSocket connection.
+func (ws *SafeWebSocket) SendAnswerMessage(answer AnswerType) error {
+	msg := WSMessageAnswer{
+		WSMessageBase: WSMessageBase{PayloadType: "answer"},
+		AnswerType:    answer,
+	}
+	encoded, err := EncodeMessage(msg)
+	if err != nil {
+		return fmt.Errorf("failed to encode answer message: %w", err)
 	}
 
 	return ws.WriteBinary(encoded)

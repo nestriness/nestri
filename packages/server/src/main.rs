@@ -12,7 +12,7 @@ use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, Notify};
-use crate::websocket::NestriWebSocket;
+use crate::websocket::{NestriWebSocket};
 
 // Handles gathering GPU information and selecting the most suitable GPU
 fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
@@ -161,7 +161,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let replaced_relay_url
         = args.app.relay_url.replace("http://", "ws://").replace("https://", "wss://");
     let ws_url = format!(
-        "{}/api/ws-ingest/{}",
+        "{}/api/ws/{}",
         replaced_relay_url,
         args.app.room,
     );
@@ -198,8 +198,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Set up buffers for pipeline and room communication
     let input_notify = Arc::new(Notify::new());
     let input_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
-    let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
-    let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
+    let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
+    let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
 
     let room = Arc::new(Mutex::new(
         room::Room::new(
@@ -287,22 +287,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
             if appsink.is_eos() {
                 continue
             }
-            let sample = match appsink.pull_sample() {
-                Ok(sample) => sample,
-                Err(e) => {
-                    log::error!("Audio AppSink error: {}", e);
-                    break
+            if let Ok(sample) = appsink.pull_sample() {
+                let buffer = sample.buffer().unwrap();
+                let buffer = buffer.map_readable().unwrap();
+                let data = buffer.as_slice();
+                let mut audio_sink_buf = audio_sink_buf.lock().await;
+                // If at capacity, remove oldest element
+                if audio_sink_buf.len() >= audio_sink_buf.capacity() {
+                    audio_sink_buf.pop_front();
                 }
-            };
-            let buffer = sample.buffer().unwrap();
-            let buffer = buffer.map_readable().unwrap();
-            let data = buffer.as_slice();
-            let mut audio_sink_buf = audio_sink_buf.lock().await;
-            // If at capacity, remove oldest element
-            if audio_sink_buf.len() >= audio_sink_buf.capacity() {
-                audio_sink_buf.pop_front();
+                audio_sink_buf.push_back(data.to_vec());
+            } else {
+                log::error!("Audio AppSink error");
+                break
             }
-            audio_sink_buf.push_back(data.to_vec());
         }
     });
 
@@ -318,25 +316,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
             if appsink.is_eos() {
                 continue
             }
-            let sample = match appsink.pull_sample() {
-                Ok(sample) => sample,
-                Err(e) => {
-                    log::error!("Video AppSink error: {}", e);
-                    break
+            if let Ok(sample) = appsink.pull_sample() {
+                let buffer = sample.buffer().unwrap();
+                let buffer = buffer.map_readable().unwrap();
+                let data = buffer.as_slice();
+                let mut video_sink_buf = video_sink_buf.lock().await;
+                // If at capacity, remove oldest element
+                if video_sink_buf.len() >= video_sink_buf.capacity() {
+                    video_sink_buf.pop_front();
                 }
-            };
-            let buffer = sample.buffer().unwrap();
-            let buffer = buffer.map_readable().unwrap();
-            let data = buffer.as_slice();
-            let mut video_sink_buf = video_sink_buf.lock().await;
-            // If at capacity, remove oldest element
-            if video_sink_buf.len() >= video_sink_buf.capacity() {
-                video_sink_buf.pop_front();
+                video_sink_buf.push_back(data.to_vec());
+            } else {
+                log::error!("Video AppSink error");
+                break
             }
-            video_sink_buf.push_back(data.to_vec());
         }
     });
-
+    
     /* Debug */
     // Debug Feed Element
     let debug_latency = gst::ElementFactory::make("timeoverlay").build()?;

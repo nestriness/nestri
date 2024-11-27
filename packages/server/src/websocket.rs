@@ -11,6 +11,8 @@ use std::error::Error;
 use std::io::{Read, Write};
 use std::sync::Arc;
 use std::time::Duration;
+use num_derive::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio::sync::RwLock;
@@ -57,6 +59,61 @@ pub struct WSMessageSDP {
     #[serde(flatten)]
     pub base: WSMessageBase,
     pub sdp: RTCSessionDescription,
+}
+
+#[repr(i32)]
+#[derive(Debug, FromPrimitive, ToPrimitive, Copy, Clone, Serialize, Deserialize)]
+#[serde(try_from = "i32", into = "i32")]
+pub enum JoinerType {
+    JoinerNode = 0,
+    JoinerClient = 1,
+}
+impl TryFrom<i32> for JoinerType {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        JoinerType::from_i32(value).ok_or("Invalid value for JoinerType")
+    }
+}
+impl From<JoinerType> for i32 {
+    fn from(joiner_type: JoinerType) -> Self {
+        joiner_type.to_i32().unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WSMessageJoin {
+    #[serde(flatten)]
+    pub base: WSMessageBase,
+    pub joiner_type: JoinerType,
+}
+
+#[repr(i32)]
+#[derive(Debug, FromPrimitive, ToPrimitive, Copy, Clone, Serialize, Deserialize)]
+#[serde(try_from = "i32", into = "i32")]
+pub enum AnswerType {
+    AnswerOffline = 0,
+    AnswerInUse = 1,
+    AnswerOK = 2,
+}
+impl TryFrom<i32> for AnswerType {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        AnswerType::from_i32(value).ok_or("Invalid value for AnswerType")
+    }
+}
+impl From<AnswerType> for i32 {
+    fn from(answer_type: AnswerType) -> Self {
+        answer_type.to_i32().unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WSMessageAnswer {
+    #[serde(flatten)]
+    pub base: WSMessageBase,
+    pub answer_type: AnswerType,
 }
 
 pub fn encode_message<T: Serialize>(message: &T) -> Result<Vec<u8>, Box<dyn std::error::Error>> {

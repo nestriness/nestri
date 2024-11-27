@@ -3,7 +3,6 @@ package relay
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v4"
 	"io"
 	"log"
@@ -55,8 +54,9 @@ func ingestHandler(room *Room) {
 		if room.AudioTrack != nil && room.VideoTrack != nil {
 			room.Online = true
 			if GetFlags().Verbose {
-				log.Printf("Room online and receiving: '%s'\n", room.Name)
+				log.Printf("Room online and receiving: '%s' - signaling participants\n", room.Name)
 			}
+			room.signalParticipantsWithTracks()
 		}
 
 		rtpBuffer := make([]byte, 1400)
@@ -88,6 +88,8 @@ func ingestHandler(room *Room) {
 			if GetFlags().Verbose {
 				log.Printf("Room offline and not receiving: '%s'\n", room.Name)
 			}
+			// Signal participants of room offline
+			room.signalParticipantsOffline()
 			DeleteRoomIfEmpty(room)
 		}
 	})
@@ -136,128 +138,85 @@ func ingestHandler(room *Room) {
 
 	iceHolder := make([]webrtc.ICECandidateInit, 0)
 
-	// Handle WebSocket messages from ingest
-	for {
-		// Read message from ingest
-		msgType, msgData, err := room.WebSocket.ReadMessage()
-		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
-			// If unexpected close error, break
-			if GetFlags().Verbose {
-				log.Printf("Unexpected close error from ingest for room: '%s' - reason: %s\n", room.Name, err)
-			}
-			break
-		} else if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
-			// If closing, just break
-			if GetFlags().Verbose {
-				log.Printf("Closing from ingest for room: '%s'\n", room.Name)
-			}
-			break
-		} else if err != nil {
-			log.Printf("Failed to read message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-			break
+	// ICE callback
+	room.WebSocket.RegisterMessageCallback("ice", func(data []byte) {
+		var iceMsg WSMessageICECandidate
+		if err = DecodeMessage(data, &iceMsg); err != nil {
+			log.Printf("Failed to decode ICE candidate message from ingest for room: '%s' - reason: %s\n", room.Name, err)
+			return
 		}
-
-		// Handle message type
-		switch msgType {
-		case websocket.TextMessage:
-			// Ignore, we use binary messages
-			if GetFlags().Verbose {
-				log.Printf("Received text message from ingest: '%s'\n", string(msgData))
-			}
-			continue
-		case websocket.BinaryMessage:
-			// Decode message
-			var msg WSMessageBase
-			if err = DecodeMessage(msgData, &msg); err != nil {
-				log.Printf("Failed to decode message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-				continue
-			}
-
-			if GetFlags().Verbose {
-				log.Printf("Received message from ingest for room: '%s' - %s\n", room.Name, msg.PayloadType)
-			}
-
-			// Handle message type
-			switch msg.PayloadType {
-			case "log":
-				var logMsg WSMessageLog
-				if err = DecodeMessage(msgData, &logMsg); err != nil {
-					log.Printf("Failed to decode log message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-					continue
-				}
-				// TODO: Handle log message sending to metrics server
-			case "metrics":
-				var metricsMsg WSMessageMetrics
-				if err = DecodeMessage(msgData, &metricsMsg); err != nil {
-					log.Printf("Failed to decode metrics message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-					continue
-				}
-				if GetFlags().Verbose {
-					log.Printf("Metrics message from ingest for room: '%s'\n", room.Name)
-					log.Printf("  CPU: %f\n", metricsMsg.UsageCPU)
-					log.Printf("  Memory: %f\n", metricsMsg.UsageMemory)
-					log.Printf("  Uptime: %d\n", metricsMsg.Uptime)
-					log.Printf("  Pipeline latency: %f\n", metricsMsg.PipelineLatency)
-				}
-			case "sdp":
-				var sdpMsg WSMessageSDP
-				if err = DecodeMessage(msgData, &sdpMsg); err != nil {
-					log.Printf("Failed to decode SDP message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-					continue
-				}
-				answer := handleIngestSDP(room, sdpMsg)
-				if answer != nil {
-					if err = room.WebSocket.SendSDPMessage(*answer); err != nil {
-						log.Printf("Failed to send SDP answer to ingest for room: '%s' - reason: %s\n", room.Name, err)
-					}
-				} else {
-					log.Printf("Failed to handle SDP message from ingest for room: '%s'\n", room.Name)
-				}
-			case "ice":
-				var iceMsg WSMessageICECandidate
-				if err = DecodeMessage(msgData, &iceMsg); err != nil {
-					log.Printf("Failed to decode ICE candidate message from ingest for room: '%s' - reason: %s\n", room.Name, err)
-					continue
-				}
-				candidate := webrtc.ICECandidateInit{
-					Candidate: iceMsg.Candidate.Candidate,
-				}
-				if room.PeerConnection != nil {
-					// If remote isn't set yet, store ICE candidates
-					if room.PeerConnection.RemoteDescription() != nil {
-						if err = room.PeerConnection.AddICECandidate(candidate); err != nil {
-							log.Printf("Failed to add ICE candidate for room: '%s' - reason: %s\n", room.Name, err)
-						}
-						// Add any held ICE candidates
-						for _, heldCandidate := range iceHolder {
-							if err = room.PeerConnection.AddICECandidate(heldCandidate); err != nil {
-								log.Printf("Failed to add held ICE candidate for room: '%s' - reason: %s\n", room.Name, err)
-							}
-						}
-						iceHolder = nil
-					} else {
-						iceHolder = append(iceHolder, candidate)
-					}
-				} else {
-					log.Printf("ICE candidate received before PeerConnection for room: '%s'\n", room.Name)
-				}
-			default:
-				log.Println("Unknown message type from ingest: ", msg.PayloadType)
-			}
-		default:
-			log.Println("Unknown message type from ingest: ", msgType)
+		candidate := webrtc.ICECandidateInit{
+			Candidate: iceMsg.Candidate.Candidate,
 		}
-	}
+		if room.PeerConnection != nil {
+			// If remote isn't set yet, store ICE candidates
+			if room.PeerConnection.RemoteDescription() != nil {
+				if err = room.PeerConnection.AddICECandidate(candidate); err != nil {
+					log.Printf("Failed to add ICE candidate for room: '%s' - reason: %s\n", room.Name, err)
+				}
+				// Add any held ICE candidates
+				for _, heldCandidate := range iceHolder {
+					if err = room.PeerConnection.AddICECandidate(heldCandidate); err != nil {
+						log.Printf("Failed to add held ICE candidate for room: '%s' - reason: %s\n", room.Name, err)
+					}
+				}
+				iceHolder = nil
+			} else {
+				iceHolder = append(iceHolder, candidate)
+			}
+		} else {
+			log.Printf("ICE candidate received before PeerConnection for room: '%s'\n", room.Name)
+		}
+	})
 
-	// Close WebSocket connection
-	if err := room.WebSocket.Close(); err != nil {
-		log.Printf("Failed to close WebSocket for room: '%s' - reason: %s\n", room.Name, err)
-	}
-	room.WebSocket = nil
+	// SDP offer callback
+	room.WebSocket.RegisterMessageCallback("sdp", func(data []byte) {
+		var sdpMsg WSMessageSDP
+		if err = DecodeMessage(data, &sdpMsg); err != nil {
+			log.Printf("Failed to decode SDP message from ingest for room: '%s' - reason: %s\n", room.Name, err)
+			return
+		}
+		answer := handleIngestSDP(room, sdpMsg)
+		if answer != nil {
+			if err = room.WebSocket.SendSDPMessage(*answer); err != nil {
+				log.Printf("Failed to send SDP answer to ingest for room: '%s' - reason: %s\n", room.Name, err)
+			}
+		} else {
+			log.Printf("Failed to handle SDP message from ingest for room: '%s'\n", room.Name)
+		}
+	})
 
-	// If PeerConnection is not open, delete room
-	if room.PeerConnection != nil && room.PeerConnection.ConnectionState() != webrtc.PeerConnectionStateConnected {
-		DeleteRoomIfEmpty(room)
+	// Log callback
+	room.WebSocket.RegisterMessageCallback("log", func(data []byte) {
+		var logMsg WSMessageLog
+		if err = DecodeMessage(data, &logMsg); err != nil {
+			log.Printf("Failed to decode log message from ingest for room: '%s' - reason: %s\n", room.Name, err)
+			return
+		}
+		// TODO: Handle log message sending to metrics server
+	})
+
+	// Metrics callback
+	room.WebSocket.RegisterMessageCallback("metrics", func(data []byte) {
+		var metricsMsg WSMessageMetrics
+		if err = DecodeMessage(data, &metricsMsg); err != nil {
+			log.Printf("Failed to decode metrics message from ingest for room: '%s' - reason: %s\n", room.Name, err)
+			return
+		}
+		// TODO: Handle metrics message sending to metrics server
+	})
+
+	room.WebSocket.RegisterOnClose(func() {
+		// If PeerConnection is not open or does not exist, delete room
+		if (room.PeerConnection != nil && room.PeerConnection.ConnectionState() != webrtc.PeerConnectionStateConnected) ||
+			room.PeerConnection == nil {
+			DeleteRoomIfEmpty(room)
+		}
+	})
+
+	log.Printf("Room: '%s' is ready, sending an OK\n", room.Name)
+	if err = room.WebSocket.SendAnswerMessage(AnswerOK); err != nil {
+		log.Printf("Failed to send OK answer for room: '%s' - reason: %s\n", room.Name, err)
 	}
 }
 

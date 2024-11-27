@@ -3,11 +3,12 @@ use serde_json::from_str;
 use std::collections::{HashSet, VecDeque};
 use std::error::Error;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{oneshot, Mutex};
 use tokio::sync::{mpsc, Notify};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
+use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::ice_transport::ice_gathering_state::RTCIceGatheringState;
@@ -18,7 +19,7 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 use webrtc::track::track_local::TrackLocalWriter;
-use crate::websocket::{decode_message_as, encode_message, NestriWebSocket, WSMessageBase, WSMessageICE, WSMessageSDP};
+use crate::websocket::{decode_message_as, encode_message, AnswerType, JoinerType, NestriWebSocket, WSMessageAnswer, WSMessageBase, WSMessageICE, WSMessageJoin, WSMessageSDP};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -102,6 +103,62 @@ impl Room {
         audio_codec: &str,
         video_codec: &str,
     ) -> Result<(), Box<dyn Error>> {
+        let (tx, rx) = oneshot::channel();
+        let tx = Arc::new(std::sync::Mutex::new(Some(tx)));
+        self.nestri_ws
+            .register_callback("answer",  {
+                let tx = tx.clone();
+                move |data| {
+                    if let Ok(answer) = decode_message_as::<WSMessageAnswer>(data) {
+                        log::info!("Received answer: {:?}", answer);
+                        match answer.answer_type {
+                            AnswerType::AnswerOffline => {
+                                log::warn!("Room is offline, we shouldn't be receiving this");
+                            }
+                            AnswerType::AnswerInUse => {
+                                log::error!("Room is in use by another node!");
+                            }
+                            AnswerType::AnswerOK => {
+                                // Notify that we got an OK answer
+                                if let Some(tx) = tx.lock().unwrap().take() {
+                                    if let Err(_) = tx.send(()) {
+                                        log::error!("Failed to send OK answer signal");
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        log::error!("Failed to decode answer");
+                    }
+                }
+            })
+            .await;
+
+        // Send a request to join the room
+        let join_msg = WSMessageJoin {
+            base: WSMessageBase {
+                payload_type: "join".to_string(),
+            },
+            joiner_type: JoinerType::JoinerNode,
+        };
+        if let Ok(encoded) = encode_message(&join_msg) {
+            self.nestri_ws.send_message(encoded).await?;
+        } else {
+            log::error!("Failed to encode join message");
+            return Err("Failed to encode join message".into());
+        }
+
+        // Wait for the signal indicating that we have received an OK answer
+        match rx.await {
+            Ok(()) => {
+                log::info!("Received OK answer, proceeding...");
+            }
+            Err(_) => {
+                log::error!("Oneshot channel closed unexpectedly");
+                return Err("Unexpected error while waiting for OK answer".into());
+            }
+        }
+
         // Create a new RTCPeerConnection
         let config = self.webrtc_config.clone();
         let peer_connection = Arc::new(self.webrtc_api.new_peer_connection(config).await?);
@@ -160,10 +217,13 @@ impl Room {
         });
 
         // Create a datachannel with label 'input'
-        let data_channel = peer_connection.create_data_channel("input", None).await?;
-
-        // A shared state to track currently pressed keys
-        let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
+        let data_channel_opts = Some(RTCDataChannelInit {
+            ordered: Some(false),
+            max_retransmits: Some(0),
+            ..Default::default()
+        });
+        let data_channel
+            = peer_connection.create_data_channel("input", data_channel_opts).await?;
 
         // PeerConnection state change tracker
         let (pc_sndr, mut pc_recv) = mpsc::channel(1);
@@ -256,11 +316,16 @@ impl Room {
             }
         }).await;
 
+        // A shared state to track currently pressed keys
+        let pressed_keys = Arc::new(Mutex::new(HashSet::new()));
+        let pressed_buttons = Arc::new(Mutex::new(HashSet::new()));
+
         // Data channel message handler
         let input_notify = self.input_notify.clone();
         let input_buffer = self.input_buffer.clone();
         data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
             let pressed_keys = pressed_keys.clone();
+            let pressed_buttons = pressed_buttons.clone();
             Box::pin({
                 let input_notify = input_notify.clone();
                 let input_buffer = input_buffer.clone();
@@ -269,11 +334,12 @@ impl Room {
                         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
                         if let Ok(input_msg) = from_str::<InputMessage>(&msg_str) {
                             if let Some(event) =
-                                handle_input_message(input_msg, &pressed_keys).await
+                                handle_input_message(input_msg, &pressed_keys, &pressed_buttons).await
                             {
                                 let mut input_buf = input_buffer.lock().await;
                                 // Remove oldest if buffer is full
                                 if input_buf.len() >= input_buf.capacity() {
+                                    log::info!("Input buffer full, removing oldest event");
                                     input_buf.pop_front();
                                 }
                                 input_buf.push_back(event);
@@ -396,6 +462,7 @@ impl Room {
 async fn handle_input_message(
     input_msg: InputMessage,
     pressed_keys: &Arc<Mutex<HashSet<i32>>>,
+    pressed_buttons: &Arc<Mutex<HashSet<i32>>>,
 ) -> Option<gst::Event> {
     match input_msg {
         InputMessage::MouseMove { x, y } => {
@@ -450,6 +517,13 @@ async fn handle_input_message(
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseDown { key } => {
+            let mut buttons = pressed_buttons.lock().await;
+            // If the button is already pressed, return to prevent button lockup
+            if buttons.contains(&key) {
+                return None;
+            }
+            buttons.insert(key);
+
             let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", true)
@@ -458,6 +532,10 @@ async fn handle_input_message(
             Some(gst::event::CustomUpstream::new(structure))
         }
         InputMessage::MouseUp { key } => {
+            let mut buttons = pressed_buttons.lock().await;
+            // Remove the button from the pressed state when released
+            buttons.remove(&key);
+
             let structure = gst::Structure::builder("MouseButton")
                 .field("button", key as u32)
                 .field("pressed", false)
