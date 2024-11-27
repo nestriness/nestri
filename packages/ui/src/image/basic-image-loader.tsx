@@ -86,7 +86,7 @@ export const BasicImageLoader = component$((props: ImageLoaderProps) => {
         draggable={false}
         alt={props.alt}
         width={props.width}
-        crossOrigin='anonymous'
+        // crossOrigin='anonymous'
         height={props.height}
         ref={imgRef}
         class={{
