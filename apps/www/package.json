@@ -16,6 +16,7 @@
     "build.client": "vite build",
     "build.preview": "vite build --ssr src/entry.preview.tsx",
     "build.server": "vite build -c adapters/cloudflare-pages/vite.config.ts",
+    "deno:build.server": "vite build -c adapters/deno/vite.config.ts",
     "build.types": "tsc --incremental --noEmit",
     "deploy": "wrangler pages deploy ./dist",
     "dev": "vite --mode ssr",
@@ -55,5 +56,9 @@
     "vite": "5.3.5",
     "vite-tsconfig-paths": "^4.2.1",
     "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@types/pako": "^2.0.3",
+    "pako": "^2.1.0"
   }
 }

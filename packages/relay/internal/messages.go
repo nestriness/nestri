@@ -14,8 +14,7 @@ type OnMessageCallback func(data []byte)
 
 // MessageBase is the base type for WS/DC messages.
 type MessageBase struct {
-	PayloadType    string         `json:"payload_type"`
-	LatencyTracker LatencyTracker `json:"latency_tracker,omitempty"`
+	PayloadType string `json:"payload_type"`
 }
 
 // MessageInput represents an input message.

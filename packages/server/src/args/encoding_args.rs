@@ -8,14 +8,14 @@ pub struct RateControlCQP {
 #[derive(Debug, PartialEq, Eq)]
 pub struct RateControlVBR {
     /// Target bitrate in kbps
-    pub target_bitrate: u32,
+    pub target_bitrate: i32,
     /// Maximum bitrate in kbps
-    pub max_bitrate: u32,
+    pub max_bitrate: i32,
 }
 #[derive(Debug, PartialEq, Eq)]
 pub struct RateControlCBR {
     /// Target bitrate in kbps
-    pub target_bitrate: u32,
+    pub target_bitrate: i32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -77,11 +77,11 @@ impl VideoEncodingOptions {
                         quality: matches.get_one::<String>("video-cqp").unwrap().parse::<u32>().unwrap(),
                     }),
                     "cbr" => RateControl::CBR(RateControlCBR {
-                        target_bitrate: matches.get_one::<String>("video-bitrate").unwrap().parse::<u32>().unwrap(),
+                        target_bitrate: matches.get_one::<String>("video-bitrate").unwrap().parse::<i32>().unwrap(),
                     }),
                     "vbr" => RateControl::VBR(RateControlVBR {
-                        target_bitrate: matches.get_one::<String>("video-bitrate").unwrap().parse::<u32>().unwrap(),
-                        max_bitrate: matches.get_one::<String>("video-bitrate-max").unwrap().parse::<u32>().unwrap(),
+                        target_bitrate: matches.get_one::<String>("video-bitrate").unwrap().parse::<i32>().unwrap(),
+                        max_bitrate: matches.get_one::<String>("video-bitrate-max").unwrap().parse::<i32>().unwrap(),
                     }),
                     _ => panic!("Invalid rate control method for video"),
                 },
@@ -135,11 +135,11 @@ impl AudioEncodingOptions {
                     .clone(),
                 rate_control: match matches.get_one::<String>("audio-rate-control").unwrap().as_str() {
                     "cbr" => RateControl::CBR(RateControlCBR {
-                        target_bitrate: matches.get_one::<String>("audio-bitrate").unwrap().parse::<u32>().unwrap(),
+                        target_bitrate: matches.get_one::<String>("audio-bitrate").unwrap().parse::<i32>().unwrap(),
                     }),
                     "vbr" => RateControl::VBR(RateControlVBR {
-                        target_bitrate: matches.get_one::<String>("audio-bitrate").unwrap().parse::<u32>().unwrap(),
-                        max_bitrate: matches.get_one::<String>("audio-bitrate-max").unwrap().parse::<u32>().unwrap(),
+                        target_bitrate: matches.get_one::<String>("audio-bitrate").unwrap().parse::<i32>().unwrap(),
+                        max_bitrate: matches.get_one::<String>("audio-bitrate-max").unwrap().parse::<i32>().unwrap(),
                     }),
                     _ => panic!("Invalid rate control method for audio"),
                 },
