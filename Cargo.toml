@@ -13,3 +13,4 @@ rust-version = "1.80"
 
 [workspace.dependencies]
 gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs", version = "0.24.0" }
+gst-app = { package = "gstreamer-app", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs", version = "0.24.0" }

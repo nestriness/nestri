@@ -1,14 +1,18 @@
 mod args;
 mod enc_helper;
 mod gpu;
-
-use std::error::Error;
-use std::sync::Arc;
-use gst::Pipeline;
-use gst::prelude::*;
-use tokio::sync::{mpsc, Mutex};
-use crate::args::{encoding_args};
 mod room;
+mod websocket;
+
+use crate::args::encoding_args;
+use gst::prelude::*;
+use gst_app::AppSink;
+use std::collections::VecDeque;
+use std::error::Error;
+use std::str::FromStr;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex, Notify};
+use crate::websocket::{NestriWebSocket};
 
 // Handles gathering GPU information and selecting the most suitable GPU
 fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
@@ -79,7 +83,8 @@ fn handle_encoder_video(args: &args::Args) -> Option<enc_helper::VideoEncoderInf
     // Pick most suitable video encoder based on given arguments
     let video_encoder;
     if !args.encoding.video.encoder.is_empty() {
-        video_encoder = enc_helper::get_encoder_by_name(&video_encoders, &args.encoding.video.encoder);
+        video_encoder =
+            enc_helper::get_encoder_by_name(&video_encoders, &args.encoding.video.encoder);
     } else {
         video_encoder = enc_helper::get_best_compatible_encoder(
             &video_encoders,
@@ -98,7 +103,10 @@ fn handle_encoder_video(args: &args::Args) -> Option<enc_helper::VideoEncoderInf
 }
 
 // Handles picking preferred settings for video encoder
-fn handle_encoder_video_settings(args: &args::Args, video_encoder: &enc_helper::VideoEncoderInfo) -> enc_helper::VideoEncoderInfo {
+fn handle_encoder_video_settings(
+    args: &args::Args,
+    video_encoder: &enc_helper::VideoEncoderInfo,
+) -> enc_helper::VideoEncoderInfo {
     let mut optimized_encoder = enc_helper::encoder_low_latency_params(&video_encoder);
     // Handle rate-control method
     match &args.encoding.video.rate_control {
@@ -106,18 +114,26 @@ fn handle_encoder_video_settings(args: &args::Args, video_encoder: &enc_helper::
             optimized_encoder = enc_helper::encoder_cqp_params(&optimized_encoder, cqp.quality);
         }
         encoding_args::RateControl::VBR(vbr) => {
-            optimized_encoder = enc_helper::encoder_vbr_params(&optimized_encoder, vbr.target_bitrate, vbr.max_bitrate);
+            optimized_encoder = enc_helper::encoder_vbr_params(
+                &optimized_encoder,
+                vbr.target_bitrate as u32,
+                vbr.max_bitrate as u32,
+            );
         }
         encoding_args::RateControl::CBR(cbr) => {
-            optimized_encoder = enc_helper::encoder_cbr_params(&optimized_encoder, cbr.target_bitrate);
+            optimized_encoder =
+                enc_helper::encoder_cbr_params(&optimized_encoder, cbr.target_bitrate as u32);
         }
     }
-    println!("Selected video encoder settings: '{}'", optimized_encoder.get_parameters_string());
+    println!(
+        "Selected video encoder settings: '{}'",
+        optimized_encoder.get_parameters_string()
+    );
     optimized_encoder
 }
 
 // Handles picking audio encoder
-// TODO: Expand enc_helper with audio types, for now just AAC or opus
+// TODO: Expand enc_helper with audio types, for now just opus
 fn handle_encoder_audio(args: &args::Args) -> String {
     let audio_encoder = if args.encoding.audio.encoder.is_empty() {
         "opusenc".to_string()
@@ -130,131 +146,315 @@ fn handle_encoder_audio(args: &args::Args) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Parse command line arguments
     let args = args::Args::new();
     if args.app.verbose {
         args.debug_print();
     }
 
-    rustls::crypto::ring::default_provider().install_default()
+    rustls::crypto::ring::default_provider()
+        .install_default()
         .expect("Failed to install ring crypto provider");
 
+    // Begin connection attempt to the relay WebSocket endpoint
+    // replace any http/https with ws/wss
+    let replaced_relay_url
+        = args.app.relay_url.replace("http://", "ws://").replace("https://", "wss://");
+    let ws_url = format!(
+        "{}/api/ws/{}",
+        replaced_relay_url,
+        args.app.room,
+    );
+
+    // Setup our websocket
+    let nestri_ws = Arc::new(NestriWebSocket::new(ws_url).await?);
+    log::set_max_level(log::LevelFilter::Info);
+    log::set_boxed_logger(Box::new(nestri_ws.clone())).unwrap();
+
     let _ = gst::init();
-    let _ = gstmoq::plugin_register_static();
 
     // Handle GPU selection
     let gpu = handle_gpus(&args);
     if gpu.is_none() {
-        println!("Failed to find a suitable GPU. Exiting..");
-        return Ok(());
+        log::error!("Failed to find a suitable GPU. Exiting..");
+        return Err("Failed to find a suitable GPU. Exiting..".into());
     }
     let gpu = gpu.unwrap();
 
     // Handle video encoder selection
-    let video_encoder = handle_encoder_video(&args);
-    if video_encoder.is_none() {
-        println!("Failed to find a suitable video encoder. Exiting..");
-        return Ok(());
+    let video_encoder_info = handle_encoder_video(&args);
+    if video_encoder_info.is_none() {
+        log::error!("Failed to find a suitable video encoder. Exiting..");
+        return Err("Failed to find a suitable video encoder. Exiting..".into());
     }
-    let mut video_encoder = video_encoder.unwrap();
+    let mut video_encoder_info = video_encoder_info.unwrap();
     // Handle video encoder settings
-    video_encoder = handle_encoder_video_settings(&args, &video_encoder);
+    video_encoder_info = handle_encoder_video_settings(&args, &video_encoder_info);
 
     // Handle audio encoder selection
     let audio_encoder = handle_encoder_audio(&args);
 
+    /*** ROOM SETUP ***/
+    // Set up buffers for pipeline and room communication
+    let input_notify = Arc::new(Notify::new());
+    let input_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
+    let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
+    let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
 
-    // Get output option
-    let output_pipeline = format!(
-        "
-        ! whipclientsink name=pipend signaller::whip-endpoint=\"{}/api/whip/{}\" congestion-control=disabled
-        ",
-        args.app.relay_url, args.app.room
-    );
+    let room = Arc::new(Mutex::new(
+        room::Room::new(
+            nestri_ws.clone(),
+            input_notify.clone(),
+            input_buffer.clone(),
+            audio_buffer.clone(),
+            video_buffer.clone(),
+        )
+        .await?,
+    ));
 
-    // Debug-latency
-    let mut debug_feed = "";
-    if args.app.debug_latency {
-        debug_feed = "! timeoverlay halignment=right valignment=bottom"
-    }
-
-    // Additional sink for debugging
-    let mut debug_sink = "";
-    if args.app.debug_feed {
-        debug_sink = "dfee. ! queue2 max-size-time=1000000 ! videoconvert ! ximagesink"
-    }
-
-    // Audio sub-pipeline
-    let audio_pipeline = format!("
-        {}
-        ! queue2 max-size-time=1000000 ! audioconvert \
-        ! {} bitrate={}000 \
-        ! pipend.",
-        if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PulseAudio {
-            "pulsesrc"
-        } else if args.encoding.audio.capture_method == encoding_args::AudioCaptureMethod::PipeWire {
-            "pipewiresrc"
-        } else {
-            "alsasrc"
-        },
-        audio_encoder,
-        match &args.encoding.audio.rate_control {
-            encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate,
-            encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate,
-            _ => 128,
+    /*** PIPELINE CREATION ***/
+    /* Audio */
+    // Audio Source Element
+    let audio_source = match args.encoding.audio.capture_method {
+        encoding_args::AudioCaptureMethod::PulseAudio => {
+            gst::ElementFactory::make("pulsesrc").build()?
         }
-    ).to_string();
+        encoding_args::AudioCaptureMethod::PipeWire => {
+            gst::ElementFactory::make("pipewiresrc").build()?
+        }
+        _ => gst::ElementFactory::make("alsasrc").build()?,
+    };
 
-    // Construct the pipeline string
-    let pipeline_str = format!(
-        "
-        waylanddisplaysrc render-node={} \
-        ! video/x-raw,width={},height={},framerate={}/1,format=RGBx \
-        {debug_feed} ! tee name=dfee \
-        ! queue2 max-size-time=1000000 ! videoconvert \
-        ! {} {} \
-        {output_pipeline} \
-        {audio_pipeline} \
-        {debug_sink}
-        ",
-        gpu.render_path(),
-        args.app.resolution.0,
-        args.app.resolution.1,
-        args.app.framerate,
-        video_encoder.name,
-        video_encoder.get_parameters_string(),
+    // Audio Converter Element
+    let audio_converter = gst::ElementFactory::make("audioconvert").build()?;
+
+    // Audio Encoder Element
+    let audio_encoder = gst::ElementFactory::make(audio_encoder.as_str()).build()?;
+    audio_encoder.set_property(
+        "bitrate",
+        &match &args.encoding.audio.rate_control {
+            encoding_args::RateControl::CBR(cbr) => cbr.target_bitrate * 1000i32,
+            encoding_args::RateControl::VBR(vbr) => vbr.target_bitrate * 1000i32,
+            _ => 128i32,
+        },
     );
 
-    // If verbose, print out the pipeline string
-    if args.app.verbose {
-        println!("Constructed pipeline string: {}", pipeline_str);
+    // Audio RTP Payloader Element
+    let audio_rtp_payloader = gst::ElementFactory::make("rtpopuspay").build()?;
+
+    /* Video */
+    // Video Source Element
+    let video_source = gst::ElementFactory::make("waylanddisplaysrc").build()?;
+    video_source.set_property("render-node", &gpu.render_path());
+
+    // Caps Filter Element (resolution, fps)
+    let caps_filter = gst::ElementFactory::make("capsfilter").build()?;
+    let caps = gst::Caps::from_str(&format!(
+        "video/x-raw,width={},height={},framerate={}/1,format=RGBx",
+        args.app.resolution.0, args.app.resolution.1, args.app.framerate
+    ))?;
+    caps_filter.set_property("caps", &caps);
+
+    // Video Tee Element
+    let video_tee = gst::ElementFactory::make("tee").build()?;
+
+    // Video Converter Element
+    let video_converter = gst::ElementFactory::make("videoconvert").build()?;
+
+    // Video Encoder Element
+    let video_encoder = gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
+    video_encoder_info.apply_parameters(&video_encoder, &args.app.verbose);
+
+    // Required for AV1 - av1parse
+    let av1_parse = gst::ElementFactory::make("av1parse").build()?;
+
+    // Video RTP Payloader Element
+    let video_rtp_payloader = gst::ElementFactory::make(
+        format!("rtp{}pay", video_encoder_info.codec.to_gst_str()).as_str(),
+    )
+    .build()?;
+
+    /* Output */
+    // Audio AppSink Element
+    let audio_appsink = gst::ElementFactory::make("appsink").build()?;
+    audio_appsink.set_property("emit-signals", &true);
+    // Handle new-sample samples
+    let audio_sink_buf = audio_buffer.clone();
+    let audio_appsink_clone = audio_appsink.clone();
+    tokio::spawn(async move {
+        let appsink = audio_appsink_clone.downcast_ref::<AppSink>().unwrap();
+        loop {
+            if appsink.is_eos() {
+                continue
+            }
+            if let Ok(sample) = appsink.pull_sample() {
+                let buffer = sample.buffer().unwrap();
+                let buffer = buffer.map_readable().unwrap();
+                let data = buffer.as_slice();
+                let mut audio_sink_buf = audio_sink_buf.lock().await;
+                // If at capacity, remove oldest element
+                if audio_sink_buf.len() >= audio_sink_buf.capacity() {
+                    audio_sink_buf.pop_front();
+                }
+                audio_sink_buf.push_back(data.to_vec());
+            } else {
+                log::error!("Audio AppSink error");
+                break
+            }
+        }
+    });
+
+    // Video AppSink Element
+    let video_appsink = gst::ElementFactory::make("appsink").build()?;
+    video_appsink.set_property("emit-signals", &true);
+    // Handle new-sample samples
+    let video_sink_buf = video_buffer.clone();
+    let video_appsink_clone = video_appsink.clone();
+    tokio::spawn(async move {
+        let appsink = video_appsink_clone.downcast_ref::<AppSink>().unwrap();
+        loop {
+            if appsink.is_eos() {
+                continue
+            }
+            if let Ok(sample) = appsink.pull_sample() {
+                let buffer = sample.buffer().unwrap();
+                let buffer = buffer.map_readable().unwrap();
+                let data = buffer.as_slice();
+                let mut video_sink_buf = video_sink_buf.lock().await;
+                // If at capacity, remove oldest element
+                if video_sink_buf.len() >= video_sink_buf.capacity() {
+                    video_sink_buf.pop_front();
+                }
+                video_sink_buf.push_back(data.to_vec());
+            } else {
+                log::error!("Video AppSink error");
+                break
+            }
+        }
+    });
+    
+    /* Debug */
+    // Debug Feed Element
+    let debug_latency = gst::ElementFactory::make("timeoverlay").build()?;
+    debug_latency.set_property_from_str("halignment", &"right");
+    debug_latency.set_property_from_str("valignment", &"bottom");
+
+    // Debug Sink Element
+    let debug_sink = gst::ElementFactory::make("ximagesink").build()?;
+
+    // Debug video converter
+    let debug_video_converter = gst::ElementFactory::make("videoconvert").build()?;
+
+    // Queues with max 2ms latency
+    let debug_queue = gst::ElementFactory::make("queue2").build()?;
+    debug_queue.set_property("max-size-time", &2000000u64);
+    let main_video_queue = gst::ElementFactory::make("queue2").build()?;
+    main_video_queue.set_property("max-size-time", &2000000u64);
+    let main_audio_queue = gst::ElementFactory::make("queue2").build()?;
+    main_audio_queue.set_property("max-size-time", &2000000u64);
+
+    // Create the pipeline
+    let pipeline = gst::Pipeline::new();
+
+    // Add elements to the pipeline
+    pipeline.add_many(&[
+        &video_appsink.upcast_ref(),
+        &video_rtp_payloader,
+        &video_encoder,
+        &video_converter,
+        &video_tee,
+        &caps_filter,
+        &video_source,
+        &audio_appsink.upcast_ref(),
+        &audio_rtp_payloader,
+        &audio_encoder,
+        &audio_converter,
+        &audio_source,
+        &main_video_queue,
+        &main_audio_queue,
+    ])?;
+
+    // Add debug elements if debug is enabled
+    if args.app.debug_feed {
+        pipeline.add_many(&[&debug_sink, &debug_queue, &debug_video_converter])?;
     }
 
-    // Set up a channel for communication with the pipeline
-    let (event_tx, event_rx) = mpsc::channel(50);
-    let event_rx = Arc::new(Mutex::new(event_rx));
+    // Add debug latency element if debug latency is enabled
+    if args.app.debug_latency {
+        pipeline.add(&debug_latency)?;
+    }
 
-    // Get a room
-    let room_url = format!(
-        "
-        {}/api/whep/{}
-        ",
-        args.app.relay_url, args.app.room
-    );
+    // Add AV1 parse element if AV1 is selected
+    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
+        pipeline.add(&av1_parse)?;
+    }
 
-    let (pipe_shared_state_tx, pipe_shared_state_rx) = tokio::sync::watch::channel(false);
+    // Link main audio branch
+    gst::Element::link_many(&[
+        &audio_source,
+        &audio_converter,
+        &audio_encoder,
+        &audio_rtp_payloader,
+        &main_audio_queue,
+        &audio_appsink.upcast_ref(),
+    ])?;
+
+    // If debug latency, add time overlay before tee
+    if args.app.debug_latency {
+        gst::Element::link_many(&[&video_source, &caps_filter, &debug_latency, &video_tee])?;
+    } else {
+        gst::Element::link_many(&[&video_source, &caps_filter, &video_tee])?;
+    }
+
+    // Link debug branch if debug is enabled
+    if args.app.debug_feed {
+        gst::Element::link_many(&[
+            &video_tee,
+            &debug_video_converter,
+            &debug_queue,
+            &debug_sink,
+        ])?;
+    }
+
+    // Link main video branch, if AV1, add av1_parse
+    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
+        gst::Element::link_many(&[
+            &video_tee,
+            &video_converter,
+            &video_encoder,
+            &av1_parse,
+            &video_rtp_payloader,
+            &main_video_queue,
+            &video_appsink.upcast_ref(),
+        ])?;
+    } else {
+        gst::Element::link_many(&[
+            &video_tee,
+            &video_converter,
+            &video_encoder,
+            &video_rtp_payloader,
+            &main_video_queue,
+            &video_appsink.upcast_ref(),
+        ])?;
+    }
+
+    // Wrap the pipeline in Arc<Mutex> to safely share it
+    let pipeline = Arc::new(Mutex::new(pipeline));
 
     // Run both pipeline and websocket tasks concurrently
     let result = tokio::try_join!(
-        run_pipeline(pipeline_str, event_rx, pipe_shared_state_tx),
-        run_room(room_url, event_tx, pipe_shared_state_rx),
+        run_room(room.clone(),
+            "audio/opus",
+            video_encoder_info.codec.to_mime_str(),
+        ),
+        run_pipeline(pipeline.clone(), input_notify.clone(), input_buffer.clone())
     );
 
     match result {
-        Ok(_) => println!("Both tasks completed successfully."),
+        Ok(_) => log::info!("All tasks completed successfully"),
         Err(e) => {
-            eprintln!("One of the tasks failed: {} - exiting", e);
-            // Exit immediately
-            std::process::exit(1);
+            log::error!("Error occurred in one of the tasks: {}", e);
+            return Err("Error occurred in one of the tasks".into());
         }
     }
 
@@ -262,125 +462,82 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn run_room(
-    relay_url: String,
-    event_tx: mpsc::Sender<gst::Event>,
-    mut pipe_state: tokio::sync::watch::Receiver<bool>,
+    room: Arc<Mutex<room::Room>>,
+    audio_codec: &str,
+    video_codec: &str,
 ) -> Result<(), Box<dyn Error>> {
     // Run loop, with recovery on error
     loop {
-        // Wait until the pipeline is running
-        while !*pipe_state.borrow() {
-            pipe_state.changed().await?;
-        }
-
-        let relay_url = relay_url.clone();
-        let event_tx = event_tx.clone();
-        let mut room = room::Room::new(relay_url, event_tx).await?;
-
-        tokio::select! {
-            res = room.run() => {
-                if let Err(e) = res {
-                    eprintln!("Room task failed: {} - restarting connection", e);
-                    // Wait a bit before retrying
-                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                    continue;
-                }
-                break Err("Room task ended unexpectedly".into());
-            }
-            _ = pipe_state.changed() => {
-                // Restart room if pipeline restarts
-                eprintln!("Pipeline state changed, restarting room.");
-                continue;
-            }
+        let mut room = room.lock().await;
+        if let Err(e) = room.run(audio_codec, video_codec).await {
+            log::error!("Room error: {}", e);
+            // Sleep for a while before retrying
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     }
 }
 
 async fn run_pipeline(
-    pipeline_str: String,
-    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
-    pipe_state: tokio::sync::watch::Sender<bool>,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
+    input_notify: Arc<Notify>,
+    input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
+    // Set the pipeline state to Playing when starting the pipeline
+    if let Err(e) = pipeline.lock().await.set_state(gst::State::Playing) {
+        return Err(format!("Failed to set pipeline state to Playing: {}", e).into());
+    }
+
+    // Spawn the error handling task
+    let (error_tx, mut error_rx) = mpsc::channel(1);
+    let pipeline_clone = pipeline.clone();
+    tokio::spawn(async move {
+        if let Err(e) = handle_pipeline_errors(pipeline_clone, error_tx).await {
+            log::error!("Pipeline error handler error: {}", e);
+        }
+    });
+
+    // Wait for the event task to complete or an error to occur
     loop {
-        // Create the pipeline
-        let pipeline = gst::parse::launch(&pipeline_str)?
-            .downcast::<Pipeline>()
-            .map_err(|_| "Failed to downcast pipeline")?;
-        pipeline.set_state(gst::State::Playing)?;
-
-        // Signal the pipeline is rolling after a delay
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        pipe_state.send(true)?;
-
-        let pipeline = Arc::new(Mutex::new(pipeline));
-
-        // Spawn the event handling task
-        let (error_tx, mut error_rx) = mpsc::channel(1);
-        let pipeline_clone = pipeline.clone();
-        tokio::spawn(async move {
-            if let Err(e) = handle_pipeline_errors(pipeline_clone, error_tx).await {
-                eprintln!("Error handling pipeline errors: {}", e);
-            }
-        });
-
-        // Spawn the pipeline event task
-        let pipeline_event_task = spawn_pipeline_event_task(pipeline.clone(), event_rx.clone());
-
-        // Wait for an error or the event task to complete
         tokio::select! {
-            res = pipeline_event_task => {
-                if let Err(e) = res {
-                    eprintln!("Pipeline event task failed: {}", e);
+            _ = input_notify.notified() => {
+                let mut buf =  input_buffer.lock().await;
+                while let Some(event) = buf.pop_front() {
+                    let _ = pipeline.lock().await.send_event(event); // Ignore success value
                 }
-                break Err("Pipeline event task ended unexpectedly".into());
             }
             Some(_) = error_rx.recv() => {
-                eprintln!("Pipeline error occurred. Restarting...");
-                // Wait a bit before retrying
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                continue;
+                log::error!("Error occurred in pipeline");
+                break;
             }
         }
     }
+
+    Ok(())
 }
 
 async fn handle_pipeline_errors(
-    pipeline: Arc<Mutex<Pipeline>>,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
     error_tx: mpsc::Sender<()>,
 ) -> Result<(), Box<dyn Error>> {
-    let bus = pipeline.lock().await.bus().expect("Pipeline without bus. Shouldn't happen!");
+    let bus = pipeline
+        .lock()
+        .await
+        .bus()
+        .expect("Pipeline without bus. Shouldn't happen!");
     for msg in bus.iter_timed(gst::ClockTime::NONE) {
         use gst::MessageView;
         match msg.view() {
             MessageView::Eos(..) => {
-                println!("Pipeline reached EOS.");
+                log::info!("End of stream reached in pipeline");
                 break;
             }
             MessageView::Error(err) => {
                 let _ = pipeline.lock().await.set_state(gst::State::Null);
-                eprintln!(
-                    "Pipeline error: {} ({})",
-                    err.error(),
-                    err.debug().unwrap_or_else(|| "".into())
-                );
+                log::error!("Error in pipeline: {:?}", err);
                 let _ = error_tx.send(()).await;
                 break;
             }
             _ => (),
-        }
-    }
-    Ok(())
-}
-
-async fn spawn_pipeline_event_task(
-    pipeline: Arc<Mutex<Pipeline>>,
-    event_rx: Arc<Mutex<mpsc::Receiver<gst::Event>>>,
-) -> Result<(), Box<dyn Error>> {
-    while let Some(event) = event_rx.lock().await.recv().await {
-        let pipeline = pipeline.lock().await;
-        if !pipeline.send_event(event) {
-            // No need to spam this message, it's normal for some events to be dropped
-            //eprintln!("Failed to send event to the pipeline.");
         }
     }
     Ok(())

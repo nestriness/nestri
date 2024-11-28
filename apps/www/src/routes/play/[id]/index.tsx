@@ -1,117 +1,147 @@
-import { useLocation } from "@builder.io/qwik-city";
+import {useLocation} from "@builder.io/qwik-city";
 import {Keyboard, Mouse, WebRTCStream} from "@nestri/input"
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import {component$, useSignal, useVisibleTask$} from "@builder.io/qwik";
 
 export default component$(() => {
-    const id = useLocation().params.id;
-    const canvas = useSignal<HTMLCanvasElement>();
+  const id = useLocation().params.id;
+  const canvas = useSignal<HTMLCanvasElement>();
 
-    useVisibleTask$(({ track }) => {
-        track(() => canvas.value);
+  useVisibleTask$(({track}) => {
+    track(() => canvas.value);
 
-        if (!canvas.value) return; // Ensure canvas is available
+    if (!canvas.value) return; // Ensure canvas is available
 
-        // Create video element and make it output to canvas (TODO: improve this)
-        let video = document.getElementById("webrtc-video-player");
-        if (!video) {
-            video = document.createElement("video");
-            video.id = "stream-video-player";
-            video.style.visibility = "hidden";
-            const webrtc = new WebRTCStream("https://nestri-relay.brumbas.se"); // or http://localhost:8088
-            webrtc.connect(id).then(() => {
-                const mediaStream = webrtc.getMediaStream();
-                console.log("Setting mediastream");
-                if (video && mediaStream) {
-                    (video as HTMLVideoElement).srcObject = mediaStream;
-                    const playbtn = document.createElement("button");
-                    playbtn.style.position = "absolute";
-                    playbtn.style.left = "50%";
-                    playbtn.style.top = "50%";
-                    playbtn.style.transform = "translateX(-50%) translateY(-50%)";
-                    playbtn.style.width = "12rem";
-                    playbtn.style.height = "6rem";
-                    playbtn.style.borderRadius = "1rem";
-                    playbtn.style.backgroundColor = "rgb(175, 50, 50)";
-                    playbtn.style.color = "black";
-                    playbtn.style.fontSize = "1.5em";
-                    playbtn.textContent = "< Start >";
+    // Create video element and make it output to canvas (TODO: improve this)
+    let video = document.getElementById("webrtc-video-player");
+    if (!video) {
+      video = document.createElement("video");
+      video.id = "stream-video-player";
+      video.style.visibility = "hidden";
+      const webrtc = new WebRTCStream("http://localhost:8088", id, (mediaStream) => {
+        if (video && mediaStream && (video as HTMLVideoElement).srcObject === null) {
+          console.log("Setting mediastream");
+          (video as HTMLVideoElement).srcObject = mediaStream;
 
-                    playbtn.onclick = () => {
-                        playbtn.remove();
-                        (video as HTMLVideoElement).play().then(() => {
-                            if (canvas.value) {
-                                canvas.value.width = (video as HTMLVideoElement).videoWidth;
-                                canvas.value.height = (video as HTMLVideoElement).videoHeight;
+          // @ts-ignore
+          window.hasstream = true;
+          // @ts-ignore
+          window.roomOfflineElement?.remove();
 
-                                const ctx = canvas.value.getContext("2d");
-                                const renderer = () => {
-                                    if (ctx) {
-                                        ctx.drawImage((video as HTMLVideoElement), 0, 0);
-                                        requestAnimationFrame(renderer);
-                                    }
-                                }
-                                requestAnimationFrame(renderer);
-                            }
-                        });
+          const playbtn = document.createElement("button");
+          playbtn.style.position = "absolute";
+          playbtn.style.left = "50%";
+          playbtn.style.top = "50%";
+          playbtn.style.transform = "translateX(-50%) translateY(-50%)";
+          playbtn.style.width = "12rem";
+          playbtn.style.height = "6rem";
+          playbtn.style.borderRadius = "1rem";
+          playbtn.style.backgroundColor = "rgb(175, 50, 50)";
+          playbtn.style.color = "black";
+          playbtn.style.fontSize = "1.5em";
+          playbtn.textContent = "< Start >";
 
-                        document.addEventListener("pointerlockchange", (e) => {
-                            if (!canvas.value) return; // Ensure canvas is available
-                            // @ts-ignore
-                            if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
-                                // @ts-ignore
-                                window.nestrimouse = new Mouse({canvas: canvas.value, webrtc}, false); //< TODO: Make absolute mode toggleable, for now feels better?
-                                // @ts-ignore
-                                window.nestrikeyboard = new Keyboard({canvas: canvas.value, webrtc});
-                                // @ts-ignore
-                            } else if (!document.pointerLockElement && window.nestrimouse && window.nestrikeyboard) {
-                                // @ts-ignore
-                                window.nestrimouse.dispose();
-                                // @ts-ignore
-                                window.nestrimouse = undefined;
-                                // @ts-ignore
-                                window.nestrikeyboard.dispose();
-                                // @ts-ignore
-                                window.nestrikeyboard = undefined;
-                            }
-                        });
-                    };
+          playbtn.onclick = () => {
+            playbtn.remove();
+            (video as HTMLVideoElement).play().then(() => {
+              if (canvas.value) {
+                canvas.value.width = (video as HTMLVideoElement).videoWidth;
+                canvas.value.height = (video as HTMLVideoElement).videoHeight;
 
-                    document.body.append(playbtn);
+                const ctx = canvas.value.getContext("2d");
+                const renderer = () => {
+                  // @ts-ignore
+                  if (ctx && window.hasstream) {
+                    ctx.drawImage((video as HTMLVideoElement), 0, 0);
+                    (video as HTMLVideoElement).requestVideoFrameCallback(renderer);
+                  }
                 }
+                (video as HTMLVideoElement).requestVideoFrameCallback(renderer);
+              }
             });
-        }
-    })
 
-    return (
-        <canvas
-            ref={canvas}
-            onClick$={async () => {
-                if (canvas.value) {
-                    // await element.value.requestFullscreen()
-                    // Do not use - unadjustedMovement: true - breaks input on linux
-                    canvas.value.requestPointerLock();
-                }
-            }}
-            //TODO: go full screen, then lock on "landscape" screen-orientation on mobile
-            class="aspect-video h-full w-full object-contain max-h-screen"/>
-    )
+            document.addEventListener("pointerlockchange", (e) => {
+              if (!canvas.value) return; // Ensure canvas is available
+              // @ts-ignore
+              if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
+                // @ts-ignore
+                window.nestrimouse = new Mouse({canvas: canvas.value, webrtc});
+                // @ts-ignore
+                window.nestrikeyboard = new Keyboard({canvas: canvas.value, webrtc});
+                // @ts-ignore
+              } else if (!document.pointerLockElement && window.nestrimouse && window.nestrikeyboard) {
+                // @ts-ignore
+                window.nestrimouse.dispose();
+                // @ts-ignore
+                window.nestrimouse = undefined;
+                // @ts-ignore
+                window.nestrikeyboard.dispose();
+                // @ts-ignore
+                window.nestrikeyboard = undefined;
+              }
+            });
+          };
+          document.body.append(playbtn);
+        } else if (mediaStream === null) {
+          console.log("MediaStream is null, Room is offline");
+          // Add a message to the screen
+          const offline = document.createElement("div");
+          offline.style.position = "absolute";
+          offline.style.left = "50%";
+          offline.style.top = "50%";
+          offline.style.transform = "translateX(-50%) translateY(-50%)";
+          offline.style.width = "auto";
+          offline.style.height = "auto";
+          offline.style.color = "lightgray";
+          offline.style.fontSize = "2em";
+          offline.textContent = "Offline";
+          document.body.append(offline);
+          // @ts-ignore
+          window.roomOfflineElement = offline;
+          // @ts-ignore
+          window.hasstream = false;
+          // Clear canvas if it has been set
+          if (canvas.value) {
+            const ctx = canvas.value.getContext("2d");
+            if (ctx) ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
+          }
+        }
+      });
+    }
+  })
+
+  return (
+    <canvas
+      ref={canvas}
+      onClick$={async () => {
+        // @ts-ignore
+        if (canvas.value && window.hasstream) {
+          // await element.value.requestFullscreen()
+          // Do not use - unadjustedMovement: true - breaks input on linux
+          canvas.value.requestPointerLock();
+        }
+      }}
+      //TODO: go full screen, then lock on "landscape" screen-orientation on mobile
+      class="aspect-video h-full w-full object-contain max-h-screen"/>
+  )
 })
 
 {/**
-    .spinningCircleInner_b6db20 {
-    transform: rotate(280deg);
+ .spinningCircleInner_b6db20 {
+ transform: rotate(280deg);
+ }
+ .inner_b6db20 {
+ position: relative;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 32px;
+ height: 32px;
+ contain: paint;
+ } */
 }
-.inner_b6db20 {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    contain: paint;
-} */}
 
-{/* <div class="loadingPopout_a8c724" role="dialog" tabindex="-1" aria-modal="true"><div class="spinner_b6db20 spinningCircle_b6db20" role="img" aria-label="Loading"><div class="spinningCircleInner_b6db20 inner_b6db20"><svg class="circular_b6db20" viewBox="25 25 50 50"><circle class="path_b6db20 path3_b6db20" cx="50" cy="50" r="20"></circle><circle class="path_b6db20 path2_b6db20" cx="50" cy="50" r="20"></circle><circle class="path_b6db20" cx="50" cy="50" r="20"></circle></svg></div></div></div> */ }
+{/* <div class="loadingPopout_a8c724" role="dialog" tabindex="-1" aria-modal="true"><div class="spinner_b6db20 spinningCircle_b6db20" role="img" aria-label="Loading"><div class="spinningCircleInner_b6db20 inner_b6db20"><svg class="circular_b6db20" viewBox="25 25 50 50"><circle class="path_b6db20 path3_b6db20" cx="50" cy="50" r="20"></circle><circle class="path_b6db20 path2_b6db20" cx="50" cy="50" r="20"></circle><circle class="path_b6db20" cx="50" cy="50" r="20"></circle></svg></div></div></div> */
+}
 // .loadingPopout_a8c724 {
 //     background-color: var(--background-secondary);
 //     display: flex;
@@ -152,8 +182,8 @@ circle[Attributes Style] {
 user agent stylesheet
 :not(svg) {
     transform-origin: 0px 0px;
-} */}
-
+} */
+}
 
 
 // .path2_b6db20 {
@@ -209,13 +239,13 @@ user agent stylesheet
 // InputMessage::MouseMove { x, y } => {
 //     let mut last_move = state.last_mouse_move.lock().unwrap();
 //     let now = Instant::now();
-    
+
 //     // Only process if coordinates are different or enough time has passed
 //     if (last_move.0 != x || last_move.1 != y) && 
 //        (now.duration_since(last_move.2).as_millis() > 16) { // ~60fps
-        
+
 //         println!("Mouse moved to x: {}, y: {}", x, y);
-        
+
 //         let structure = gst::Structure::builder("MouseMoveRelative")
 //             .field("pointer_x", x as f64)
 //             .field("pointer_y", y as f64)
@@ -223,7 +253,7 @@ user agent stylesheet
 
 //         let event = gst::event::CustomUpstream::new(structure);
 //         pipeline.send_event(event);
-        
+
 //         // Update last position and time
 //         *last_move = (x, y, now);
 //     }

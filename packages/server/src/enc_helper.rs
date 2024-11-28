@@ -1,4 +1,4 @@
-use gst::prelude::{GstObjectExt, ObjectExt};
+use gst::prelude::*;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum VideoCodec {
@@ -14,6 +14,26 @@ impl VideoCodec {
             VideoCodec::H265 => "H.265",
             VideoCodec::AV1 => "AV1",
             VideoCodec::UNKNOWN => "Unknown",
+        }
+    }
+
+    // unlike to_str, converts to gstreamer friendly codec name
+    pub fn to_gst_str(&self) -> &'static str {
+        match self {
+            VideoCodec::H264 => "h264",
+            VideoCodec::H265 => "h265",
+            VideoCodec::AV1 => "av1",
+            VideoCodec::UNKNOWN => "unknown",
+        }
+    }
+
+    // returns mime-type string
+    pub fn to_mime_str(&self) -> &'static str {
+        match self {
+            VideoCodec::H264 => "video/H264",
+            VideoCodec::H265 => "video/H265",
+            VideoCodec::AV1 => "video/AV1",
+            VideoCodec::UNKNOWN => "unknown",
         }
     }
 
@@ -113,6 +133,18 @@ impl VideoEncoderInfo {
 
     pub fn set_parameter(&mut self, key: &str, value: &str) {
         self.parameters.push((key.to_string(), value.to_string()));
+    }
+
+    pub fn apply_parameters(&self, element: &gst::Element, verbose: &bool) {
+        for (key, value) in &self.parameters {
+            if element.has_property(key) {
+                // If verbose, log property sets
+                if *verbose {
+                    println!("Setting property {} to {}", key, value);
+                }
+                element.set_property_from_str(key, value);
+            }
+        }
     }
 }
 
@@ -225,6 +257,10 @@ pub fn encoder_vbr_params(encoder: &VideoEncoderInfo, bitrate: u32, max_bitrate:
         } else if prop_name.to_lowercase().contains("bitrate")
             && prop_name.to_lowercase().contains("max")
         {
+            // If SVT-AV1, don't set max bitrate
+            if encoder_optz.name == "svtav1enc" {
+                continue;
+            }
             encoder_optz.set_parameter(prop_name, &max_bitrate.to_string());
         }
     }
@@ -360,7 +396,16 @@ pub fn encoder_low_latency_params(encoder: &VideoEncoderInfo) -> VideoEncoderInf
                 }
                 "svtav1enc" => {
                     encoder_optz.set_parameter("preset", "12");
-                    encoder_optz.set_parameter("parameters-string", "pred-struct=1:lookahead=0");
+                    // Add ":pred-struct=1" only in CBR mode
+                    let params_string = format!(
+                        "lookahead=0{}",
+                        if encoder_optz.get_parameters_string().contains("cbr") {
+                            ":pred-struct=1"
+                        } else {
+                            ""
+                        }
+                    );
+                    encoder_optz.set_parameter("parameters-string", params_string.as_str());
                 }
                 "av1enc" => {
                     encoder_optz.set_parameter("usage-profile", "realtime");
