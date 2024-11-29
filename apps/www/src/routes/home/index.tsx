@@ -13,8 +13,18 @@ export default component$(() => {
         <>
             <HomeNavBar />
             {/* <div class="bg-red-500 h-[66px] w-screen"></div> */}
-            {/* <section class="w-full" >
-                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero.jpg" height={200} width={300} class="w-full aspect-[1536/496]"/>
+            <section class="absolute flex mx-auto my-0 inset-[0_0_20%] overflow-hidden -z-[1] before:inset-0 before:absolute before:z-[1] after:absolute after:inset-0 after:[background:linear-gradient(180deg,transparent_60%,#000)] before:[background:linear-gradient(90deg,transparent_85%,#000),linear-gradient(-90deg,transparent_85%,#000)]" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1172470/library_hero_2x.jpg" height={200} width={300} class="max-w-full min-w-full max-h-full min-h-full object-cover absolute top-0 bottom-0 left-0 right-0 w-0 h-0"/>
+            </section>
+            
+            {/* <section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
+            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
+            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
+            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
             </section> */}
             {/* <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
                 <div class="flex flex-col gap-4 mx-auto max-w-2xl w-full">
@@ -92,20 +102,6 @@ export default component$(() => {
                     </li>
                 </ul>
             </section> */}
-            <nav class="w-full flex justify-center h-[100px] z-50 items-center gap-4 bg-transparent fixed -bottom-[1px] left-0 right-0">
-                {/* <nav class="flex gap-4 w-max px-4 py-2 rounded-full shadow-2xl shadow-gray-950 bg-neutral-200 text-gray-900 dark:text-gray-100 dark:bg-neutral-800 ring-gray-300 dark:ring-gray-700 ring-1">
-                    <button class="text-xl font-title">
-                        <span class="material-symbols-outlined">
-                            home
-                        </span>
-                    </button>
-                    <button class="text-xl font-title">
-                        <span class="material-symbols-outlined">
-                            home
-                        </span>
-                    </button>
-                </nav> */}
-            </nav>
         </>
     )
 })
