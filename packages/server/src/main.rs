@@ -217,6 +217,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Audio Converter Element
     let audio_converter = gst::ElementFactory::make("audioconvert").build()?;
+    
+    // Required to fix gstreamer opus issue, where quality sounds off (due to wrong sample rate)
+    let audio_capsfilter = gst::ElementFactory::make("capsfilter").build()?;
+    let audio_caps = gst::Caps::from_str("audio/x-raw,rate=48000").unwrap();
+    audio_capsfilter.set_property("caps", &audio_caps);
 
     // Audio Encoder Element
     let audio_encoder = gst::ElementFactory::make(audio_encoder.as_str()).build()?;
@@ -310,6 +315,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &audio_appsink.upcast_ref(),
         &audio_rtp_payloader,
         &audio_encoder,
+        &audio_capsfilter,
         &audio_converter,
         &audio_source,
         &main_video_queue,
@@ -335,6 +341,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     gst::Element::link_many(&[
         &audio_source,
         &audio_converter,
+        &audio_capsfilter,
         &audio_encoder,
         &audio_rtp_payloader,
         &main_audio_queue,
