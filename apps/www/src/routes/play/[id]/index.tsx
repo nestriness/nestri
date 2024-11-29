@@ -115,7 +115,7 @@ export default component$(() => {
       onClick$={async () => {
         // @ts-ignore
         if (canvas.value && window.hasstream) {
-          // await element.value.requestFullscreen()
+          await canvas.value.requestFullscreen()
           // Do not use - unadjustedMovement: true - breaks input on linux
           canvas.value.requestPointerLock();
         }
