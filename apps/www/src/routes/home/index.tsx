@@ -12,13 +12,17 @@ export default component$(() => {
     return (
         <>
             <HomeNavBar />
-            <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
+            {/* <div class="bg-red-500 h-[66px] w-screen"></div> */}
+            {/* <section class="w-full" >
+                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero.jpg" height={200} width={300} class="w-full aspect-[1536/496]"/>
+            </section> */}
+            {/* <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
                 <div class="flex flex-col gap-4 mx-auto max-w-2xl w-full">
                     <h1 class="text-5xl font-bold font-title">{getGreeting()},&nbsp;<span>Wanjohi</span></h1>
                     <p class="dark:text-gray-50/70 text-gray-950/70 text-xl">What will you play today?</p>
                 </div>
-            </section>
-            <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
+            </section> */}
+            {/* <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
                 <ul class="gap-4 relative list-none w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:dark:to-gray-900 after:to-gray-100 after:fixed after:left-0 after:-bottom-[1px] after:z-10 after:backdrop-blur-sm after:h-[100px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.100)_50%,transparent)] after:dark:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
                     <li class="col-span-full">
                         <Card
@@ -87,7 +91,7 @@ export default component$(() => {
                         />
                     </li>
                 </ul>
-            </section>
+            </section> */}
             <nav class="w-full flex justify-center h-[100px] z-50 items-center gap-4 bg-transparent fixed -bottom-[1px] left-0 right-0">
                 {/* <nav class="flex gap-4 w-max px-4 py-2 rounded-full shadow-2xl shadow-gray-950 bg-neutral-200 text-gray-900 dark:text-gray-100 dark:bg-neutral-800 ring-gray-300 dark:ring-gray-700 ring-1">
                     <button class="text-xl font-title">
