@@ -120,7 +120,7 @@ export default component$(() => {
           await canvas.value.requestFullscreen()
           if (document.fullscreenElement !== null) {
             // @ts-ignore
-            if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+            if ('keyboard' in window.navigator && 'lock' in window.navigator.keyboard) {
               const keys = [
                 "AltLeft",
                 "AltRight",
@@ -132,7 +132,7 @@ export default component$(() => {
               ];
               console.log("requesting keyboard lock");
               // @ts-ignore
-              navigator.keyboard.lock(keys).then(
+              window.navigator.keyboard.lock(keys).then(
                 () => {
                   console.log("keyboard lock success");
                 }
