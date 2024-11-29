@@ -26,6 +26,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "preview": "qwik build preview && vite preview --open",
     "serve": "wrangler pages dev ./dist --compatibility-flags=nodejs_als",
+    "deno:serve": "deno run --allow-net --allow-read --allow-env server/entry.deno.js",
     "start": "vite --open --mode ssr",
     "qwik": "qwik"
   },

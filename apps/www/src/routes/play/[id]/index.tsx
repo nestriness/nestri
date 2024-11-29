@@ -17,7 +17,7 @@ export default component$(() => {
       video = document.createElement("video");
       video.id = "stream-video-player";
       video.style.visibility = "hidden";
-      const webrtc = new WebRTCStream("http://localhost:8088", id, (mediaStream) => {
+      const webrtc = new WebRTCStream("https://relay.dathorse.com", id, (mediaStream) => {
         if (video && mediaStream && (video as HTMLVideoElement).srcObject === null) {
           console.log("Setting mediastream");
           (video as HTMLVideoElement).srcObject = mediaStream;
@@ -59,7 +59,7 @@ export default component$(() => {
               }
             });
 
-            document.addEventListener("pointerlockchange", (e) => {
+            document.addEventListener("pointerlockchange", () => {
               if (!canvas.value) return; // Ensure canvas is available
               // @ts-ignore
               if (document.pointerLockElement && !window.nestrimouse && !window.nestrikeyboard) {
@@ -116,7 +116,7 @@ export default component$(() => {
         // @ts-ignore
         if (canvas.value && window.hasstream) {
           // Do not use - unadjustedMovement: true - breaks input on linux
-          canvas.value.requestPointerLock();
+          await canvas.value.requestPointerLock();
           await canvas.value.requestFullscreen()
           if (document.fullscreenElement !== null) {
             // @ts-ignore
@@ -141,6 +141,8 @@ export default component$(() => {
                   console.log("keyboard lock failed: ", e);
                 }
               )
+            } else {
+              console.log("keyboard lock not supported, navigator is: ", window.navigator, navigator);
             }
           }
         }

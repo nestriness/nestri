@@ -43,8 +43,8 @@ export class Keyboard {
 
     if (document.pointerLockElement == this.canvas) {
       this.connected = true
-      document.addEventListener("keydown", this.keydownListener, { passive: false });
-      document.addEventListener("keyup", this.keyupListener, { passive: false });
+      document.addEventListener("keydown", this.keydownListener, {passive: false});
+      document.addEventListener("keyup", this.keyupListener, {passive: false});
     } else {
       if (this.connected) {
         this.stop()
