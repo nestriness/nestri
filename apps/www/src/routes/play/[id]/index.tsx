@@ -115,9 +115,34 @@ export default component$(() => {
       onClick$={async () => {
         // @ts-ignore
         if (canvas.value && window.hasstream) {
-          await canvas.value.requestFullscreen()
           // Do not use - unadjustedMovement: true - breaks input on linux
           canvas.value.requestPointerLock();
+          await canvas.value.requestFullscreen()
+          if (document.fullscreenElement !== null) {
+            // @ts-ignore
+            if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+              const keys = [
+                "AltLeft",
+                "AltRight",
+                "Tab",
+                "Escape",
+                "ContextMenu",
+                "MetaLeft",
+                "MetaRight"
+              ];
+              console.log("requesting keyboard lock");
+              // @ts-ignore
+              navigator.keyboard.lock(keys).then(
+                () => {
+                  console.log("keyboard lock success");
+                }
+              ).catch(
+                (e: any) => {
+                  console.log("keyboard lock failed: ", e);
+                }
+              )
+            }
+          }
         }
       }}
       //TODO: go full screen, then lock on "landscape" screen-orientation on mobile
