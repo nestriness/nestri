@@ -52,8 +52,26 @@ func participantHandler(participant *Participant, room *Room) {
 	participant.DataChannel.RegisterMessageCallback("input", func(data []byte) {
 		// Send to room if it has a DataChannel
 		if room.DataChannel != nil {
-			if err = room.DataChannel.SendBinary(data); err != nil {
-				log.Printf("Failed to send input message to room: '%s' - reason: %s\n", room.Name, err)
+			// If debug mode, decode and add our timestamp, otherwise just send to room
+			if GetFlags().Debug {
+				var inputMsg MessageInput
+				if err = DecodeMessage(data, &inputMsg); err != nil {
+					log.Printf("Failed to decode input message from participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
+					return
+				}
+				inputMsg.LatencyTracker.AddTimestamp("relay_to_node")
+				// Encode and send
+				if data, err = EncodeMessage(inputMsg); err != nil {
+					log.Printf("Failed to encode input message for participant: '%s' in room: '%s' - reason: %s\n", participant.ID, room.Name, err)
+					return
+				}
+				if err = room.DataChannel.SendBinary(data); err != nil {
+					log.Printf("Failed to send input message to room: '%s' - reason: %s\n", room.Name, err)
+				}
+			} else {
+				if err = room.DataChannel.SendBinary(data); err != nil {
+					log.Printf("Failed to send input message to room: '%s' - reason: %s\n", room.Name, err)
+				}
 			}
 		}
 	})

@@ -3,15 +3,18 @@ mod enc_helper;
 mod gpu;
 mod room;
 mod websocket;
+mod latency;
+mod messages;
 
 use crate::args::encoding_args;
 use gst::prelude::*;
 use gst_app::AppSink;
-use std::collections::VecDeque;
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex, Notify};
+use futures_util::StreamExt;
+use gst_app::app_sink::AppSinkStream;
+use tokio::sync::{Mutex};
 use crate::websocket::{NestriWebSocket};
 
 // Handles gathering GPU information and selecting the most suitable GPU
@@ -195,21 +198,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let audio_encoder = handle_encoder_audio(&args);
 
     /*** ROOM SETUP ***/
-    // Set up buffers for pipeline and room communication
-    let input_notify = Arc::new(Notify::new());
-    let input_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(50)));
-    let audio_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
-    let video_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(10)));
-
     let room = Arc::new(Mutex::new(
-        room::Room::new(
-            nestri_ws.clone(),
-            input_notify.clone(),
-            input_buffer.clone(),
-            audio_buffer.clone(),
-            video_buffer.clone(),
-        )
-        .await?,
+        room::Room::new(nestri_ws.clone()).await?,
     ));
 
     /*** PIPELINE CREATION ***/
@@ -278,61 +268,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Audio AppSink Element
     let audio_appsink = gst::ElementFactory::make("appsink").build()?;
     audio_appsink.set_property("emit-signals", &true);
-    // Handle new-sample samples
-    let audio_sink_buf = audio_buffer.clone();
-    let audio_appsink_clone = audio_appsink.clone();
-    tokio::spawn(async move {
-        let appsink = audio_appsink_clone.downcast_ref::<AppSink>().unwrap();
-        loop {
-            if appsink.is_eos() {
-                continue
-            }
-            if let Ok(sample) = appsink.pull_sample() {
-                let buffer = sample.buffer().unwrap();
-                let buffer = buffer.map_readable().unwrap();
-                let data = buffer.as_slice();
-                let mut audio_sink_buf = audio_sink_buf.lock().await;
-                // If at capacity, remove oldest element
-                if audio_sink_buf.len() >= audio_sink_buf.capacity() {
-                    audio_sink_buf.pop_front();
-                }
-                audio_sink_buf.push_back(data.to_vec());
-            } else {
-                log::error!("Audio AppSink error");
-                break
-            }
-        }
-    });
+    let audio_appsink = audio_appsink.downcast_ref::<AppSink>().unwrap();
 
     // Video AppSink Element
     let video_appsink = gst::ElementFactory::make("appsink").build()?;
     video_appsink.set_property("emit-signals", &true);
-    // Handle new-sample samples
-    let video_sink_buf = video_buffer.clone();
-    let video_appsink_clone = video_appsink.clone();
-    tokio::spawn(async move {
-        let appsink = video_appsink_clone.downcast_ref::<AppSink>().unwrap();
-        loop {
-            if appsink.is_eos() {
-                continue
-            }
-            if let Ok(sample) = appsink.pull_sample() {
-                let buffer = sample.buffer().unwrap();
-                let buffer = buffer.map_readable().unwrap();
-                let data = buffer.as_slice();
-                let mut video_sink_buf = video_sink_buf.lock().await;
-                // If at capacity, remove oldest element
-                if video_sink_buf.len() >= video_sink_buf.capacity() {
-                    video_sink_buf.pop_front();
-                }
-                video_sink_buf.push_back(data.to_vec());
-            } else {
-                log::error!("Video AppSink error");
-                break
-            }
-        }
-    });
-    
+    let video_appsink = video_appsink.downcast_ref::<AppSink>().unwrap();
+
     /* Debug */
     // Debug Feed Element
     let debug_latency = gst::ElementFactory::make("timeoverlay").build()?;
@@ -347,11 +289,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Queues with max 2ms latency
     let debug_queue = gst::ElementFactory::make("queue2").build()?;
-    debug_queue.set_property("max-size-time", &2000000u64);
+    debug_queue.set_property("max-size-time", &1000000u64);
     let main_video_queue = gst::ElementFactory::make("queue2").build()?;
-    main_video_queue.set_property("max-size-time", &2000000u64);
+    main_video_queue.set_property("max-size-time", &1000000u64);
     let main_audio_queue = gst::ElementFactory::make("queue2").build()?;
-    main_audio_queue.set_property("max-size-time", &2000000u64);
+    main_audio_queue.set_property("max-size-time", &1000000u64);
 
     // Create the pipeline
     let pipeline = gst::Pipeline::new();
@@ -438,16 +380,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ])?;
     }
 
+    // Optimize latency of pipeline
+    video_source.set_property("do-timestamp", &true);
+    audio_source.set_property("do-timestamp", &true);
+    pipeline.set_property("latency", &0u64);
+
     // Wrap the pipeline in Arc<Mutex> to safely share it
     let pipeline = Arc::new(Mutex::new(pipeline));
 
     // Run both pipeline and websocket tasks concurrently
     let result = tokio::try_join!(
-        run_room(room.clone(),
+        run_room(
+            room.clone(),
             "audio/opus",
             video_encoder_info.codec.to_mime_str(),
+            pipeline.clone(),
+            Arc::new(Mutex::new(audio_appsink.stream())),
+            Arc::new(Mutex::new(video_appsink.stream()))
         ),
-        run_pipeline(pipeline.clone(), input_notify.clone(), input_buffer.clone())
+        run_pipeline(pipeline.clone())
     );
 
     match result {
@@ -465,80 +416,99 @@ async fn run_room(
     room: Arc<Mutex<room::Room>>,
     audio_codec: &str,
     video_codec: &str,
+    pipeline: Arc<Mutex<gst::Pipeline>>,
+    audio_stream: Arc<Mutex<AppSinkStream>>,
+    video_stream: Arc<Mutex<AppSinkStream>>,
 ) -> Result<(), Box<dyn Error>> {
     // Run loop, with recovery on error
     loop {
         let mut room = room.lock().await;
-        if let Err(e) = room.run(audio_codec, video_codec).await {
-            log::error!("Room error: {}", e);
-            // Sleep for a while before retrying
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {
+                log::info!("Room interrupted via Ctrl+C");
+                return Ok(());
+            }
+            result = room.run(
+                audio_codec,
+                video_codec,
+                pipeline.clone(),
+                audio_stream.clone(),
+                video_stream.clone(),
+            ) => {
+                if let Err(e) = result {
+                    log::error!("Room error: {}", e);
+                    // Sleep for a while before retrying
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                } else {
+                    return Ok(());
+                }
+            }
         }
     }
 }
 
 async fn run_pipeline(
     pipeline: Arc<Mutex<gst::Pipeline>>,
-    input_notify: Arc<Notify>,
-    input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
 ) -> Result<(), Box<dyn Error>> {
-    // Set the pipeline state to Playing when starting the pipeline
-    if let Err(e) = pipeline.lock().await.set_state(gst::State::Playing) {
-        return Err(format!("Failed to set pipeline state to Playing: {}", e).into());
+    // Take ownership of the bus without holding the lock
+    let bus = {
+        let pipeline = pipeline.lock().await;
+        pipeline.bus().ok_or("Pipeline has no bus")?
+    };
+
+    {
+        // Temporarily lock the pipeline to change state
+        let pipeline = pipeline.lock().await;
+        if let Err(e) = pipeline.set_state(gst::State::Playing) {
+            log::error!("Failed to start pipeline: {}", e);
+            return Err("Failed to start pipeline".into());
+        }
     }
 
-    // Spawn the error handling task
-    let (error_tx, mut error_rx) = mpsc::channel(1);
-    let pipeline_clone = pipeline.clone();
-    tokio::spawn(async move {
-        if let Err(e) = handle_pipeline_errors(pipeline_clone, error_tx).await {
-            log::error!("Pipeline error handler error: {}", e);
+    // Wait for EOS or error (don't lock the pipeline indefinitely)
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            log::info!("Pipeline interrupted via Ctrl+C");
         }
-    });
+        result = listen_for_gst_messages(bus) => {
+            match result {
+                Ok(_) => log::info!("Pipeline finished with EOS"),
+                Err(err) => log::error!("Pipeline error: {}", err),
+            }
+        }
+    }
 
-    // Wait for the event task to complete or an error to occur
-    loop {
-        tokio::select! {
-            _ = input_notify.notified() => {
-                let mut buf =  input_buffer.lock().await;
-                while let Some(event) = buf.pop_front() {
-                    let _ = pipeline.lock().await.send_event(event); // Ignore success value
-                }
-            }
-            Some(_) = error_rx.recv() => {
-                log::error!("Error occurred in pipeline");
-                break;
-            }
-        }
+    {
+        // Temporarily lock the pipeline to reset state
+        let pipeline = pipeline.lock().await;
+        pipeline.set_state(gst::State::Null)?;
     }
 
     Ok(())
 }
 
-async fn handle_pipeline_errors(
-    pipeline: Arc<Mutex<gst::Pipeline>>,
-    error_tx: mpsc::Sender<()>,
-) -> Result<(), Box<dyn Error>> {
-    let bus = pipeline
-        .lock()
-        .await
-        .bus()
-        .expect("Pipeline without bus. Shouldn't happen!");
-    for msg in bus.iter_timed(gst::ClockTime::NONE) {
-        use gst::MessageView;
+async fn listen_for_gst_messages(bus: gst::Bus) -> Result<(), Box<dyn Error>> {
+    let bus_stream = bus.stream();
+
+    tokio::pin!(bus_stream);
+
+    while let Some(msg) = bus_stream.next().await {
         match msg.view() {
-            MessageView::Eos(..) => {
-                log::info!("End of stream reached in pipeline");
+            gst::MessageView::Eos(_) => {
+                log::info!("Received EOS");
                 break;
             }
-            MessageView::Error(err) => {
-                let _ = pipeline.lock().await.set_state(gst::State::Null);
-                log::error!("Error in pipeline: {:?}", err);
-                let _ = error_tx.send(()).await;
-                break;
+            gst::MessageView::Error(err) => {
+                let err_msg = format!(
+                    "Error from {:?}: {:?}",
+                    err.src().map(|s| s.path_string()),
+                    err.error()
+                );
+                return Err(err_msg.into());
             }
             _ => (),
         }
     }
+
     Ok(())
 }

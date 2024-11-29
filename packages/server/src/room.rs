@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet};
 use std::error::Error;
 use std::sync::Arc;
+use futures_util::StreamExt;
+use gst::prelude::ElementExtManual;
+use gst_app::app_sink::AppSinkStream;
 use tokio::sync::{oneshot, Mutex};
-use tokio::sync::{mpsc, Notify};
+use tokio::sync::{mpsc};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
@@ -19,19 +22,8 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 use webrtc::track::track_local::TrackLocalWriter;
-use crate::websocket::{
-    decode_message_as,
-    encode_message,
-    AnswerType,
-    JoinerType,
-    NestriWebSocket,
-    MessageAnswer,
-    MessageBase,
-    MessageICE,
-    MessageJoin,
-    MessageSDP,
-    MessageInput
-};
+use crate::messages::*;
+use crate::websocket::NestriWebSocket;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -62,19 +54,11 @@ pub struct Room {
     nestri_ws: Arc<NestriWebSocket>,
     webrtc_api: webrtc::api::API,
     webrtc_config: RTCConfiguration,
-    input_notify: Arc<Notify>,
-    input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
-    audio_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
-    video_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
 }
 
 impl Room {
     pub async fn new(
         nestri_ws: Arc<NestriWebSocket>,
-        input_notify: Arc<Notify>,
-        input_buffer: Arc<Mutex<VecDeque<gst::Event>>>,
-        audio_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
-        video_buffer: Arc<Mutex<VecDeque<Vec<u8>>>>,
     ) -> Result<Room, Box<dyn Error>> {
         // Create media engine and register default codecs
         let mut media_engine = MediaEngine::default();
@@ -103,10 +87,6 @@ impl Room {
             nestri_ws,
             webrtc_api: api,
             webrtc_config: config,
-            input_notify,
-            input_buffer,
-            audio_buffer,
-            video_buffer,
         })
     }
 
@@ -114,6 +94,9 @@ impl Room {
         &mut self,
         audio_codec: &str,
         video_codec: &str,
+        pipeline: Arc<Mutex<gst::Pipeline>>,
+        audio_sink: Arc<Mutex<AppSinkStream>>,
+        video_sink: Arc<Mutex<AppSinkStream>>,
     ) -> Result<(), Box<dyn Error>> {
         let (tx, rx) = oneshot::channel();
         let tx = Arc::new(std::sync::Mutex::new(Some(tx)));
@@ -333,14 +316,11 @@ impl Room {
         let pressed_buttons = Arc::new(Mutex::new(HashSet::new()));
 
         // Data channel message handler
-        let input_notify = self.input_notify.clone();
-        let input_buffer = self.input_buffer.clone();
         data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
+            let pipeline = pipeline.clone();
             let pressed_keys = pressed_keys.clone();
             let pressed_buttons = pressed_buttons.clone();
             Box::pin({
-                let input_notify = input_notify.clone();
-                let input_buffer = input_buffer.clone();
                 async move {
                     // We don't care about string messages for now
                     if !msg.is_string {
@@ -352,14 +332,7 @@ impl Room {
                                     if let Some(event) =
                                         handle_input_message(input_msg, &pressed_keys, &pressed_buttons).await
                                     {
-                                        let mut input_buf = input_buffer.lock().await;
-                                        // Remove oldest if buffer is full
-                                        if input_buf.len() >= input_buf.capacity() {
-                                            log::info!("Input buffer full, removing oldest event");
-                                            input_buf.pop_front();
-                                        }
-                                        input_buf.push_back(event);
-                                        input_notify.notify_one();
+                                        let _ = pipeline.lock().await.send_event(event);
                                     }
                                 }
                             }
@@ -426,38 +399,37 @@ impl Room {
 
         // Send video and audio data
         let audio_track = audio_track.clone();
-        let audio_buf = self.audio_buffer.clone();
-        let audio_token = cancel_token.child_token();
         tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    _ = audio_token.cancelled() => {
-                        break;
-                    }
-                    _ = async {
-                        let mut audio_buf = audio_buf.lock().await;
-                        if let Some(data) = audio_buf.pop_front() {
-                            audio_track.write(data.as_slice()).await.unwrap();
+            let mut audio_sink = audio_sink.lock().await;
+            while let Some(sample) = audio_sink.next().await {
+                if let Some(buffer) = sample.buffer() {
+                    if let Ok(map) = buffer.map_readable() {
+                        if let Err(e) = audio_track.write(map.as_slice()).await {
+                            if webrtc::Error::ErrClosedPipe == e {
+                                break;
+                            } else {
+                                log::error!("Failed to write audio track: {}", e);
+                            }
                         }
-                    } => {}
+                    }
                 }
             }
         });
+
         let video_track = video_track.clone();
-        let video_buf = self.video_buffer.clone();
-        let video_token = cancel_token.child_token();
         tokio::spawn(async move {
-            loop {
-                tokio::select! {
-                    _ = video_token.cancelled() => {
-                        break;
-                    }
-                    _ = async {
-                        let mut video_buf = video_buf.lock().await;
-                        if let Some(data) = video_buf.pop_front() {
-                            video_track.write(data.as_slice()).await.unwrap();
+            let mut video_sink = video_sink.lock().await;
+            while let Some(sample) = video_sink.next().await {
+                if let Some(buffer) = sample.buffer() {
+                    if let Ok(map) = buffer.map_readable() {
+                        if let Err(e) = video_track.write(map.as_slice()).await {
+                            if webrtc::Error::ErrClosedPipe == e {
+                                break;
+                            } else {
+                                log::error!("Failed to write video track: {}", e);
+                            }
                         }
-                    } => {}
+                    }
                 }
             }
         });

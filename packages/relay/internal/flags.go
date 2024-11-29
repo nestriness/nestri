@@ -13,6 +13,7 @@ var globalFlags *Flags
 
 type Flags struct {
 	Verbose        bool
+	Debug          bool
 	EndpointPort   int
 	WebRTCUDPStart int
 	WebRTCUDPEnd   int
@@ -22,6 +23,7 @@ type Flags struct {
 func (flags *Flags) DebugLog() {
 	log.Println("Relay Flags:")
 	log.Println("> Verbose: ", flags.Verbose)
+	log.Println("> Debug: ", flags.Debug)
 	log.Println("> Endpoint Port: ", flags.EndpointPort)
 	log.Println("> WebRTC UDP Range Start: ", flags.WebRTCUDPStart)
 	log.Println("> WebRTC UDP Range End: ", flags.WebRTCUDPEnd)
@@ -59,6 +61,7 @@ func InitFlags() {
 	globalFlags = &Flags{}
 	// Get flags
 	flag.BoolVar(&globalFlags.Verbose, "verbose", getEnvAsBool("VERBOSE", false), "Verbose mode")
+	flag.BoolVar(&globalFlags.Debug, "debug", getEnvAsBool("DEBUG", false), "Debug mode")
 	flag.IntVar(&globalFlags.EndpointPort, "endpointPort", getEnvAsInt("ENDPOINT_PORT", 8088), "HTTP endpoint port")
 	flag.IntVar(&globalFlags.WebRTCUDPStart, "webrtcUDPStart", getEnvAsInt("WEBRTC_UDP_START", 10000), "WebRTC UDP port range start")
 	flag.IntVar(&globalFlags.WebRTCUDPEnd, "webrtcUDPEnd", getEnvAsInt("WEBRTC_UDP_END", 20000), "WebRTC UDP port range end")
