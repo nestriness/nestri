@@ -83,6 +83,7 @@ export class Mouse {
   // Helper function to create and return mouse listeners
   private createMouseListener(type: string, dataCreator: (e: Event) => Partial<Input>): (e: Event) => void {
     return (e: Event) => {
+      e.preventDefault();
       e.stopPropagation();
       const data = dataCreator(e as any); // type assertion because of the way dataCreator is used
       const dataString = JSON.stringify({...data, type} as Input);

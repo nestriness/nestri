@@ -61,6 +61,7 @@ export class Keyboard {
   // Helper function to create and return mouse listeners
   private createKeyboardListener(type: string, dataCreator: (e: Event) => Partial<Input>): (e: Event) => void {
     return (e: Event) => {
+      e.preventDefault();
       e.stopPropagation();
       // Prevent repeated key events from being sent (important for games)
       if ((e as any).repeat)
