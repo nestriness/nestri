@@ -17,7 +17,7 @@ export default component$(() => {
       video = document.createElement("video");
       video.id = "stream-video-player";
       video.style.visibility = "hidden";
-      const webrtc = new WebRTCStream("https://relay.dathorse.com", id, (mediaStream) => {
+      const webrtc = new WebRTCStream("http://localhost:8088", id, (mediaStream) => {
         if (video && mediaStream && (video as HTMLVideoElement).srcObject === null) {
           console.log("Setting mediastream");
           (video as HTMLVideoElement).srcObject = mediaStream;
@@ -26,6 +26,8 @@ export default component$(() => {
           window.hasstream = true;
           // @ts-ignore
           window.roomOfflineElement?.remove();
+          // @ts-ignore
+          window.playbtnelement?.remove();
 
           const playbtn = document.createElement("button");
           playbtn.style.position = "absolute";
@@ -81,8 +83,14 @@ export default component$(() => {
             });
           };
           document.body.append(playbtn);
+          // @ts-ignore
+          window.playbtnelement = playbtn;
         } else if (mediaStream === null) {
           console.log("MediaStream is null, Room is offline");
+          // @ts-ignore
+          window.playbtnelement?.remove();
+          // @ts-ignore
+          window.roomOfflineElement?.remove();
           // Add a message to the screen
           const offline = document.createElement("div");
           offline.style.position = "absolute";
@@ -104,6 +112,30 @@ export default component$(() => {
             const ctx = canvas.value.getContext("2d");
             if (ctx) ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
           }
+        } else if ((video as HTMLVideoElement).srcObject !== null) {
+          console.log("Setting new mediastream");
+          (video as HTMLVideoElement).srcObject = mediaStream;
+          // @ts-ignore
+          window.hasstream = true;
+          // Start video rendering
+          (video as HTMLVideoElement).play().then(() => {
+            // @ts-ignore
+            window.roomOfflineElement?.remove();
+            if (canvas.value) {
+              canvas.value.width = (video as HTMLVideoElement).videoWidth;
+              canvas.value.height = (video as HTMLVideoElement).videoHeight;
+
+              const ctx = canvas.value.getContext("2d");
+              const renderer = () => {
+                // @ts-ignore
+                if (ctx && window.hasstream) {
+                  ctx.drawImage((video as HTMLVideoElement), 0, 0);
+                  (video as HTMLVideoElement).requestVideoFrameCallback(renderer);
+                }
+              }
+              (video as HTMLVideoElement).requestVideoFrameCallback(renderer);
+            }
+          });
         }
       });
     }
