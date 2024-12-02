@@ -54,8 +54,8 @@ RUN pacman -Syu --noconfirm --needed \
     sudo xorg-xwayland labwc wlr-randr mangohud \
     # GStreamer and plugins
     gstreamer gst-plugins-base gst-plugins-good \
-    gst-plugin-pipewire gst-plugin-rswebrtc \
-    gst-plugin-rsrtp \
+    gst-plugins-bad gst-plugin-pipewire \
+    gst-plugin-rswebrtc gst-plugin-rsrtp \
     # Audio packages
     pipewire pipewire-pulse pipewire-alsa wireplumber \
     # Other requirements
