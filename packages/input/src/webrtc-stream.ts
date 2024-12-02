@@ -57,12 +57,12 @@ export class WebRTCStream {
             this._setupPeerConnection();
           }
           console.log("Received SDP: ", (message as MessageSDP).sdp);
-          await this._pc.setRemoteDescription((message as MessageSDP).sdp);
+          await this._pc!.setRemoteDescription((message as MessageSDP).sdp);
           // Create our answer
-          const answer = await this._pc.createAnswer();
+          const answer = await this._pc!.createAnswer();
           // Force stereo in Chromium browsers
           answer.sdp = this.forceOpusStereo(answer.sdp!);
-          await this._pc.setLocalDescription(answer);
+          await this._pc!.setLocalDescription(answer);
           this._ws!.send(encodeMessage({
             payload_type: "sdp",
             sdp: answer
