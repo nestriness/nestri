@@ -92,7 +92,6 @@ impl Args {
             )
             .arg(
                 Arg::new("gpu-card-path")
-                    .short('a')
                     .long("gpu-card-path")
                     .env("GPU_CARD_PATH")
                     .help("Force a specific GPU by card/render path (e.g. '/dev/dri/card0')")
@@ -109,14 +108,12 @@ impl Args {
             )
             .arg(
                 Arg::new("video-encoder")
-                    .short('e')
                     .long("video-encoder")
                     .env("VIDEO_ENCODER")
                     .help("Override video encoder (e.g. 'vah264enc')")
             )
             .arg(
                 Arg::new("video-rate-control")
-                    .short('t')
                     .long("video-rate-control")
                     .env("VIDEO_RATE_CONTROL")
                     .help("Rate control method ('cqp', 'vbr', 'cbr')")
@@ -124,7 +121,6 @@ impl Args {
             )
             .arg(
                 Arg::new("video-cqp")
-                    .short('q')
                     .long("video-cqp")
                     .env("VIDEO_CQP")
                     .help("Constant Quantization Parameter (CQP) quality")
@@ -132,7 +128,6 @@ impl Args {
             )
             .arg(
                 Arg::new("video-bitrate")
-                    .short('b')
                     .long("video-bitrate")
                     .env("VIDEO_BITRATE")
                     .help("Target bitrate in kbps")
@@ -140,7 +135,6 @@ impl Args {
             )
             .arg(
                 Arg::new("video-bitrate-max")
-                    .short('x')
                     .long("video-bitrate-max")
                     .env("VIDEO_BITRATE_MAX")
                     .help("Maximum bitrate in kbps")
@@ -155,7 +149,6 @@ impl Args {
             )
             .arg(
                 Arg::new("audio-capture-method")
-                    .short('u')
                     .long("audio-capture-method")
                     .env("AUDIO_CAPTURE_METHOD")
                     .help("Audio capture method ('pipewire', 'pulseaudio', 'alsa')")
@@ -163,7 +156,6 @@ impl Args {
             )
             .arg(
                 Arg::new("audio-codec")
-                    .short('z')
                     .long("audio-codec")
                     .env("AUDIO_CODEC")
                     .help("Preferred audio codec ('opus', 'aac')")
@@ -171,14 +163,12 @@ impl Args {
             )
             .arg(
                 Arg::new("audio-encoder")
-                    .short('r')
                     .long("audio-encoder")
                     .env("AUDIO_ENCODER")
                     .help("Override audio encoder (e.g. 'opusenc')")
             )
             .arg(
                 Arg::new("audio-rate-control")
-                    .short('k')
                     .long("audio-rate-control")
                     .env("AUDIO_RATE_CONTROL")
                     .help("Rate control method ('cqp', 'vbr', 'cbr')")
@@ -186,7 +176,6 @@ impl Args {
             )
             .arg(
                 Arg::new("audio-bitrate")
-                    .short('j')
                     .long("audio-bitrate")
                     .env("AUDIO_BITRATE")
                     .help("Target bitrate in kbps")
@@ -194,7 +183,6 @@ impl Args {
             )
             .arg(
                 Arg::new("audio-bitrate-max")
-                    .short('n')
                     .long("audio-bitrate-max")
                     .env("AUDIO_BITRATE_MAX")
                     .help("Maximum bitrate in kbps")

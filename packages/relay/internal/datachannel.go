@@ -34,7 +34,7 @@ func NewNestriDataChannel(dc *webrtc.DataChannel) *NestriDataChannel {
 
 		// Handle message type callback
 		if callback, ok := ndc.binaryCallbacks[base.PayloadType]; ok {
-			callback(msg.Data)
+			go callback(msg.Data)
 		} // TODO: Log unknown message type?
 	})
 
