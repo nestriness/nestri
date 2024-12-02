@@ -64,7 +64,7 @@ start_nestri_server() {
 start_labwc() {
     echo "Starting labwc..."
     rm -rf /tmp/.X11-unix && mkdir -p /tmp/.X11-unix && chown nestri:nestri /tmp/.X11-unix
-    WAYLAND_DISPLAY=wayland-1 WLR_BACKENDS=wayland WLR_RENDERER=vulkan labwc &
+    WAYLAND_DISPLAY=wayland-1 WLR_BACKENDS=wayland labwc &
     LABWC_PID=$!
 
     # Wait for labwc to initialize (using `wlr-randr` as an indicator)
