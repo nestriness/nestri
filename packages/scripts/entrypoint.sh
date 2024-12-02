@@ -35,10 +35,6 @@ fi
 echo "Upgrading system packages..."
 pacman -Syu --noconfirm
 
-# GPU driver setup
-echo "Detecting and installing appropriate GPU packages using chwd..."
-chwd -a
-
 echo "Detecting GPU vendor and installing necessary GStreamer plugins..."
 source /etc/nestri/gpu_helpers.sh
 
@@ -46,17 +42,19 @@ get_gpu_info
 
 # Identify vendor
 if [[ "${vendor_full_map[0],,}" =~ "intel" ]]; then
-    echo "Intel GPU detected. Installing GStreamer VAAPI and QSV plugins..."
+    echo "Intel GPU detected, installing required packages..."
+    chwd -a
     pacman -Syu --noconfirm gstreamer-vaapi gst-plugin-va gst-plugin-qsv
     # chwd missed a thing
     pacman -Syu --noconfirm vpl-gpu-rt
 elif [[ "${vendor_full_map[0],,}" =~ "amd" ]]; then
-    echo "AMD GPU detected. Installing GStreamer VAAPI plugins..."
+    echo "AMD GPU detected, installing required packages..."
+    chwd -a
     pacman -Syu --noconfirm gstreamer-vaapi gst-plugin-va
 elif [[ "${vendor_full_map[0],,}" =~ "nvidia" ]]; then
-    echo "NVIDIA GPU detected. NVENC plugins assumed to be in gst-plugins-bad"
+    echo "NVIDIA GPU detected. Assuming drivers are linked"
 else
-    echo "Unknown GPU vendor. No additional GStreamer plugins installed"
+    echo "Unknown GPU vendor. No additional packages will be installed"
 fi
 
 # Clean up remainders
