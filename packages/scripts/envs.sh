@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -euo pipefail
 
 export XDG_RUNTIME_DIR=/run/user/${UID}/
 export WAYLAND_DISPLAY=wayland-0
@@ -9,4 +10,4 @@ export $(dbus-launch)
 export PROTON_NO_FSYNC=1
 
 # Our preferred prefix
-export WINEPREFIX=${USER_HOME}/.nestripfx/
+export WINEPREFIX=/home/${USER}/.nestripfx/
