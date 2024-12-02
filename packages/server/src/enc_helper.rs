@@ -197,6 +197,11 @@ fn is_encoder_supported(encoder: &String) -> bool {
     gst::ElementFactory::find(encoder.as_str()).is_some()
 }
 
+fn set_element_property(element: &gst::Element, property: &str, value: &dyn ToValue) {
+    element.set_property(property, value.to_value());
+}
+
+
 /// Helper to set CQP value of known encoder
 /// # Arguments
 /// * `encoder` - Information about the encoder.

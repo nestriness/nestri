@@ -15,6 +15,9 @@ pub struct AppArgs {
     pub relay_url: String,
     /// Nestri room name/identifier
     pub room: String,
+
+    /// Experimental DMA-BUF support
+    pub dma_buf: bool,
 }
 impl AppArgs {
     pub fn from_matches(matches: &clap::ArgMatches) -> Self {
@@ -26,23 +29,33 @@ impl AppArgs {
             debug_latency: matches.get_one::<String>("debug-latency").unwrap() == "true"
                 || matches.get_one::<String>("debug-latency").unwrap() == "1",
             resolution: {
-                let res = matches.get_one::<String>("resolution").unwrap().clone();
+                let res = matches
+                    .get_one::<String>("resolution")
+                    .unwrap_or(&"1280x720".to_string())
+                    .clone();
                 let parts: Vec<&str> = res.split('x').collect();
-                (
-                    parts[0].parse::<u32>().unwrap(),
-                    parts[1].parse::<u32>().unwrap(),
-                )
+                if parts.len() >= 2 {
+                    (
+                        parts[0].parse::<u32>().unwrap_or(1280),
+                        parts[1].parse::<u32>().unwrap_or(720),
+                    )
+                } else {
+                    (1280, 720)
+                }
             },
             framerate: matches
                 .get_one::<String>("framerate")
                 .unwrap()
                 .parse::<u32>()
-                .unwrap(),
+                .unwrap_or(60),
             relay_url: matches.get_one::<String>("relay-url").unwrap().clone(),
             // Generate random room name if not provided
-            room: matches.get_one::<String>("room")
+            room: matches
+                .get_one::<String>("room")
                 .unwrap_or(&rand::random::<u32>().to_string())
                 .clone(),
+            dma_buf: matches.get_one::<String>("dma-buf").unwrap() == "true"
+                || matches.get_one::<String>("dma-buf").unwrap() == "1",
         }
     }
 
@@ -55,5 +68,6 @@ impl AppArgs {
         println!("> framerate: {}", self.framerate);
         println!("> relay_url: {}", self.relay_url);
         println!("> room: {}", self.room);
+        println!("> dma_buf: {}", self.dma_buf);
     }
 }

@@ -1,21 +1,21 @@
 mod args;
 mod enc_helper;
 mod gpu;
-mod room;
-mod websocket;
 mod latency;
 mod messages;
+mod nestrisink;
+mod websocket;
 
 use crate::args::encoding_args;
+use crate::nestrisink::NestriSignaller;
+use crate::websocket::NestriWebSocket;
+use futures_util::StreamExt;
 use gst::prelude::*;
-use gst_app::AppSink;
+use gstrswebrtc::signaller::Signallable;
+use gstrswebrtc::webrtcsink::BaseWebRTCSink;
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use futures_util::StreamExt;
-use gst_app::app_sink::AppSinkStream;
-use tokio::sync::{Mutex};
-use crate::websocket::{NestriWebSocket};
 
 // Handles gathering GPU information and selecting the most suitable GPU
 fn handle_gpus(args: &args::Args) -> Option<gpu::GPUInfo> {
@@ -161,20 +161,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Begin connection attempt to the relay WebSocket endpoint
     // replace any http/https with ws/wss
-    let replaced_relay_url
-        = args.app.relay_url.replace("http://", "ws://").replace("https://", "wss://");
-    let ws_url = format!(
-        "{}/api/ws/{}",
-        replaced_relay_url,
-        args.app.room,
-    );
+    let replaced_relay_url = args
+        .app
+        .relay_url
+        .replace("http://", "ws://")
+        .replace("https://", "wss://");
+    let ws_url = format!("{}/api/ws/{}", replaced_relay_url, args.app.room,);
 
     // Setup our websocket
     let nestri_ws = Arc::new(NestriWebSocket::new(ws_url).await?);
     log::set_max_level(log::LevelFilter::Info);
     log::set_boxed_logger(Box::new(nestri_ws.clone())).unwrap();
 
-    let _ = gst::init();
+    gst::init()?;
+    gstrswebrtc::plugin_register_static()?;
 
     // Handle GPU selection
     let gpu = handle_gpus(&args);
@@ -197,12 +197,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Handle audio encoder selection
     let audio_encoder = handle_encoder_audio(&args);
 
-    /*** ROOM SETUP ***/
-    let room = Arc::new(Mutex::new(
-        room::Room::new(nestri_ws.clone()).await?,
-    ));
-
     /*** PIPELINE CREATION ***/
+    // Create the pipeline
+    let pipeline = Arc::new(gst::Pipeline::new());
+
     /* Audio */
     // Audio Source Element
     let audio_source = match args.encoding.audio.capture_method {
@@ -220,7 +218,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Audio Rate Element
     let audio_rate = gst::ElementFactory::make("audiorate").build()?;
-    
+
     // Required to fix gstreamer opus issue, where quality sounds off (due to wrong sample rate)
     let audio_capsfilter = gst::ElementFactory::make("capsfilter").build()?;
     let audio_caps = gst::Caps::from_str("audio/x-raw,rate=48000,channels=2").unwrap();
@@ -237,9 +235,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         },
     );
 
-    // Audio RTP Payloader Element
-    let audio_rtp_payloader = gst::ElementFactory::make("rtpopuspay").build()?;
-
     /* Video */
     // Video Source Element
     let video_source = gst::ElementFactory::make("waylanddisplaysrc").build()?;
@@ -248,13 +243,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Caps Filter Element (resolution, fps)
     let caps_filter = gst::ElementFactory::make("capsfilter").build()?;
     let caps = gst::Caps::from_str(&format!(
-        "video/x-raw,width={},height={},framerate={}/1,format=RGBx",
-        args.app.resolution.0, args.app.resolution.1, args.app.framerate
+        "{},width={},height={},framerate={}/1{}",
+        if args.app.dma_buf {
+            "video/x-raw(memory:DMABuf)"
+        } else {
+            "video/x-raw"
+        },
+        args.app.resolution.0,
+        args.app.resolution.1,
+        args.app.framerate,
+        if args.app.dma_buf { "" } else { ",format=RGBx" }
     ))?;
     caps_filter.set_property("caps", &caps);
 
-    // Video Tee Element
-    let video_tee = gst::ElementFactory::make("tee").build()?;
+    // GL Upload Element
+    let glupload = gst::ElementFactory::make("glupload").build()?;
+
+    // GL upload caps filter
+    let gl_caps_filter = gst::ElementFactory::make("capsfilter").build()?;
+    let gl_caps = gst::Caps::from_str("video/x-raw(memory:VAMemory)")?;
+    gl_caps_filter.set_property("caps", &gl_caps);
 
     // Video Converter Element
     let video_converter = gst::ElementFactory::make("videoconvert").build()?;
@@ -263,82 +271,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let video_encoder = gst::ElementFactory::make(video_encoder_info.name.as_str()).build()?;
     video_encoder_info.apply_parameters(&video_encoder, &args.app.verbose);
 
-    // Required for AV1 - av1parse
-    let av1_parse = gst::ElementFactory::make("av1parse").build()?;
-
-    // Video RTP Payloader Element
-    let video_rtp_payloader = gst::ElementFactory::make(
-        format!("rtp{}pay", video_encoder_info.codec.to_gst_str()).as_str(),
-    )
-    .build()?;
-
     /* Output */
-    // Audio AppSink Element
-    let audio_appsink = gst::ElementFactory::make("appsink").build()?;
-    audio_appsink.set_property("emit-signals", &true);
-    let audio_appsink = audio_appsink.downcast_ref::<AppSink>().unwrap();
-
-    // Video AppSink Element
-    let video_appsink = gst::ElementFactory::make("appsink").build()?;
-    video_appsink.set_property("emit-signals", &true);
-    let video_appsink = video_appsink.downcast_ref::<AppSink>().unwrap();
-
-    /* Debug */
-    // Debug Feed Element
-    let debug_latency = gst::ElementFactory::make("timeoverlay").build()?;
-    debug_latency.set_property_from_str("halignment", &"right");
-    debug_latency.set_property_from_str("valignment", &"bottom");
-
-    // Debug Sink Element
-    let debug_sink = gst::ElementFactory::make("ximagesink").build()?;
-
-    // Debug video converter
-    let debug_video_converter = gst::ElementFactory::make("videoconvert").build()?;
-
-    // Queues with max 2ms latency
-    let debug_queue = gst::ElementFactory::make("queue2").build()?;
-    debug_queue.set_property("max-size-time", &1000000u64);
-    let main_video_queue = gst::ElementFactory::make("queue2").build()?;
-    main_video_queue.set_property("max-size-time", &1000000u64);
-    let main_audio_queue = gst::ElementFactory::make("queue2").build()?;
-    main_audio_queue.set_property("max-size-time", &1000000u64);
-
-    // Create the pipeline
-    let pipeline = gst::Pipeline::new();
+    // WebRTC sink Element
+    let signaller = NestriSignaller::new(nestri_ws.clone(), pipeline.clone());
+    let webrtcsink = BaseWebRTCSink::with_signaller(Signallable::from(signaller.clone()));
+    webrtcsink.set_property_from_str("stun-server", "stun://stun.l.google.com:19302");
+    webrtcsink.set_property_from_str("congestion-control", "disabled");
 
     // Add elements to the pipeline
     pipeline.add_many(&[
-        &video_appsink.upcast_ref(),
-        &video_rtp_payloader,
+        webrtcsink.upcast_ref(),
         &video_encoder,
         &video_converter,
-        &video_tee,
         &caps_filter,
         &video_source,
-        &audio_appsink.upcast_ref(),
-        &audio_rtp_payloader,
         &audio_encoder,
         &audio_capsfilter,
         &audio_rate,
         &audio_converter,
         &audio_source,
-        &main_video_queue,
-        &main_audio_queue,
     ])?;
 
-    // Add debug elements if debug is enabled
-    if args.app.debug_feed {
-        pipeline.add_many(&[&debug_sink, &debug_queue, &debug_video_converter])?;
-    }
-
-    // Add debug latency element if debug latency is enabled
-    if args.app.debug_latency {
-        pipeline.add(&debug_latency)?;
-    }
-
-    // Add AV1 parse element if AV1 is selected
-    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
-        pipeline.add(&av1_parse)?;
+    // If DMA-BUF is enabled, add glupload and gl caps filter
+    if args.app.dma_buf {
+        pipeline.add_many(&[&glupload, &gl_caps_filter])?;
     }
 
     // Link main audio branch
@@ -348,47 +304,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
         &audio_rate,
         &audio_capsfilter,
         &audio_encoder,
-        &audio_rtp_payloader,
-        &main_audio_queue,
-        &audio_appsink.upcast_ref(),
+        webrtcsink.upcast_ref(),
     ])?;
 
-    // If debug latency, add time overlay before tee
-    if args.app.debug_latency {
-        gst::Element::link_many(&[&video_source, &caps_filter, &debug_latency, &video_tee])?;
-    } else {
-        gst::Element::link_many(&[&video_source, &caps_filter, &video_tee])?;
-    }
-
-    // Link debug branch if debug is enabled
-    if args.app.debug_feed {
+    // With DMA-BUF, also link glupload and it's caps
+    if args.app.dma_buf {
+        // Link video source to caps_filter, glupload, gl_caps_filter, video_converter, video_encoder, webrtcsink
         gst::Element::link_many(&[
-            &video_tee,
-            &debug_video_converter,
-            &debug_queue,
-            &debug_sink,
-        ])?;
-    }
-
-    // Link main video branch, if AV1, add av1_parse
-    if video_encoder_info.codec == enc_helper::VideoCodec::AV1 {
-        gst::Element::link_many(&[
-            &video_tee,
+            &video_source,
+            &caps_filter,
+            &glupload,
+            &gl_caps_filter,
             &video_converter,
             &video_encoder,
-            &av1_parse,
-            &video_rtp_payloader,
-            &main_video_queue,
-            &video_appsink.upcast_ref(),
+            webrtcsink.upcast_ref(),
         ])?;
     } else {
+        // Link video source to caps_filter, video_converter, video_encoder, webrtcsink
         gst::Element::link_many(&[
-            &video_tee,
+            &video_source,
+            &caps_filter,
             &video_converter,
             &video_encoder,
-            &video_rtp_payloader,
-            &main_video_queue,
-            &video_appsink.upcast_ref(),
+            webrtcsink.upcast_ref(),
         ])?;
     }
 
@@ -397,21 +335,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     audio_source.set_property("do-timestamp", &true);
     pipeline.set_property("latency", &0u64);
 
-    // Wrap the pipeline in Arc<Mutex> to safely share it
-    let pipeline = Arc::new(Mutex::new(pipeline));
-
     // Run both pipeline and websocket tasks concurrently
-    let result = tokio::try_join!(
-        run_room(
-            room.clone(),
-            "audio/opus",
-            video_encoder_info.codec.to_mime_str(),
-            pipeline.clone(),
-            Arc::new(Mutex::new(audio_appsink.stream())),
-            Arc::new(Mutex::new(video_appsink.stream()))
-        ),
-        run_pipeline(pipeline.clone())
-    );
+    let result = run_pipeline(pipeline.clone()).await;
 
     match result {
         Ok(_) => log::info!("All tasks completed successfully"),
@@ -424,53 +349,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn run_room(
-    room: Arc<Mutex<room::Room>>,
-    audio_codec: &str,
-    video_codec: &str,
-    pipeline: Arc<Mutex<gst::Pipeline>>,
-    audio_stream: Arc<Mutex<AppSinkStream>>,
-    video_stream: Arc<Mutex<AppSinkStream>>,
-) -> Result<(), Box<dyn Error>> {
-    // Run loop, with recovery on error
-    loop {
-        let mut room = room.lock().await;
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {
-                log::info!("Room interrupted via Ctrl+C");
-                return Ok(());
-            }
-            result = room.run(
-                audio_codec,
-                video_codec,
-                pipeline.clone(),
-                audio_stream.clone(),
-                video_stream.clone(),
-            ) => {
-                if let Err(e) = result {
-                    log::error!("Room error: {}", e);
-                    // Sleep for a while before retrying
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                } else {
-                    return Ok(());
-                }
-            }
-        }
-    }
-}
-
-async fn run_pipeline(
-    pipeline: Arc<Mutex<gst::Pipeline>>,
-) -> Result<(), Box<dyn Error>> {
-    // Take ownership of the bus without holding the lock
-    let bus = {
-        let pipeline = pipeline.lock().await;
-        pipeline.bus().ok_or("Pipeline has no bus")?
-    };
+async fn run_pipeline(pipeline: Arc<gst::Pipeline>) -> Result<(), Box<dyn Error>> {
+    let bus = { pipeline.bus().ok_or("Pipeline has no bus")? };
 
     {
-        // Temporarily lock the pipeline to change state
-        let pipeline = pipeline.lock().await;
         if let Err(e) = pipeline.set_state(gst::State::Playing) {
             log::error!("Failed to start pipeline: {}", e);
             return Err("Failed to start pipeline".into());
@@ -491,8 +373,6 @@ async fn run_pipeline(
     }
 
     {
-        // Temporarily lock the pipeline to reset state
-        let pipeline = pipeline.lock().await;
         pipeline.set_state(gst::State::Null)?;
     }
 
