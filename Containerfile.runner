@@ -107,6 +107,9 @@ RUN chmod +x /etc/nestri/envs.sh /etc/nestri/entrypoint.sh /etc/nestri/entrypoin
 ENV XDG_RUNTIME_DIR=/run/user/${UID} \
     HOME=/home/${USER}
 
+# Required for NVIDIA.. they want to be special like that #
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+
 # Wireplumber disable suspend #
 # Remove suspend node
 RUN sed -z -i 's/{[[:space:]]*name = node\/suspend-node\.lua,[[:space:]]*type = script\/lua[[:space:]]*provides = hooks\.node\.suspend[[:space:]]*}[[:space:]]*//g' /usr/share/wireplumber/wireplumber.conf
