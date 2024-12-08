@@ -33,7 +33,7 @@ func (vw *Participant) addTrack(trackLocal *webrtc.TrackLocal) error {
 		rtcpBuffer := make([]byte, 1400)
 		for {
 			if _, _, rtcpErr := rtpSender.Read(rtcpBuffer); rtcpErr != nil {
-				return
+				break
 			}
 		}
 	}()

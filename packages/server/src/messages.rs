@@ -11,6 +11,31 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use crate::latency::LatencyTracker;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum InputMessage {
+    #[serde(rename = "mousemove")]
+    MouseMove { x: i32, y: i32 },
+
+    #[serde(rename = "mousemoveabs")]
+    MouseMoveAbs { x: i32, y: i32 },
+
+    #[serde(rename = "wheel")]
+    Wheel { x: f64, y: f64 },
+
+    #[serde(rename = "mousedown")]
+    MouseDown { key: i32 },
+    // Add other variants as needed
+    #[serde(rename = "mouseup")]
+    MouseUp { key: i32 },
+
+    #[serde(rename = "keydown")]
+    KeyDown { key: i32 },
+
+    #[serde(rename = "keyup")]
+    KeyUp { key: i32 },
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MessageBase {
     pub payload_type: String,
 }
