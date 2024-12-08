@@ -2,26 +2,26 @@
 ARG BASE_IMAGE=docker.io/cachyos/cachyos-v3:latest
 
 #******************************************************************************
-#                                                                   gst-builder
+#                                                                                                          nestri-server-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gst-builder
 WORKDIR /builder/
 
 # Grab build and rust packages #
 RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
-	gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
+	gstreamer gst-plugins-base gst-plugins-good
 
 # Setup stable rust toolchain #
 RUN rustup default stable
-# Clone nestri source #
-RUN git clone -b feat/stream https://github.com/DatCaptainHorse/nestri.git
+# # Clone nestri source #
+#Copy the whole repo inside the build container
+COPY ./ /builder/nestri/
 
-# Build nestri #
-RUN cd nestri/packages/server/ && \
+RUN cd /builder/nestri/packages/server/ && \
     cargo build --release
 
 #******************************************************************************
-#                                                            gstwayland-builder
+#                                                                                                            gstwayland-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gstwayland-builder
 WORKDIR /builder/
