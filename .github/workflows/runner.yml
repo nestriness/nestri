@@ -1,0 +1,47 @@
+#Tabs not spaces, you moron :)
+
+name: Build nestri:runner
+
+on:
+    pull_request:
+        paths:
+            - "containers/runner.Containerfile"
+            - ".github/workflows/runner.yml"
+    schedule:
+        - cron: 0 0 * * * # At the end of everyday
+    push:
+        branches: [main]
+        paths:
+            - "containers/runner.Containerfile"
+            - ".github/workflows/runner.yml"
+        tags:
+            - v*.*.*
+    release:
+        types: [created]
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: nestrilabs/nestri
+    BASE_TAG_PREFIX: runner
+
+jobs:
+    build-docker-pr:
+        name: Build image on PR
+        runs-on: ubuntu-latest
+        if: ${{ github.event_name == 'pull_request' }}
+        steps:
+            -
+              name: Checkout repo
+              uses: actions/checkout@v4
+            - 
+              name: Setup Docker Buildx
+              uses: docker/setup-buildx-action@v3
+            - 
+              name: Build Docker image
+              uses: docker/build-push-action@v5
+              with:
+                file: containers/runner.Containerfile
+                context: ./
+                push: false
+                load: true
+                tags: nestri:runner
