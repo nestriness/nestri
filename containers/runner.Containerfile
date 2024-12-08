@@ -14,15 +14,15 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # # Clone nestri source #
-
-COPY packages/server/ /builder/server
+#Copy the whole repo inside the build container
+COPY ./ /builder/nestri/
 # RUN git clone https://github.com/nestriness/nestri.git
 
 # # Build nestri #
 # RUN cd nestri/packages/server/ && \
 #     cargo build --release
 
-RUN cd /builder/server/ && \
+RUN cd /builder/nestri/packages/server/ && \
     cargo build --release
 
 #******************************************************************************
@@ -114,7 +114,7 @@ RUN usermod -aG input root && usermod -aG input ${USER} && \
 ## Copy files from builders ##
 # this is done here at end to not trigger full rebuild on changes to builder
 # nestri
-COPY --from=gst-builder /builder/server/target/release/nestri-server /usr/bin/nestri-server
+COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
 # gstwayland
 COPY --from=gstwayland-builder /builder/plugin/include/libgstwaylanddisplay /usr/include/
 COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
