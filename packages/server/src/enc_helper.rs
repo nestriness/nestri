@@ -197,6 +197,11 @@ fn is_encoder_supported(encoder: &String) -> bool {
     gst::ElementFactory::find(encoder.as_str()).is_some()
 }
 
+fn set_element_property(element: &gst::Element, property: &str, value: &dyn ToValue) {
+    element.set_property(property, value.to_value());
+}
+
+
 /// Helper to set CQP value of known encoder
 /// # Arguments
 /// * `encoder` - Information about the encoder.
@@ -316,7 +321,7 @@ pub fn encoder_gop_params(encoder: &VideoEncoderInfo, gop_size: u32) -> VideoEnc
         let prop_name = prop.name();
 
         // Look for known keys
-        if prop_name.to_lowercase().contains("gop")
+        if prop_name.to_lowercase().contains("gop-size")
             || prop_name.to_lowercase().contains("int-max")
             || prop_name.to_lowercase().contains("max-dist")
             || prop_name.to_lowercase().contains("intra-period-length")

@@ -42,7 +42,7 @@ impl Args {
                     .short('u')
                     .long("relay-url")
                     .env("RELAY_URL")
-                    .help("Nestri relay URL")
+                    .help("Nestri relay URL"),
             )
             .arg(
                 Arg::new("resolution")
@@ -64,7 +64,7 @@ impl Args {
                 Arg::new("room")
                     .long("room")
                     .env("NESTRI_ROOM")
-                    .help("Nestri room name/identifier")
+                    .help("Nestri room name/identifier"),
             )
             .arg(
                 Arg::new("gpu-vendor")
@@ -110,7 +110,7 @@ impl Args {
                 Arg::new("video-encoder")
                     .long("video-encoder")
                     .env("VIDEO_ENCODER")
-                    .help("Override video encoder (e.g. 'vah264enc')")
+                    .help("Override video encoder (e.g. 'vah264enc')"),
             )
             .arg(
                 Arg::new("video-rate-control")
@@ -165,7 +165,7 @@ impl Args {
                 Arg::new("audio-encoder")
                     .long("audio-encoder")
                     .env("AUDIO_ENCODER")
-                    .help("Override audio encoder (e.g. 'opusenc')")
+                    .help("Override audio encoder (e.g. 'opusenc')"),
             )
             .arg(
                 Arg::new("audio-rate-control")
@@ -187,6 +187,13 @@ impl Args {
                     .env("AUDIO_BITRATE_MAX")
                     .help("Maximum bitrate in kbps")
                     .default_value("192"),
+            )
+            .arg(
+                Arg::new("dma-buf")
+                    .long("dma-buf")
+                    .env("DMA_BUF")
+                    .help("Use DMA-BUF for pipeline")
+                    .default_value("false"),
             )
             .get_matches();
 
