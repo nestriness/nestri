@@ -84,14 +84,14 @@ RUN pacman -Syu --noconfirm --needed \
 ENV USER="nestri" \
 	UID=99 \
 	GID=100 \
-	USER_PASSWORD="nestri1234" \
+	USER_PWD="nestri1234" \
 	USER_HOME="/home/nestri"
 
 RUN mkdir -p ${USER_HOME} && \
 	useradd -d ${USER_HOME} -u ${UID} -s /bin/bash ${USER} && \
 	chown -R ${USER} ${USER_HOME} && \
 	echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-	echo "${USER}:${USER_PASSWORD}" | chpasswd
+	echo "${USER}:${USER_PWD}" | chpasswd
 
 # Run directory #
 RUN mkdir -p /run/user/${UID} && \
