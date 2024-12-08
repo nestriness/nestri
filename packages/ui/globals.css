@@ -5,6 +5,11 @@
 
 @layer base {
 
+    html {
+        width: 100%;
+        height: 100%;
+    }
+
     html,
     html * {
         scrollbar-color: theme("colors.gray.700") theme("colors.gray.300");

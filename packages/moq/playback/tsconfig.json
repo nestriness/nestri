@@ -10,10 +10,10 @@
 			"path": "../common"
 		},
 		{
-			"path": "../transport"
+			"path": "../transfork"
 		},
 		{
-			"path": "../media"
+			"path": "../karp"
 		}
 	],
 	"paths": {

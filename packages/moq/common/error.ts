@@ -1,14 +1,14 @@
 // I hate javascript
-export function asError(e: any): Error {
+export function asError(e: unknown): Error {
 	if (e instanceof Error) {
 		return e
-	} else if (typeof e === "string") {
-		return new Error(e)
-	} else {
-		return new Error(String(e))
 	}
+	if (typeof e === "string") {
+		return new Error(e)
+	}
+	return new Error(String(e))
 }
 
-export function isError(e: any): e is Error {
+export function isError(e: unknown): e is Error {
 	return e instanceof Error
 }

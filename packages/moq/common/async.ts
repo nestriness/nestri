@@ -1,7 +1,7 @@
 export class Deferred<T> {
 	promise: Promise<T>
 	resolve!: (value: T | PromiseLike<T>) => void
-	reject!: (reason: any) => void
+	reject!: (reason: unknown) => void
 	pending = true
 
 	constructor() {
@@ -35,16 +35,19 @@ export class Watch<T> {
 
 	update(v: T | ((v: T) => T)) {
 		if (!this.#next.pending) {
-			throw new Error("already closed")
+			throw new Error("closed")
 		}
 
 		// If we're given a function, call it with the current value
+		let value: T
 		if (v instanceof Function) {
-			v = v(this.#current[0])
+			value = v(this.#current[0])
+		} else {
+			value = v
 		}
 
 		const next = new Deferred<WatchNext<T>>()
-		this.#current = [v, next.promise]
+		this.#current = [value, next.promise]
 		this.#next.resolve(this.#current)
 		this.#next = next
 	}
@@ -52,6 +55,10 @@ export class Watch<T> {
 	close() {
 		this.#current[1] = undefined
 		this.#next.resolve(this.#current)
+	}
+
+	closed() {
+		return !this.#next.pending
 	}
 }
 
@@ -88,6 +95,7 @@ export class Queue<T> {
 	}
 
 	async push(v: T) {
+		if (this.#closed) throw new Error("closed")
 		const w = this.#stream.writable.getWriter()
 		await w.write(v)
 		w.releaseLock()

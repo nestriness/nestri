@@ -1,5 +1,6 @@
 import * as v from "valibot"
-import { Broadcast } from "./tester";
+//FIXME: Make sure this works
+// import { Broadcast } from "./tester";
 import { cn } from "@nestri/ui/design";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { component$, $, useSignal } from "@builder.io/qwik";
@@ -36,11 +37,11 @@ export default component$(() => {
 
     const handleSubmit = $<SubmitHandler<Form>>(async (values) => {
         const randomNamespace = generateRandomWord(6);
-        const sub = await Broadcast.init({ url: values.url, fingerprint: undefined, namespace: randomNamespace })
+        // const sub = await Broadcast.init({ url: values.url, fingerprint: undefined, namespace: randomNamespace })
 
-        setTimeout(() => {
-            broadcasterOk.value = sub.isSubscribed()
-        }, 1000);
+        // setTimeout(() => {
+        //     broadcasterOk.value = sub.isSubscribed()
+        // }, 1000);
     });
 
     return (
