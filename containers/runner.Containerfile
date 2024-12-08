@@ -2,7 +2,7 @@
 ARG BASE_IMAGE=docker.io/cachyos/cachyos-v3:latest
 
 #******************************************************************************
-#                                                                   gst-builder
+#                                                                                                          nestri-server-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gst-builder
 WORKDIR /builder/
@@ -16,17 +16,12 @@ RUN rustup default stable
 # # Clone nestri source #
 #Copy the whole repo inside the build container
 COPY ./ /builder/nestri/
-# RUN git clone https://github.com/nestriness/nestri.git
-
-# # Build nestri #
-# RUN cd nestri/packages/server/ && \
-#     cargo build --release
 
 RUN cd /builder/nestri/packages/server/ && \
     cargo build --release
 
 #******************************************************************************
-#                                                            gstwayland-builder
+#                                                                                                            gstwayland-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gstwayland-builder
 WORKDIR /builder/
@@ -53,35 +48,20 @@ RUN mkdir plugin && \
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
 
-## Nestri Env Variables ##
-ENV NESTRI_PARAMS=""
-ENV RESOLUTION="1280x720"
-
 ## Install Graphics, Media, and Audio packages ##
 RUN pacman -Syu --noconfirm --needed \
     # Graphics packages
-    sudo mesa mesa-utils xorg-xwayland labwc wlr-randr mangohud \
-    # Vulkan drivers
-    vulkan-intel vulkan-radeon nvidia-utils \
-    # Media encoding packages
-    vpl-gpu-rt intel-media-driver libva-utils \
-    # GStreamer plugins
+    sudo xorg-xwayland labwc wlr-randr mangohud \
+    # GStreamer and plugins
     gstreamer gst-plugins-base gst-plugins-good \
-    gst-plugin-va gst-plugins-bad gst-plugin-fmp4 \
-    gst-plugin-qsv gst-plugin-pipewire gst-plugin-rswebrtc \
-    gst-plugins-ugly gst-plugin-rsrtp \
+    gst-plugins-bad gst-plugin-pipewire \
+    gst-plugin-rswebrtc gst-plugin-rsrtp \
     # Audio packages
     pipewire pipewire-pulse pipewire-alsa wireplumber \
     # Other requirements
-    supervisor \
-    # Custom
-    umu-launcher && \
-    # Clean up pacman cache and unnecessary files
-    pacman -Scc --noconfirm && \
-    rm -rf /var/cache/pacman/pkg/* /tmp/* /var/tmp/* && \
-    # Optionally clean documentation, man pages, and locales
-    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name "en*" -exec rm -rf {} + && \
-    rm -rf /usr/share/doc /usr/share/man /usr/share/info
+    supervisor jq chwd lshw pacman-contrib && \
+    # Clean up pacman cache
+    paccache -rk1
 
 
 ## User ##
@@ -89,22 +69,18 @@ RUN pacman -Syu --noconfirm --needed \
 ENV USER="nestri" \
 	UID=99 \
 	GID=100 \
-	USER_PWD="nestri1234" \
-	USER_HOME="/home/nestri"
+	USER_PASSWORD="nestri1234"
 
-RUN mkdir -p ${USER_HOME} && \
-	useradd -d ${USER_HOME} -u ${UID} -s /bin/bash ${USER} && \
-	chown -R ${USER} ${USER_HOME} && \
-	echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-	echo "${USER}:${USER_PWD}" | chpasswd
+RUN mkdir -p /home/${USER} && \
+    groupadd -g ${GID} ${USER} && \
+    useradd -d /home/${USER} -u ${UID} -g ${GID} -s /bin/bash ${USER} && \
+    chown -R ${USER}:${USER} /home/${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    echo "${USER}:${USER_PASSWORD}" | chpasswd
 
 # Run directory #
 RUN mkdir -p /run/user/${UID} && \
 	chown ${USER}:${USER} /run/user/${UID}
-
-# Home config directory #
-RUN mkdir -p ${USER_HOME}/.config && \
-    chown ${USER}:${USER} ${USER_HOME}/.config
 
 # Groups #
 RUN usermod -aG input root && usermod -aG input ${USER} && \
@@ -124,96 +100,15 @@ COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr
 
 ## Copy scripts ##
 COPY packages/scripts/ /etc/nestri/
+# Set scripts as executable #
+RUN chmod +x /etc/nestri/envs.sh /etc/nestri/entrypoint.sh /etc/nestri/entrypoint_nestri.sh
 
-## Startup ##
-# Setup supervisor #
-RUN <<-EOF
-echo -e "
-[supervisord]
-user=root
-nodaemon=true
-loglevel=info
-logfile=/tmp/supervisord.log
+## Set runtime envs ##
+ENV XDG_RUNTIME_DIR=/run/user/${UID} \
+    HOME=/home/${USER}
 
-[program:dbus]
-user=root
-command=dbus-daemon --system --nofork --nopidfile
-logfile=/tmp/dbus.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=1
-
-[program:seatd]
-user=root
-command=seatd
-logfile=/tmp/seatd.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=2
-
-[program:pipewire]
-user=nestri
-command=dbus-launch pipewire
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
-logfile=/tmp/pipewire.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=10
-
-[program:pipewire-pulse]
-user=nestri
-command=dbus-launch pipewire-pulse
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
-logfile=/tmp/pipewire-pulse.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=20
-
-[program:wireplumber]
-user=nestri
-command=dbus-launch wireplumber
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
-logfile=/tmp/wireplumber.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=30
-
-[program:nestri-server]
-user=nestri
-command=sh -c 'nestri-server \$NESTRI_PARAMS'
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\"
-logfile=/tmp/nestri-server.log
-autoerestart=true
-autostart=true
-startretries=3
-priority=50
-
-[program:labwc]
-user=nestri
-command=sh -c 'sleep 4 && rm -rf /tmp/.X11-unix && mkdir -p /tmp/.X11-unix && chown nestri:nestri /tmp/.X11-unix && labwc'
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\",WAYLAND_DISPLAY=\"wayland-1\",WLR_BACKENDS=\"wayland\",WLR_RENDERER=\"vulkan\"
-logfile=/tmp/labwc.log
-autoerestart=true
-autostart=true
-startretries=5
-priority=60
-
-[program:wlrrandr]
-user=nestri
-command=sh -c 'sleep 6 && wlr-randr --output WL-1 --custom-mode \$RESOLUTION && read -n 1'
-environment=XDG_RUNTIME_DIR=\"/run/user/${UID}\",HOME=\"${USER_HOME}\",WAYLAND_DISPLAY=\"wayland-0\"
-logfile=/tmp/wlrrandr.log
-autoerestart=true
-autostart=true
-startretries=10
-priority=70
-" | tee /etc/supervisord.conf
-EOF
+# Required for NVIDIA.. they want to be special like that #
+ENV NVIDIA_DRIVER_CAPABILITIES=all
 
 # Wireplumber disable suspend #
 # Remove suspend node
@@ -221,4 +116,4 @@ RUN sed -z -i 's/{[[:space:]]*name = node\/suspend-node\.lua,[[:space:]]*type = 
 # Remove "hooks.node.suspend" want
 RUN sed -i '/wants = \[/{s/hooks\.node\.suspend\s*//; s/,\s*\]/]/}' /usr/share/wireplumber/wireplumber.conf
 
-ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]
+ENTRYPOINT ["supervisord", "-c", "/etc/nestri/supervisord.conf"]
