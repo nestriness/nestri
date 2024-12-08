@@ -200,11 +200,15 @@ func ingestHandler(room *Room) {
 	})
 
 	room.WebSocket.RegisterOnClose(func() {
-		// If PeerConnection is not open or does not exist, delete room
-		if (room.PeerConnection != nil && room.PeerConnection.ConnectionState() != webrtc.PeerConnectionStateConnected) ||
-			room.PeerConnection == nil {
-			DeleteRoomIfEmpty(room)
+		// If PeerConnection is still open, close it
+		if room.PeerConnection != nil {
+			if err = room.PeerConnection.Close(); err != nil {
+				log.Printf("Failed to close PeerConnection for room: '%s' - reason: %s\n", room.Name, err)
+			}
+			room.PeerConnection = nil
 		}
+		room.Online = false
+		DeleteRoomIfEmpty(room)
 	})
 
 	log.Printf("Room: '%s' is ready, sending an OK\n", room.Name)

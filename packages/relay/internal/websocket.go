@@ -10,6 +10,7 @@ import (
 type SafeWebSocket struct {
 	*websocket.Conn
 	sync.Mutex
+	closeCallback   func()                       // OnClose callback
 	binaryCallbacks map[string]OnMessageCallback // MessageBase type -> callback
 }
 
@@ -17,6 +18,7 @@ type SafeWebSocket struct {
 func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 	ws := &SafeWebSocket{
 		Conn:            conn,
+		closeCallback:   nil,
 		binaryCallbacks: make(map[string]OnMessageCallback),
 	}
 
@@ -32,10 +34,6 @@ func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 				}
 				break
 			} else if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
-				// If closing, just break
-				if GetFlags().Verbose {
-					log.Printf("WebSocket closing\n")
-				}
 				break
 			} else if err != nil {
 				log.Printf("Failed to read WebSocket message, reason: %s\n", err)
@@ -61,6 +59,11 @@ func NewSafeWebSocket(conn *websocket.Conn) *SafeWebSocket {
 			default:
 				log.Printf("Unknown WebSocket message type: %d\n", kind)
 			}
+		}
+
+		// Call close callback
+		if ws.closeCallback != nil {
+			ws.closeCallback()
 		}
 	}()
 
@@ -102,13 +105,12 @@ func (ws *SafeWebSocket) UnregisterMessageCallback(msgType string) {
 
 // RegisterOnClose sets the callback for websocket closing
 func (ws *SafeWebSocket) RegisterOnClose(callback func()) {
-	ws.SetCloseHandler(func(code int, text string) error {
+	ws.closeCallback = func() {
 		// Clear our callbacks
 		ws.Lock()
 		ws.binaryCallbacks = nil
 		ws.Unlock()
 		// Call the callback
 		callback()
-		return nil
-	})
+	}
 }
