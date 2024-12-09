@@ -1,19 +1,18 @@
 #Tabs not spaces, you moron :)
 
-name: Build nestri:runner
-
+name: Build nestri:relay
 on:
     pull_request:
         paths:
-            - "containers/runner.Containerfile"
-            - ".github/workflows/runner.yml"
+            - "containers/relay.Containerfile"
+            - ".github/workflows/relay.yml"
     schedule:
         - cron: 0 0 * * * # At the end of everyday
     push:
         branches: [main]
         paths:
-            - "containers/runner.Containerfile"
-            - ".github/workflows/runner.yml"
+            - "containers/relay.Containerfile"
+            - ".github/workflows/relay.yml"
         tags:
             - v*.*.*
     release:
@@ -22,12 +21,7 @@ on:
 env:
     REGISTRY: ghcr.io
     IMAGE_NAME: nestrilabs/nestri
-    BASE_TAG_PREFIX: runner
-
-# This makes our release ci quit prematurely
-# concurrency:
-#     group: ci-${{ github.ref }}
-#     cancel-in-progress: true
+    BASE_TAG_PREFIX: relay
 
 jobs:
     build-docker-pr:
@@ -45,12 +39,12 @@ jobs:
               name: Build Docker image
               uses: docker/build-push-action@v5
               with:
-                file: containers/runner.Containerfile
+                file: containers/relay.Containerfile
                 context: ./
                 push: false
                 load: true
-                tags: nestri:runner
-
+                tags: nestri:relay
+    
     build-docker-main:
         name: Build image on main
         if: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
@@ -87,7 +81,7 @@ jobs:
               name: Build Docker image
               uses: docker/build-push-action@v5
               with:
-                file:  containers/runner.Containerfile
+                file:  containers/relay.Containerfile
                 context: ./
                 push: true
                 tags: ${{ steps.meta.outputs.tags }}

@@ -9,7 +9,7 @@ WORKDIR /builder/
 
 # Grab build and rust packages #
 RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
-	gstreamer gst-plugins-base gst-plugins-good
+	gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
 
 # Setup stable rust toolchain #
 RUN rustup default stable
@@ -44,7 +44,7 @@ RUN mkdir plugin && \
 
 
 #******************************************************************************
-#                                                                       runtime
+#                                                                                                                             runtime
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
 
@@ -69,14 +69,14 @@ RUN pacman -Syu --noconfirm --needed \
 ENV USER="nestri" \
 	UID=99 \
 	GID=100 \
-	USER_PASSWORD="nestri1234"
+	USER_PWD="nestri1234"
 
 RUN mkdir -p /home/${USER} && \
     groupadd -g ${GID} ${USER} && \
     useradd -d /home/${USER} -u ${UID} -g ${GID} -s /bin/bash ${USER} && \
     chown -R ${USER}:${USER} /home/${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    echo "${USER}:${USER_PASSWORD}" | chpasswd
+    echo "${USER}:${USER_PWD}" | chpasswd
 
 # Run directory #
 RUN mkdir -p /run/user/${UID} && \
