@@ -9,7 +9,7 @@ WORKDIR /builder/
 
 # Grab build and rust packages #
 RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
-	gstreamer gst-plugins-base gst-plugins-good
+	gstreamer gst-plugins-base gst-plugins-good gst-plugin-rswebrtc
 
 # Setup stable rust toolchain #
 RUN rustup default stable
