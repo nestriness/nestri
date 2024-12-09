@@ -2,7 +2,7 @@
 ARG BASE_IMAGE=docker.io/cachyos/cachyos-v3:latest
 
 #******************************************************************************
-#                                                                   gst-builder
+#                                                                                                          nestri-server-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gst-builder
 WORKDIR /builder/
@@ -13,15 +13,15 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 
 # Setup stable rust toolchain #
 RUN rustup default stable
-# Clone nestri source #
-RUN git clone -b feat/stream https://github.com/DatCaptainHorse/nestri.git
+# # Clone nestri source #
+#Copy the whole repo inside the build container
+COPY ./ /builder/nestri/
 
-# Build nestri #
-RUN cd nestri/packages/server/ && \
+RUN cd /builder/nestri/packages/server/ && \
     cargo build --release
 
 #******************************************************************************
-#                                                            gstwayland-builder
+#                                                                                                            gstwayland-builder
 #******************************************************************************
 FROM ${BASE_IMAGE} AS gstwayland-builder
 WORKDIR /builder/
@@ -44,7 +44,7 @@ RUN mkdir plugin && \
 
 
 #******************************************************************************
-#                                                                       runtime
+#                                                                                                                             runtime
 #******************************************************************************
 FROM ${BASE_IMAGE} AS runtime
 
@@ -69,14 +69,14 @@ RUN pacman -Syu --noconfirm --needed \
 ENV USER="nestri" \
 	UID=99 \
 	GID=100 \
-	USER_PASSWORD="nestri1234"
+	USER_PWD="nestri1234"
 
 RUN mkdir -p /home/${USER} && \
     groupadd -g ${GID} ${USER} && \
     useradd -d /home/${USER} -u ${UID} -g ${GID} -s /bin/bash ${USER} && \
     chown -R ${USER}:${USER} /home/${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    echo "${USER}:${USER_PASSWORD}" | chpasswd
+    echo "${USER}:${USER_PWD}" | chpasswd
 
 # Run directory #
 RUN mkdir -p /run/user/${UID} && \
