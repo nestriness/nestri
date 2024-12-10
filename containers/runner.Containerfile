@@ -17,7 +17,11 @@ RUN rustup default stable
 #Copy the whole repo inside the build container
 COPY ./ /builder/nestri/
 
-RUN cd /builder/nestri/packages/server/ && \
+WORKDIR /builder/nestri/packages/server/ 
+
+RUN --mount=type=cache,target=/builder/target/   \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
     cargo build --release
 
 #******************************************************************************
@@ -33,13 +37,23 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # Build required cargo-c package #
-RUN cargo install cargo-c
+RUN --mount=type=cache,target=/builder/target/   \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cargo install cargo-c
+
 # Clone gst plugin source #
-RUN git clone https://github.com/games-on-whales/gst-wayland-display.git
+RUN --mount=type=cache,target=/builder/gst-wayland-display/ \
+    git clone https://github.com/games-on-whales/gst-wayland-display.git
 
 # Build gst plugin #
 RUN mkdir plugin && \
-	cd gst-wayland-display && \
+	cd gst-wayland-display
+
+RUN --mount=type=cache,target=/builder/target/   \
+    --mount=type=cache,target=/builder/plugin/   \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
 	cargo cinstall --prefix=/builder/plugin/
 
 
