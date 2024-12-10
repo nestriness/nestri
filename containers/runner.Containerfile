@@ -44,6 +44,7 @@ RUN rustup default stable
 RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=cache,target=/root/.cargo/bin/ \
     cargo install cargo-c
 
 # Clone gst plugin source #
