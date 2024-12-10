@@ -46,8 +46,9 @@ RUN --mount=type=cache,target=/builder/target/   \
 RUN git clone https://github.com/games-on-whales/gst-wayland-display.git
 
 # Build gst plugin #
-RUN mkdir plugin && \
-	cd gst-wayland-display
+RUN mkdir plugin
+
+WORKDIR /builder/gst-wayland-display
 
 RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/builder/plugin/   \
