@@ -15,11 +15,12 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 RUN rustup default stable
 
 #Copy the whole repo inside the build container
-COPY ./ /builder/nestri/
+# COPY ./ /builder/nestri/
 
 RUN mkdir -p /artifacts
 
-RUN --mount=type=cache,target=/builder/nestri/target/   \
+RUN --mount=type=bind,target=/builder/nestri/ \
+    --mount=type=cache,target=/builder/nestri/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cd /builder/nestri/packages/server/ \
