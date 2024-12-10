@@ -13,12 +13,19 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 
 # Setup stable rust toolchain #
 RUN rustup default stable
-# # Clone nestri source #
-#Copy the whole repo inside the build container
-COPY ./ /builder/nestri/
 
-RUN cd /builder/nestri/packages/server/ && \
-    cargo build --release
+#Copy the whole repo inside the build container
+# COPY ./ /builder/nestri/
+
+RUN mkdir -p /artifacts
+
+RUN --mount=type=bind,target=/builder/nestri/,rw \
+    --mount=type=cache,target=/builder/nestri/target/   \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cd /builder/nestri/packages/server/ \
+    && cargo build --release \
+    && cp /builder/nestri/target/release/nestri-server /artifacts/
 
 #******************************************************************************
 #                                                                                                            gstwayland-builder
@@ -33,15 +40,28 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # Build required cargo-c package #
-RUN cargo install cargo-c
+RUN --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=cache,target=/root/.cargo/bin/ \
+    cargo install cargo-c
+
 # Clone gst plugin source #
 RUN git clone https://github.com/games-on-whales/gst-wayland-display.git
 
 # Build gst plugin #
-RUN mkdir plugin && \
-	cd gst-wayland-display && \
-	cargo cinstall --prefix=/builder/plugin/
+RUN mkdir plugin
 
+RUN mkdir -p /artifacts
+
+WORKDIR /builder/gst-wayland-display
+
+RUN --mount=type=cache,target=/builder/gst-wayland-display/target/  \
+    --mount=type=cache,target=/root/.cargo/bin/ \
+    --mount=type=cache,target=/builder/plugin/  \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+	cargo cinstall --prefix=/builder/plugin/ \
+    && cp -r /builder/plugin/ /artifacts/
 
 #******************************************************************************
 #                                                                                                                             runtime
@@ -62,7 +82,6 @@ RUN pacman -Syu --noconfirm --needed \
     supervisor jq chwd lshw pacman-contrib && \
     # Clean up pacman cache
     paccache -rk1
-
 
 ## User ##
 # Create and setup user #
@@ -90,13 +109,13 @@ RUN usermod -aG input root && usermod -aG input ${USER} && \
 ## Copy files from builders ##
 # this is done here at end to not trigger full rebuild on changes to builder
 # nestri
-COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
+COPY --from=gst-builder /artifacts/nestri-server /usr/bin/nestri-server
 # gstwayland
-COPY --from=gstwayland-builder /builder/plugin/include/libgstwaylanddisplay /usr/include/
-COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
-COPY --from=gstwayland-builder /builder/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
-COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
-COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/plugin/include/libgstwaylanddisplay /usr/include/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/*libgstwayland* /usr/lib/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
 
 ## Copy scripts ##
 COPY packages/scripts/ /etc/nestri/
