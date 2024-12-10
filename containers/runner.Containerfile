@@ -19,10 +19,12 @@ COPY ./ /builder/nestri/
 
 WORKDIR /builder/nestri/packages/server/ 
 
+RUN mkdir -p /artifacts
+
 RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --release
+    cargo build --release && cp /build/target/release/nestri-server /artifacts/
 
 #******************************************************************************
 #                                                                                                            gstwayland-builder
@@ -48,14 +50,15 @@ RUN git clone https://github.com/games-on-whales/gst-wayland-display.git
 # Build gst plugin #
 RUN mkdir plugin
 
+RUN mkdir -p /artifacts
+
 WORKDIR /builder/gst-wayland-display
 
 RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/builder/plugin/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-	cargo cinstall --prefix=/builder/plugin/
-
+	cargo cinstall --prefix=/builder/plugin/ && cp -r /builder/plugin/ /artifacts/
 
 #******************************************************************************
 #                                                                                                                             runtime
@@ -76,7 +79,6 @@ RUN pacman -Syu --noconfirm --needed \
     supervisor jq chwd lshw pacman-contrib && \
     # Clean up pacman cache
     paccache -rk1
-
 
 ## User ##
 # Create and setup user #
@@ -104,13 +106,13 @@ RUN usermod -aG input root && usermod -aG input ${USER} && \
 ## Copy files from builders ##
 # this is done here at end to not trigger full rebuild on changes to builder
 # nestri
-COPY --from=gst-builder /builder/nestri/target/release/nestri-server /usr/bin/nestri-server
+COPY --from=gst-builder /artifacts/nestri-server /usr/bin/nestri-server
 # gstwayland
-COPY --from=gstwayland-builder /builder/plugin/include/libgstwaylanddisplay /usr/include/
-COPY --from=gstwayland-builder /builder/plugin/lib/*libgstwayland* /usr/lib/
-COPY --from=gstwayland-builder /builder/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
-COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
-COPY --from=gstwayland-builder /builder/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/include/libgstwaylanddisplay /usr/include/
+COPY --from=gstwayland-builder /artifacts/lib/*libgstwayland* /usr/lib/
+COPY --from=gstwayland-builder /artifacts/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
+COPY --from=gstwayland-builder /artifacts/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
 
 ## Copy scripts ##
 COPY packages/scripts/ /etc/nestri/
