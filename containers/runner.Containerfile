@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cd /builder/nestri/packages/server/ \
     && cargo build --release \
-    && cp /builder/target/release/nestri-server /artifacts/
+    && cp /builder/nestri/target/release/nestri-server /artifacts/
 
 #******************************************************************************
 #                                                                                                            gstwayland-builder
