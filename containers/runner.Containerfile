@@ -17,14 +17,16 @@ RUN rustup default stable
 #Copy the whole repo inside the build container
 COPY ./ /builder/nestri/
 
-WORKDIR /builder/nestri/packages/server/ 
+# WORKDIR /builder/nestri/packages/server/ 
 
 RUN mkdir -p /artifacts
 
 RUN --mount=type=cache,target=/builder/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --release && cp /build/target/release/nestri-server /artifacts/
+    cd /builder/nestri/packages/server/ \
+    && cargo build --release \
+    && cp /builder/target/release/nestri-server /artifacts/
 
 #******************************************************************************
 #                                                                                                            gstwayland-builder
@@ -58,7 +60,8 @@ RUN --mount=type=cache,target=/builder/target/  \
     --mount=type=cache,target=/builder/plugin/  \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-	cargo cinstall --prefix=/builder/plugin/ && cp -r /builder/plugin/ /artifacts/
+	cargo cinstall --prefix=/builder/plugin/ \
+    && cp -r /builder/plugin/ /artifacts/
 
 #******************************************************************************
 #                                                                                                                             runtime
