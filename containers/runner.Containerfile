@@ -108,11 +108,11 @@ RUN usermod -aG input root && usermod -aG input ${USER} && \
 # nestri
 COPY --from=gst-builder /artifacts/nestri-server /usr/bin/nestri-server
 # gstwayland
-COPY --from=gstwayland-builder /artifacts/include/ /usr/include/
-COPY --from=gstwayland-builder /artifacts/lib/*libgstwayland* /usr/lib/
-COPY --from=gstwayland-builder /artifacts/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
-COPY --from=gstwayland-builder /artifacts/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
-COPY --from=gstwayland-builder /artifacts/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/plugin/include/libgstwaylanddisplay /usr/include/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/*libgstwayland* /usr/lib/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/gstreamer-1.0/libgstwayland* /usr/lib/gstreamer-1.0/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/pkgconfig/gstwayland* /usr/lib/pkgconfig/
+COPY --from=gstwayland-builder /artifacts/plugin/lib/pkgconfig/libgstwayland* /usr/lib/pkgconfig/
 
 ## Copy scripts ##
 COPY packages/scripts/ /etc/nestri/
