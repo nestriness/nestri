@@ -13,11 +13,9 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 
 # Setup stable rust toolchain #
 RUN rustup default stable
-# # Clone nestri source #
+
 #Copy the whole repo inside the build container
 COPY ./ /builder/nestri/
-
-# WORKDIR /builder/nestri/packages/server/ 
 
 RUN mkdir -p /artifacts
 
