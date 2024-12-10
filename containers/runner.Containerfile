@@ -19,7 +19,7 @@ RUN rustup default stable
 
 RUN mkdir -p /artifacts
 
-RUN --mount=type=bind,target=/builder/nestri/ \
+RUN --mount=type=bind,target=/builder/nestri/,rw \
     --mount=type=cache,target=/builder/nestri/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
