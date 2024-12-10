@@ -21,7 +21,7 @@ COPY ./ /builder/nestri/
 
 RUN mkdir -p /artifacts
 
-RUN --mount=type=cache,target=/builder/target/   \
+RUN --mount=type=cache,target=/builder/nestri/target/   \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cd /builder/nestri/packages/server/ \
@@ -41,8 +41,7 @@ RUN pacman -Syu --noconfirm meson pkgconf cmake git gcc make rustup \
 # Setup stable rust toolchain #
 RUN rustup default stable
 # Build required cargo-c package #
-RUN --mount=type=cache,target=/builder/target/   \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
+RUN --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     --mount=type=cache,target=/root/.cargo/bin/ \
     cargo install cargo-c
@@ -57,7 +56,8 @@ RUN mkdir -p /artifacts
 
 WORKDIR /builder/gst-wayland-display
 
-RUN --mount=type=cache,target=/builder/target/  \
+RUN --mount=type=cache,target=/builder/gst-wayland-display/target/  \
+    --mount=type=cache,target=/root/.cargo/bin/ \
     --mount=type=cache,target=/builder/plugin/  \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
