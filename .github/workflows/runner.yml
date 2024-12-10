@@ -6,6 +6,7 @@ on:
     pull_request:
         paths:
             - "containers/runner.Containerfile"
+            - "packages/server/**"
             - ".github/workflows/runner.yml"
     schedule:
         - cron: 0 0 * * * # At the end of everyday
@@ -14,6 +15,7 @@ on:
         paths:
             - "containers/runner.Containerfile"
             - ".github/workflows/runner.yml"
+            - "packages/server/**"
         tags:
             - v*.*.*
     release:

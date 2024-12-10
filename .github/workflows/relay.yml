@@ -5,6 +5,7 @@ on:
     pull_request:
         paths:
             - "containers/relay.Containerfile"
+            - "packages/relay/**"
             - ".github/workflows/relay.yml"
     schedule:
         - cron: 0 0 * * * # At the end of everyday
@@ -13,6 +14,7 @@ on:
         paths:
             - "containers/relay.Containerfile"
             - ".github/workflows/relay.yml"
+            - "packages/relay/**"
         tags:
             - v*.*.*
     release:
