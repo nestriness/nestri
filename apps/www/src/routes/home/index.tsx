@@ -1,12 +1,45 @@
 import { component$ } from "@builder.io/qwik";
-import { HomeNavBar, Card } from "@nestri/ui";
+import { HomeNavBar } from "@nestri/ui";
 
-function getGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good Morning";
-    if (hour >= 12 && hour < 18) return "Good Afternoon";
-    return "Good Evening";
-}
+const icons = [
+    // {
+    //     icon: "https://framerusercontent.com/images/tvMz2bcYNcZtI2YPD2blDNogzDA.png",
+    //     label: "Finder"
+    // },
+    // {
+    //     icon: "https://framerusercontent.com/images/lykOj3xsaQWFncrRJf0PQaJC0.png",
+    //     label: "Multi"
+    // }, 
+      {
+        icon: "https://cdn-1.webcatalog.io/catalog/steam-web-store/steam-web-store-icon-filled-256.webp?v=1714775986747",
+        label: "Steam"
+    }, 
+    {
+        icon: "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/1091500/3d642f225dfb69962f5d8d36f7868caf9febf90d.ico",
+        label: "Cyberpunk 2077"
+    },{
+        icon: "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/1568400/f954b5bd7c6a041a73ab8362dd207e4b79d57a37.ico",
+        label: "Sheepy: A Short Adventure"
+    },{
+        icon: "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/1174180/5bf6edd7efb1110b457da905e7ac696c6c619ed1.ico",
+        label: "Red Dead Redemption 2"
+    },{
+        icon: "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/1663220/0c54ad0aa052c7218540416512c71a860a382388.ico",
+        label: "Coffee Talk Episode 2: Hibiscus & Butterfly"
+    },
+    // {
+    //     icon: "https://framerusercontent.com/images/L5EHzir7oVTY67QVRBnRAjAugXk.png",
+    //     label: "Sally's Xcode"
+    // }, {
+    //     icon: "https://framerusercontent.com/images/CWJH4LdVKLxfs83b5rUDcjSHM.png",
+    //     label: "Kim's Diagram"
+    // }, 
+    {
+        icon: "https://framerusercontent.com/images/lhfyHPlKFxlLMSiIJMr053Ewd0.png",
+        label: "Bin"
+    },
+
+]
 
 export default component$(() => {
     return (
@@ -29,91 +62,31 @@ export default component$(() => {
                     </div>
                 </div>
             </section>
-            {/* <section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
-                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
-            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
-                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
-            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
-                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
-            </section><section class="w-full before:inset-0 before:absolute before:z-[1] relative after:bg-gradient-to-b after:from-transparent after:from-60% after:to-black before:[background:linear-gradient(90deg,transparent_70%,#000),linear-gradient(-90deg,transparent_70%,#000)]" >
-                <img src="https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/359550/library_hero_2x.jpg" height={200} width={300} class="w-full aspect-[96/31]"/>
-            </section> */}
-            {/* <section class="flex flex-col gap-4 justify-center pt-20 items-center w-full text-left pb-4">
-                <div class="flex flex-col gap-4 mx-auto max-w-2xl w-full">
-                    <h1 class="text-5xl font-bold font-title">{getGreeting()},&nbsp;<span>Wanjohi</span></h1>
-                    <p class="dark:text-gray-50/70 text-gray-950/70 text-xl">What will you play today?</p>
+            <div class="absolute bottom-0 w-full">
+                <div class="mx-auto w-max h-[64px] gap-1 items-end relative justify-center py-1 px-1.5 flex-row -translate-y-2 flex border backdrop-blur-xl bg-black/30 rounded-2xl [box-shadow:rgba(0,0,0,0.15)_0px_0px_29p_0px,rgba(255,255,255,0.08)_0px_0px_0px_1px] ">
+                    {icons.map((icon, key) => (
+                        <div key={`icon-${key}`} class="relative size-[56px] group flex items-center justify-center hover:cursor-pointer hover:size-[80px] transition-all duration-200 rounded-3xl">
+                            <img draggable={false} src={icon.icon} height={56} width={56} class="w-full h-full rounded-2xl group-hover:rounded-2xl" alt="Icon" />
+                            <div class="hidden group-hover:block absolute text-white text-center z-[1] w-max px-4 py-1 bottom-[90px] bg-gray-800 rounded-md transition-opacity duration-[.6s] after:top-full after:absolute after:border-[7px] after:-ml-[5px] after:left-1/2 after:[border-color:theme(colors.gray.800)_transparent_transparent_transparent] font-title">
+                                {icon.label}
+                            </div>
+                        </div>
+                    ))}
+                    {/* <div class="size-[56px] hover:cursor-pointer hover:size-[80px] transition-all duration-200 relative rounded-3xl">
+                        <img draggable={false} src="https://framerusercontent.com/images/lykOj3xsaQWFncrRJf0PQaJC0.png" height={56} width={56} class="w-full h-full" alt="Icon" />
+                    </div>
+                    <div class="size-[56px] hover:cursor-pointer hover:size-[80px] transition-all duration-200 relative rounded-3xl">
+                        <img draggable={false} src="https://framerusercontent.com/images/L5EHzir7oVTY67QVRBnRAjAugXk.png" height={56} width={56} class="w-full h-full" alt="Icon" />
+                    </div>
+                    <div class="size-[56px] hover:cursor-pointer hover:size-[80px] transition-all duration-200 relative rounded-3xl">
+                        <img draggable={false} src="https://framerusercontent.com/images/CWJH4LdVKLxfs83b5rUDcjSHM.png" height={56} width={56} class="w-full h-full" alt="Icon" />
+                    </div>
+                    <div class="bg-white/40 mb-1 h-12 w-[2px]" />
+                    <div class="size-[56px] hover:cursor-pointer hover:size-[80px] transition-all duration-200 -left-0.5 relative rounded-3xl">
+                        <img draggable={false} src="https://framerusercontent.com/images/lhfyHPlKFxlLMSiIJMr053Ewd0.png" height={56} width={56} class="w-full h-full" alt="Icon" />
+                    </div> */}
                 </div>
-            </section> */}
-            {/* <section class="flex flex-col gap-4 justify-center pt-10 items-center w-full text-left pb-4">
-                <ul class="gap-4 relative list-none w-full max-w-xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 after:pointer-events-none after:select-none after:bg-gradient-to-b after:from-transparent after:dark:to-gray-900 after:to-gray-100 after:fixed after:left-0 after:-bottom-[1px] after:z-10 after:backdrop-blur-sm after:h-[100px] after:w-full after:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.100)_50%,transparent)] after:dark:[-webkit-mask-image:linear-gradient(to_top,theme(colors.primary.900)_50%,transparent)]">
-                    <li class="col-span-full">
-                        <Card
-                            size="large"
-                            titleWidth={55.61}
-                            titleHeight={100}
-                            game={{
-                                name: 'Control Ultimate Edition',
-                                id: 870780
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            size="small"
-                            titleWidth={56.30}
-                            titleHeight={69.79}
-                            game={{
-                                name: 'Black Myth: Wukong',
-                                id: 2358720,
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            size="small"
-                            titleWidth={34.09}
-                            titleHeight={98.26}
-                            game={{
-                                name: 'The Lord of the Rings: Return to Moria™',
-                                id: 2933130,
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            size="small"
-                            titleWidth={48.77}
-                            titleHeight={100}
-                            game={{
-                                name: 'Grand Theft Auto V',
-                                id: 271590,
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            titleWidth={31.65}
-                            titleHeight={82.87}
-                            size="small"
-                            game={{
-                                name: 'Apex Legends',
-                                id: 1172470,
-                            }}
-                        />
-                    </li>
-                    <li>
-                        <Card
-                            size="small"
-                            titleHeight={99.75}
-                            titleWidth={73.44}
-                            game={{
-                                name: "Tom Clancy's Rainbow Six Siege",
-                                id: 359550,
-                            }}
-                        />
-                    </li>
-                </ul>
-            </section> */}
+            </div>
         </>
     )
 })
