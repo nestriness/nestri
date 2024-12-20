@@ -52,11 +52,14 @@ export default component$(() => {
                 </div>
             </section>
             <div class="absolute bottom-0 w-full">
-                <div class="mx-auto w-min h-[64px] gap-1 items-end relative justify-center py-1 px-1.5 flex-row -translate-y-2 flex border backdrop-blur-xl bg-black/30 rounded-2xl [box-shadow:rgba(0,0,0,0.15)_0px_0px_29p_0px,rgba(255,255,255,0.08)_0px_0px_0px_1px] ">
+                <div class="mx-auto w-max h-[64px] gap-1 items-end relative justify-center py-1 px-1.5 flex-row -translate-y-2 flex border backdrop-blur-xl bg-black/30 rounded-2xl [box-shadow:rgba(0,0,0,0.15)_0px_0px_29p_0px,rgba(255,255,255,0.08)_0px_0px_0px_1px] ">
                     {icons.map((icon, key) => (
-                        <div key={`icon-${key}`} class="size-[56px] group hover:cursor-pointer hover:size-[80px] transition-all duration-200 relative rounded-3xl">
+                        <div key={`icon-${key}`} class="relative size-[56px] group flex items-center justify-center hover:cursor-pointer hover:size-[80px] transition-all duration-200 rounded-3xl">
                             <img draggable={false} src={icon.icon} height={56} width={56} class="w-full h-full" alt="Icon" />
-                            <div class="rounded-[8.95px] bottom-[80px] hidden group-hover:block transition-all duration-300 absolute h-11 -left-[42px] -right-[42px]">
+                            <div class="hidden group-hover:block absolute text-white text-center z-[1] w-max px-4 py-1 bottom-[85px] bg-gray-800 rounded-md transition-opacity duration-[.6s] after:top-full after:absolute after:border-[7px] after:-ml-[5px] after:left-1/2 after:[border-color:theme(colors.gray.800)_transparent_transparent_transparent] font-title">
+                                {icon.label}
+                            </div>
+                            {/* <div class="rounded-[8.95px] bottom-[80px] hidden group-hover:block transition-all duration-300 absolute h-11 -left-[42px] -right-[42px]">
                                 <div class="w-[82px] left-[41px] top-0 absolute height-[43px] fill-black text-black opacity-90">
                                     <svg width="82" height="43" viewBox="0 0 82 43" fill="none" class="size-full">
                                         <g filter="url(#filter)">
@@ -92,7 +95,7 @@ export default component$(() => {
                                 <div class="-translate-y-1/2 -translate-x-1/2 left-[51%] absolute top-[40%] whitespace-pre flex justify-start flex-col items-center">
                                     <p class="text-lg text-gray-100/90 text-center w-full h-full font-title" >{icon.label}</p>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     ))}
                     {/* <div class="size-[56px] hover:cursor-pointer hover:size-[80px] transition-all duration-200 relative rounded-3xl">
